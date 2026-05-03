@@ -3577,9 +3577,33 @@ function ShareDialog({
   // Build the payload right now based on current options
   const payload = buildSharePayload({ kind, entity, options: includeOptions, items, kits, categories, packlists });
 
-  // Username search result
-  const matched = recipientInput.trim() ? findUserByUsername(recipientInput.trim(), currentUser) : null;
+  // Username search — debounced async lookup against Supabase.
+  // Re-runs whenever recipientInput changes; cancels in-flight if user types more.
+  const [matched, setMatched] = useState(null);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const value = recipientInput.trim();
+    if (!value) { setMatched(null); setSearching(false); return; }
+    // Self-check first — synchronous
+    if (currentUser?.username && currentUser.username.toLowerCase() === value.toLowerCase()) {
+      setMatched({ username: currentUser.username, name: currentUser.name, region: currentUser.region, isSelf: true });
+      setSearching(false);
+      return;
+    }
+    // Async lookup with 300ms debounce + cancellation
+    setSearching(true);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const found = await supabaseService.findUser(value);
+      if (cancelled) return;
+      setMatched(found);
+      setSearching(false);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [recipientInput, currentUser?.username]);
+
   const usernameStatus = !recipientInput.trim() ? null
+    : searching ? "searching"
     : matched?.isSelf ? "self"
     : matched ? "found"
     : "notfound";
@@ -3776,6 +3800,9 @@ function ShareDialog({
             />
             {recipientInput.trim() && (
               <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, fontFamily: F.body, fontSize: 13 }}>
+                {usernameStatus === "searching" && (
+                  <span style={{ color: C.muted, fontStyle: "italic" }}>Searching…</span>
+                )}
                 {usernameStatus === "found" && (
                   <>
                     <Check size={14} strokeWidth={3} color={C.forest} />
