@@ -270,6 +270,51 @@ const supabaseService = {
     if (error) return { error: error.message };
     return { ok: true };
   },
+
+  // Browse the public library — only returns approved items.
+  // Filters: kind, activity, region. All optional.
+  fetchLibrary: async ({ kind, activity, region, limit = 60 } = {}) => {
+    let q = supabase
+      .from("library_items")
+      .select("id, publisher_user_id, publisher_username, publisher_region, kind, title, description, activity, view_count, import_count, created_at")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (kind) q = q.eq("kind", kind);
+    if (activity) q = q.eq("activity", activity);
+    if (region) q = q.eq("publisher_region", region);
+    const { data, error } = await q;
+    if (error) return [];
+    return data || [];
+  },
+
+  // Fetch full library item details (including payload)
+  fetchLibraryItem: async (id) => {
+    const { data, error } = await supabase
+      .from("library_items")
+      .select("*")
+      .eq("id", id)
+      .eq("status", "approved")
+      .maybeSingle();
+    if (error) return null;
+    return data;
+  },
+
+  // Atomically increment a counter
+  incrementLibraryCount: async (id, field) => {
+    await supabase.rpc("increment_library_count", { item_id: id, field });
+  },
+
+  // Submit a report against a library item
+  submitReport: async ({ libraryItemId, reporterId, reason }) => {
+    const { error } = await supabase.from("reports").insert({
+      library_item_id: libraryItemId,
+      reporter_user_id: reporterId,
+      reason: reason || null,
+    });
+    if (error) return { error: error.message };
+    return { ok: true };
+  },
 };
 
 const C = {
@@ -379,6 +424,7 @@ const TRANSLATIONS = {
     "nav.packlists": "Packlists",
     "nav.cart": "Cart",
     "nav.inbox": "Inbox",
+    "nav.library": "Library",
 
     // === Sharing & Inbox ===
     "share.btn": "Share",
@@ -419,6 +465,50 @@ const TRANSLATIONS = {
     "lib.subDeleteYes": "Yes, delete",
     "lib.subRejectReason": "Reason: {r}",
     "lib.viewMySubs": "View my submissions",
+
+    // === Library browse screen ===
+    "libBrowse.section": "SECTION LIBRARY",
+    "libBrowse.titleA": "Community",
+    "libBrowse.titleB": "library",
+    "libBrowse.tagline": "Lists curated and shared by other explorers.",
+    "libBrowse.tabKits": "Kits {n}",
+    "libBrowse.tabCategories": "Categories {n}",
+    "libBrowse.tabTrips": "Trips {n}",
+    "libBrowse.filterAll": "All",
+    "libBrowse.filterRegion": "Region",
+    "libBrowse.filterActivity": "Activity",
+    "libBrowse.empty": "Nothing here yet.",
+    "libBrowse.emptyHint": "Be the first to publish a {kind} for this filter.",
+    "libBrowse.emptyAll": "The library is empty for now.",
+    "libBrowse.emptyAllHint": "Publish a kit, category, or trip from your inventory.",
+    "libBrowse.publishedBy": "Published by",
+    "libBrowse.viewItem": "View details",
+    "libBrowse.imports_one": "1 import",
+    "libBrowse.imports_many": "{n} imports",
+    "libBrowse.views_one": "1 view",
+    "libBrowse.views_many": "{n} views",
+
+    // Library detail / preview
+    "libDetail.back": "Back to library",
+    "libDetail.publishedBy": "Published by",
+    "libDetail.publishedOn": "Published on {date}",
+    "libDetail.contents": "Contents",
+    "libDetail.import": "Add to my inventory",
+    "libDetail.importing": "Importing...",
+    "libDetail.imported": "Added to your inventory!",
+    "libDetail.alreadyImported": "Already in your inventory",
+    "libDetail.report": "Report",
+    "libDetail.reportTitle": "Report this item",
+    "libDetail.reportSub": "Tell us what's wrong. Reports are reviewed by an admin.",
+    "libDetail.reportPh": "Spam, inappropriate content, copyright issue...",
+    "libDetail.reportSubmit": "Submit report",
+    "libDetail.reportThanks": "Thanks — your report has been submitted.",
+    "libDetail.reportClose": "Close",
+
+    // Dashboard library card
+    "dash.libraryCardTitle": "The library",
+    "dash.libraryCardTag": "Browse and import lists curated by the community",
+    "dash.libraryCardCta": "Open library",
     "share.dialogTitle": "Share with another explorer",
     "share.dialogSub": "Send a copy or a live link.",
     "share.recipient": "Recipient",
@@ -897,6 +987,7 @@ const TRANSLATIONS = {
     "nav.packlists": "Listas",
     "nav.cart": "Carrito",
     "nav.inbox": "Bandeja",
+    "nav.library": "Biblioteca",
 
     "share.btn": "Compartir",
 
@@ -934,6 +1025,47 @@ const TRANSLATIONS = {
     "lib.subDeleteYes": "Sí, borrar",
     "lib.subRejectReason": "Motivo: {r}",
     "lib.viewMySubs": "Ver mis publicaciones",
+
+    "libBrowse.section": "SECCIÓN BIBLIOTECA",
+    "libBrowse.titleA": "Biblioteca",
+    "libBrowse.titleB": "comunitaria",
+    "libBrowse.tagline": "Listas curadas y compartidas por otros exploradores.",
+    "libBrowse.tabKits": "Kits {n}",
+    "libBrowse.tabCategories": "Categorías {n}",
+    "libBrowse.tabTrips": "Viajes {n}",
+    "libBrowse.filterAll": "Todo",
+    "libBrowse.filterRegion": "Región",
+    "libBrowse.filterActivity": "Actividad",
+    "libBrowse.empty": "Nada aquí todavía.",
+    "libBrowse.emptyHint": "Sé el primero en publicar un {kind} para este filtro.",
+    "libBrowse.emptyAll": "La biblioteca está vacía por ahora.",
+    "libBrowse.emptyAllHint": "Publica un kit, categoría o viaje desde tu inventario.",
+    "libBrowse.publishedBy": "Publicado por",
+    "libBrowse.viewItem": "Ver detalles",
+    "libBrowse.imports_one": "1 importación",
+    "libBrowse.imports_many": "{n} importaciones",
+    "libBrowse.views_one": "1 vista",
+    "libBrowse.views_many": "{n} vistas",
+
+    "libDetail.back": "Volver a la biblioteca",
+    "libDetail.publishedBy": "Publicado por",
+    "libDetail.publishedOn": "Publicado el {date}",
+    "libDetail.contents": "Contenido",
+    "libDetail.import": "Añadir a mi inventario",
+    "libDetail.importing": "Importando...",
+    "libDetail.imported": "¡Añadido a tu inventario!",
+    "libDetail.alreadyImported": "Ya está en tu inventario",
+    "libDetail.report": "Reportar",
+    "libDetail.reportTitle": "Reportar este elemento",
+    "libDetail.reportSub": "Cuéntanos qué problema tiene. Un administrador revisará el reporte.",
+    "libDetail.reportPh": "Spam, contenido inapropiado, problema de derechos de autor...",
+    "libDetail.reportSubmit": "Enviar reporte",
+    "libDetail.reportThanks": "Gracias — tu reporte ha sido enviado.",
+    "libDetail.reportClose": "Cerrar",
+
+    "dash.libraryCardTitle": "La biblioteca",
+    "dash.libraryCardTag": "Explora e importa listas curadas por la comunidad",
+    "dash.libraryCardCta": "Abrir biblioteca",
     "share.dialogTitle": "Comparte con otro explorador",
     "share.dialogSub": "Envía una copia o un enlace en vivo.",
     "share.recipient": "Destinatario",
@@ -1875,7 +2007,7 @@ function Header({ go, active, onBack }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const [menuOpen, setMenuOpen] = useState(false);
-  const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["trips", t("nav.trips")], ["packlists", t("nav.packlists")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")]];
+  const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["trips", t("nav.trips")], ["packlists", t("nav.packlists")], ["library", t("nav.library")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")]];
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [active]);
@@ -2757,6 +2889,40 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
                 </>
               )}
             </div>
+          </div>
+
+          {/* Library CTA card */}
+          <div style={{
+            marginTop: isMobile ? 32 : 56,
+            padding: isMobile ? 24 : 36,
+            background: C.forestDeep,
+            color: C.paper,
+            border: `1.5px solid ${C.ink}`,
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "flex-start" : "center",
+            justifyContent: "space-between",
+            gap: isMobile ? 18 : 24,
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            <div style={{ position: "absolute", top: -10, right: -10, opacity: 0.12 }}>
+              <Globe size={isMobile ? 120 : 180} strokeWidth={1} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+              <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.7 }}>
+                {t("nav.library")} · 06
+              </div>
+              <div style={{ marginTop: 8, fontFamily: F.display, fontSize: isMobile ? 28 : 40, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+                {t("dash.libraryCardTitle")}<span style={{ color: C.rust }}>.</span>
+              </div>
+              <div style={{ marginTop: 8, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 14 : 16, opacity: 0.85 }}>
+                {t("dash.libraryCardTag")}
+              </div>
+            </div>
+            <Btn variant="rust" icon={ChevronRight} onClick={() => go("library")} fullWidth={isMobile}>
+              {t("dash.libraryCardCta")}
+            </Btn>
           </div>
         </div>
         <Footer />
@@ -6312,6 +6478,548 @@ function MySubmissions({ currentUser }) {
   );
 }
 
+/* ============================================================
+   LIBRARY — public browse screen showing approved community items.
+   Two filter axes (region + activity) plus a kind tab strip.
+   ============================================================ */
+function Library({
+  go,
+  currentUser,
+  items, setItems,
+  kits, setKits,
+  categories, setCategories,
+  trips, setTrips,
+  packlists, setPacklists,
+}) {
+  const { t, lang } = useI18n();
+  const { isMobile } = useViewport();
+  const [kind, setKind] = useState("kit");
+  const [activity, setActivity] = useState("");
+  const [region, setRegion] = useState("");
+  const [list, setList] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openItemId, setOpenItemId] = useState(null);
+  const [counts, setCounts] = useState({ kit: 0, category: 0, trip: 0 });
+
+  // Load tab counts on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const all = await supabaseService.fetchLibrary({ limit: 200 });
+      if (cancelled) return;
+      const c = { kit: 0, category: 0, trip: 0 };
+      all.forEach((x) => { c[x.kind] = (c[x.kind] || 0) + 1; });
+      setCounts(c);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load list when filters change
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const data = await supabaseService.fetchLibrary({ kind, activity: activity || null, region: region || null });
+      if (!cancelled) { setList(data); setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [kind, activity, region]);
+
+  // Load activities for filter dropdown
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list = await supabaseService.fetchActivities();
+      if (!cancelled) setActivities(list);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Detail view
+  if (openItemId) {
+    return (
+      <div>
+        <Header go={go} active="library" />
+        <div style={{ padding: padX(isMobile) }}>
+          <LibraryDetail
+            itemId={openItemId}
+            currentUser={currentUser}
+            items={items} setItems={setItems}
+            kits={kits} setKits={setKits}
+            categories={categories} setCategories={setCategories}
+            trips={trips} setTrips={setTrips}
+            packlists={packlists} setPacklists={setPacklists}
+            onBack={() => setOpenItemId(null)}
+          />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Header go={go} active="library" />
+      <div style={{ padding: padX(isMobile) }}>
+        <div style={{ marginTop: isMobile ? 24 : 40 }}>
+          <Coord>{t("libBrowse.section")}</Coord>
+          <h1 style={{ margin: "12px 0", fontFamily: F.display, fontSize: "clamp(36px, 6vw, 72px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 0.95 }}>
+            {t("libBrowse.titleA")} <span style={{ fontStyle: "italic", color: C.forest }}>{t("libBrowse.titleB")}</span><span style={{ color: C.rust }}>.</span>
+          </h1>
+          <div style={{ marginTop: 6, fontFamily: F.display, fontStyle: "italic", color: C.inkSoft, fontSize: isMobile ? 15 : 17 }}>
+            {t("libBrowse.tagline")}
+          </div>
+        </div>
+
+        {/* Kind tabs */}
+        <div style={{ marginTop: isMobile ? 24 : 36, display: "flex", borderBottom: `1.5px solid ${C.ink}`, overflowX: "auto", scrollbarWidth: "none" }}>
+          {[
+            ["kit", t("libBrowse.tabKits", { n: counts.kit })],
+            ["category", t("libBrowse.tabCategories", { n: counts.category })],
+            ["trip", t("libBrowse.tabTrips", { n: counts.trip })],
+          ].map(([k, label]) => (
+            <button key={k} onClick={() => setKind(k)}
+              style={{
+                padding: isMobile ? "10px 14px" : "12px 20px",
+                border: "none", cursor: "pointer",
+                fontFamily: F.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase",
+                fontWeight: 700, background: kind === k ? C.ink : "transparent",
+                color: kind === k ? C.paper : C.ink, whiteSpace: "nowrap", flexShrink: 0,
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters: region + activity */}
+        <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
+          <label style={{ flex: "1 1 200px", minWidth: 180 }}>
+            <div style={{ marginBottom: 4, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("libBrowse.filterRegion")}
+            </div>
+            <select value={region} onChange={(e) => setRegion(e.target.value)} style={{
+              width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+              borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+              appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+              backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+              backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+            }}>
+              <option value="">{t("libBrowse.filterAll")}</option>
+              {REGIONS.map((r) => (
+                <option key={r.code} value={r.code}>{r.code} — {lang === "es" ? r.labelEs : r.labelEn}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ flex: "1 1 200px", minWidth: 180 }}>
+            <div style={{ marginBottom: 4, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("libBrowse.filterActivity")}
+            </div>
+            <select value={activity} onChange={(e) => setActivity(e.target.value)} style={{
+              width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+              borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+              appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+              backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+              backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+            }}>
+              <option value="">{t("libBrowse.filterAll")}</option>
+              {activities.map((a) => (
+                <option key={a.id || a.name} value={a.name}>{a.name}</option>
+              ))}
+            </select>
+          </label>
+          {(region || activity) && (
+            <Btn variant="ghost" icon={X} onClick={() => { setRegion(""); setActivity(""); }}>
+              Clear filters
+            </Btn>
+          )}
+        </div>
+
+        {/* List */}
+        <div style={{ marginTop: 24 }}>
+          {loading ? (
+            <div style={{ padding: 40, textAlign: "center", fontFamily: F.body, fontSize: 14, color: C.muted, fontStyle: "italic" }}>
+              Loading...
+            </div>
+          ) : list.length === 0 ? (
+            <div style={{ padding: isMobile ? 32 : 48, textAlign: "center", border: `1.5px dashed ${C.line}`, background: C.paperDeep }}>
+              <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 20 : 24, color: C.inkSoft }}>
+                {region || activity ? t("libBrowse.empty") : t("libBrowse.emptyAll")}
+              </div>
+              <div style={{ marginTop: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", color: C.muted, textTransform: "uppercase" }}>
+                {region || activity ? t("libBrowse.emptyHint", { kind }) : t("libBrowse.emptyAllHint")}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
+              {list.map((it) => (
+                <LibraryCard key={it.id} item={it} onOpen={() => setOpenItemId(it.id)} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+// One card in the library list
+function LibraryCard({ item, onOpen }) {
+  const { t, lang } = useI18n();
+  const { isMobile } = useViewport();
+  const importsLabel = item.import_count === 1
+    ? t("libBrowse.imports_one")
+    : t("libBrowse.imports_many", { n: item.import_count || 0 });
+
+  return (
+    <button onClick={onOpen} style={{
+      display: "flex", flexDirection: "column", alignItems: "stretch", textAlign: "left",
+      background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16, cursor: "pointer",
+      fontFamily: F.body, color: C.ink,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
+        <Coord>{item.kind.toUpperCase()}</Coord>
+        {item.publisher_region && <RegionBadge code={item.publisher_region} />}
+      </div>
+      <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 4 }}>
+        {item.title}
+      </div>
+      <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        {item.activity}
+      </div>
+      {item.description && (
+        <div style={{ marginTop: 10, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {item.description}
+        </div>
+      )}
+      <div style={{ flex: 1 }} />
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+        <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
+          @{item.publisher_username}
+        </span>
+        <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted }}>
+          {importsLabel}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+/* ============================================================
+   LibraryDetail — full preview of one library item with import.
+   ============================================================ */
+function LibraryDetail({
+  itemId, currentUser,
+  items, setItems,
+  kits, setKits,
+  categories, setCategories,
+  trips, setTrips,
+  packlists, setPacklists,
+  onBack,
+}) {
+  const { t, locale, lang } = useI18n();
+  const { isMobile } = useViewport();
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [imported, setImported] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportText, setReportText] = useState("");
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+
+  // Load item details + bump view counter once
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await supabaseService.fetchLibraryItem(itemId);
+      if (cancelled) return;
+      setItem(data);
+      setLoading(false);
+      // Increment view count, but only once per session
+      if (data) supabaseService.incrementLibraryCount(itemId, "view_count");
+    })();
+    return () => { cancelled = true; };
+  }, [itemId]);
+
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(locale, { month: "long", day: "numeric", year: "numeric" });
+  };
+
+  // Import flow — adds the entity (and referenced data) into the user's local inventory.
+  // Mirrors the inbox import logic but takes the item directly from the library payload.
+  const handleImport = async () => {
+    if (!item || importing) return;
+    setImporting(true);
+    const p = item.payload || {};
+
+    if (item.kind === "kit") {
+      const incomingItems = p.items || [];
+      const remap = {};
+      const newItems = incomingItems.map((it) => {
+        const newId = uid("it");
+        remap[it.id] = newId;
+        return { ...it, id: newId, packed: false };
+      });
+      const newKitId = uid("kit");
+      const newKit = {
+        ...p.kit,
+        id: newKitId,
+        itemIds: (p.kit.itemIds || []).map((id) => remap[id]).filter(Boolean),
+      };
+      setItems([...newItems, ...items]);
+      setKits([newKit, ...kits]);
+    }
+
+    if (item.kind === "category") {
+      const cat = p.category;
+      let categoryName = cat.name;
+      const exists = categories.find((c) => c.name === cat.name);
+      if (!exists) {
+        const newCat = { ...cat, id: uid("cat") };
+        setCategories([newCat, ...categories]);
+      }
+      const incomingItems = p.items || [];
+      const newItems = incomingItems.map((it) => ({ ...it, id: uid("it"), category: categoryName, packed: false }));
+      if (newItems.length) setItems([...newItems, ...items]);
+    }
+
+    if (item.kind === "trip") {
+      const trip = p.trip || {};
+      const newTrip = { ...trip, id: uid("tr") };
+      setTrips([newTrip, ...trips]);
+
+      const itemRemap = {};
+      const newItems = (p.items || []).map((it) => {
+        const newId = uid("it");
+        itemRemap[it.id] = newId;
+        return { ...it, id: newId, packed: false };
+      });
+      if (newItems.length) setItems([...newItems, ...items]);
+
+      const kitRemap = {};
+      const newKits = (p.kits || []).map((k) => {
+        const newId = uid("kit");
+        kitRemap[k.id] = newId;
+        return { ...k, id: newId, itemIds: (k.itemIds || []).map((id) => itemRemap[id]).filter(Boolean) };
+      });
+      if (newKits.length) setKits([...newKits, ...kits]);
+
+      if (p.packlist) {
+        const newPl = {
+          ...p.packlist,
+          id: uid("pl"),
+          kitIds: (p.packlist.kitIds || []).map((id) => kitRemap[id]).filter(Boolean),
+          itemIds: (p.packlist.itemIds || []).map((id) => itemRemap[id]).filter(Boolean),
+        };
+        setPacklists([newPl, ...packlists]);
+      }
+    }
+
+    // Bump import counter on the server
+    await supabaseService.incrementLibraryCount(itemId, "import_count");
+
+    setImporting(false);
+    setImported(true);
+  };
+
+  const submitReport = async () => {
+    if (!currentUser?.id) return;
+    await supabaseService.submitReport({
+      libraryItemId: itemId,
+      reporterId: currentUser.id,
+      reason: reportText,
+    });
+    setReportSubmitted(true);
+  };
+
+  if (loading) {
+    return <div style={{ padding: 40, textAlign: "center", fontFamily: F.body, fontStyle: "italic", color: C.muted }}>Loading...</div>;
+  }
+  if (!item) {
+    return (
+      <div style={{ padding: 40 }}>
+        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", padding: "8px 0", marginBottom: 20 }}>
+          <ArrowLeft size={14} /> {t("libDetail.back")}
+        </button>
+        <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: 22, color: C.inkSoft }}>Item not found.</div>
+      </div>
+    );
+  }
+
+  const p = item.payload || {};
+  const refItems = p.items || [];
+  const refKits = p.kits || [];
+  const packlist = p.packlist || null;
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ marginTop: isMobile ? 16 : 24, marginBottom: 24, paddingBottom: 16, borderBottom: `1.5px solid ${C.ink}` }}>
+        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", padding: "8px 0", marginBottom: 12 }}>
+          <ArrowLeft size={14} /> {t("libDetail.back")}
+        </button>
+        <Coord>{item.kind.toUpperCase()}  ·  {item.activity}</Coord>
+        <h2 style={{ margin: "8px 0 8px", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>
+          {item.title}<span style={{ color: C.rust }}>.</span>
+        </h2>
+        {item.description && (
+          <div style={{ marginTop: 10, fontFamily: F.display, fontStyle: "italic", color: C.inkSoft, fontSize: isMobile ? 15 : 17, lineHeight: 1.5 }}>
+            {item.description}
+          </div>
+        )}
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+          <span>{t("libDetail.publishedBy")} <b style={{ color: C.ink }}>@{item.publisher_username}</b></span>
+          {item.publisher_region && <RegionBadge code={item.publisher_region} />}
+          <span>·  {t("libDetail.publishedOn", { date: fmtDate(item.created_at) })}</span>
+        </div>
+
+        {/* Action row */}
+        <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+          {!imported ? (
+            <Btn variant="rust" icon={Plus} onClick={handleImport} disabled={importing} fullWidth={isMobile}>
+              {importing ? t("libDetail.importing") : t("libDetail.import")}
+            </Btn>
+          ) : (
+            <div style={{ padding: "10px 16px", background: C.forestDeep, color: C.paper, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
+              ✓ {t("libDetail.imported")}
+            </div>
+          )}
+          <Btn variant="ghost" icon={AlertTriangle} onClick={() => setReportOpen(true)} fullWidth={isMobile}>
+            {t("libDetail.report")}
+          </Btn>
+        </div>
+      </div>
+
+      {/* Contents preview */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 10, paddingBottom: 6, borderBottom: `1px dashed ${C.line}`, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+          {t("libDetail.contents")}
+        </div>
+
+        {item.kind === "kit" && p.kit && (
+          <div style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16 }}>
+            <Coord>KIT</Coord>
+            <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>{p.kit.name}</div>
+            <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              {refItems.length} {refItems.length === 1 ? "item" : "items"}
+            </div>
+            {refItems.length > 0 && (
+              <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {refItems.map((it) => (
+                  <span key={it.id} style={{ padding: "3px 8px", fontFamily: F.mono, fontSize: 10, border: `1px solid ${C.ink}`, background: C.paperDeep }}>
+                    {it.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {item.kind === "category" && p.category && (
+          <div style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16 }}>
+            <Coord>CATEGORY</Coord>
+            <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>{p.category.name}</div>
+            <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              {refItems.length} {refItems.length === 1 ? "item included" : "items included"}
+            </div>
+            {refItems.length > 0 && (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                {refItems.map((it) => (
+                  <div key={it.id} style={{ padding: "6px 8px", background: C.paperDeep, fontFamily: F.body, fontSize: 13 }}>
+                    {it.name} <span style={{ color: C.muted, fontFamily: F.mono, fontSize: 10, marginLeft: 4 }}>· {it.weight}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {item.kind === "trip" && p.trip && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16 }}>
+              <Coord>TRIP</Coord>
+              <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>{p.trip.name}</div>
+              <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                {p.trip.dest}
+              </div>
+            </div>
+            {packlist && (
+              <div style={{ background: C.paperDeep, border: `1px dashed ${C.line}`, padding: 14 }}>
+                <Coord>PACKLIST</Coord>
+                <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 16, fontWeight: 700 }}>{packlist.name}</div>
+                {packlist.notes && <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft }}>{packlist.notes}</div>}
+              </div>
+            )}
+            {refKits.length > 0 && (
+              <div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>{refKits.length} kit{refKits.length === 1 ? "" : "s"}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {refKits.map((k) => (
+                    <span key={k.id} style={{ padding: "3px 8px", fontFamily: F.mono, fontSize: 10, border: `1.5px solid ${C.forest}`, color: C.forest, fontWeight: 700 }}>
+                      {k.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {refItems.length > 0 && (
+              <div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>{refItems.length} item{refItems.length === 1 ? "" : "s"}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {refItems.map((it) => (
+                    <span key={it.id} style={{ padding: "3px 8px", fontFamily: F.mono, fontSize: 10, border: `1px solid ${C.ink}`, background: C.paperDeep }}>
+                      {it.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Report dialog */}
+      {reportOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(26,36,33,0.55)", zIndex: 999, display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}
+          onClick={() => { setReportOpen(false); setReportText(""); setReportSubmitted(false); }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 20 : 28 }}>
+            {!reportSubmitted ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <h3 style={{ margin: 0, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("libDetail.reportTitle")}<span style={{ color: C.rust }}>.</span></h3>
+                  <button onClick={() => { setReportOpen(false); setReportText(""); }} style={{ width: 32, height: 32, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <X size={14} />
+                  </button>
+                </div>
+                <div style={{ marginBottom: 14, fontFamily: F.body, fontSize: 13, color: C.muted, fontStyle: "italic" }}>{t("libDetail.reportSub")}</div>
+                <textarea value={reportText} onChange={(e) => setReportText(e.target.value)}
+                  placeholder={t("libDetail.reportPh")} rows={4}
+                  style={{ width: "100%", padding: "10px 12px", background: "transparent", border: `1px solid ${C.line}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink, resize: "vertical" }} />
+                <div style={{ marginTop: 14, display: "flex", gap: 8, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "flex-end" }}>
+                  <Btn variant="ghost" icon={X} onClick={() => { setReportOpen(false); setReportText(""); }} fullWidth={isMobile}>{t("share.cancel")}</Btn>
+                  <Btn variant="rust" icon={Check} onClick={submitReport} fullWidth={isMobile}>{t("libDetail.reportSubmit")}</Btn>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 style={{ margin: "0 0 10px", fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+                  <span style={{ fontStyle: "italic", color: C.forest }}>Thank you</span><span style={{ color: C.rust }}>.</span>
+                </h3>
+                <div style={{ marginBottom: 14, fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>{t("libDetail.reportThanks")}</div>
+                <Btn variant="rust" icon={Check} onClick={() => { setReportOpen(false); setReportText(""); setReportSubmitted(false); }} fullWidth={isMobile}>{t("libDetail.reportClose")}</Btn>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, setLocationEnabled, language, setLanguage, units, setUnits }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -6737,6 +7445,7 @@ export default function App() {
     screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklists} kits={kits} items={items} categories={categories} /> :
     screen === "cart" ? <Cart go={go} cart={cart} setCart={setCart} /> :
     screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} shareService={shareService} /> :
+    screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} /> :
     screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} /> :
     <Welcome go={go} />;
 
