@@ -2586,9 +2586,6 @@ function Signup({ go, setUser, takenUsernames, setTakenUsernames }) {
     email: "",
     pw: "",
     region: "",
-    card: "",
-    exp: "",
-    cvc: "",
   });
 
   const set = (k) => (e) => {
@@ -2748,22 +2745,6 @@ function Signup({ go, setUser, takenUsernames, setTakenUsernames }) {
 
             <Field label={t("login.email")} icon={Mail} type="email" value={form.email} onChange={set("email")} placeholder="amelia@pakmondo.co" />
             <Field label={t("login.password")} icon={Lock} type="password" value={form.pw} onChange={set("pw")} placeholder={t("signup.passwordHint")} />
-          </div>
-        </div>
-        <div>
-          <SectionHeader num="02" label={t("signup.provisions")} right={t("signup.priceLabel")} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <Field label={t("signup.cardNumber")} icon={CreditCard} value={form.card} onChange={set("card")} placeholder="4242 4242 4242 4242" />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <Field label={t("signup.expiry")} value={form.exp} onChange={set("exp")} placeholder="MM/YY" />
-              <Field label={t("signup.cvc")} value={form.cvc} onChange={set("cvc")} placeholder="123" />
-            </div>
-          </div>
-          <div style={{ marginTop: 32, padding: 20, background: C.paperDeep, border: `1px dashed ${C.line}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-              <div style={{ fontFamily: F.display, fontSize: 17 }}>{t("signup.fieldMembership")}</div>
-              <div style={{ fontFamily: F.mono, fontWeight: 700, whiteSpace: "nowrap" }}>$9.00 USD</div>
-            </div>
           </div>
         </div>
       </div>
