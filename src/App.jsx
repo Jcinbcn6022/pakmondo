@@ -5488,11 +5488,12 @@ function UnifiedInventoryBrowser({
   pickedKitIds, setPickedKitIds,
   pickedItemIds, setPickedItemIds,
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [search, setSearch] = useState("");
   const [expandedKits, setExpandedKits] = useState(new Set());
   const [collapsedCategories, setCollapsedCategories] = useState(new Set());
+  const [expandedItems, setExpandedItems] = useState(new Set());  // item ids whose detail panels are open
 
   // Toggling helpers
   const toggleCategory = (id) =>
@@ -5506,10 +5507,35 @@ function UnifiedInventoryBrowser({
     if (next.has(kitId)) next.delete(kitId); else next.add(kitId);
     setExpandedKits(next);
   };
-  const toggleCategoryCollapse = (catName) => {
-    const next = new Set(collapsedCategories);
-    if (next.has(catName)) next.delete(catName); else next.add(catName);
-    setCollapsedCategories(next);
+  const toggleExpandItem = (itemId) => {
+    const next = new Set(expandedItems);
+    if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+    setExpandedItems(next);
+  };
+  // Cascade expand/collapse: when a category opens, all kits inside auto-expand.
+  // When it collapses, those kits + any item details auto-collapse.
+  const toggleCategoryCollapse = (catName, kitsInCat) => {
+    const isCurrentlyCollapsed = collapsedCategories.has(catName);
+    const nextCollapsed = new Set(collapsedCategories);
+    const nextExpandedKits = new Set(expandedKits);
+    const nextExpandedItems = new Set(expandedItems);
+
+    if (isCurrentlyCollapsed) {
+      // Opening — also auto-expand every kit inside
+      nextCollapsed.delete(catName);
+      kitsInCat.forEach((k) => nextExpandedKits.add(k.id));
+    } else {
+      // Closing — also collapse every kit inside, and close any open item details
+      // for items inside those kits
+      nextCollapsed.add(catName);
+      kitsInCat.forEach((k) => {
+        nextExpandedKits.delete(k.id);
+        (k.itemIds || []).forEach((iid) => nextExpandedItems.delete(iid));
+      });
+    }
+    setCollapsedCategories(nextCollapsed);
+    setExpandedKits(nextExpandedKits);
+    setExpandedItems(nextExpandedItems);
   };
 
   // Build the grouped data structure
@@ -5575,6 +5601,128 @@ function UnifiedInventoryBrowser({
 
   const totalSelected = pickedCategoryIds.length + pickedKitIds.length + pickedItemIds.length;
   const isInventoryEmpty = items.length === 0 && kits.length === 0 && categories.length === 0;
+
+  // Render an item row with split interaction:
+  //   • Left checkbox toggles "include this item in the trip"
+  //   • Right body toggles "show item details inline"
+  // Detail panel below shows all fields read-only.
+  // `compact` flag = smaller variant for items inside an expanded kit.
+  const renderItemRow = (it, compact = false) => {
+    const sel = pickedItemIds.includes(it.id);
+    const isExpanded = expandedItems.has(it.id);
+    const cat = categories.find((c) => c.name === it.category);
+    const Icon = iconFor(cat?.icon || "tag");
+    const expiryAlert = it.expiry ? daysUntil(it.expiry) : null;
+    const expiringSoon = expiryAlert !== null && expiryAlert <= (it.remindDays || 30) && expiryAlert >= 0;
+    const expired = expiryAlert !== null && expiryAlert < 0;
+
+    return (
+      <div key={it.id} style={{
+        border: `1.5px solid ${sel ? C.forest : C.line}`,
+        background: sel ? C.paperDeep : C.paper,
+      }}>
+        <div style={{ display: "flex", alignItems: "stretch" }}>
+          {/* LEFT: tick checkbox */}
+          <button
+            onClick={() => toggleItem(it.id)}
+            aria-label={sel ? "Remove from trip" : "Add to trip"}
+            style={{
+              padding: compact ? "0 10px" : "0 12px",
+              background: "transparent", border: "none",
+              borderRight: `1px dashed ${C.line}`,
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <span style={{
+              width: compact ? 18 : 20, height: compact ? 18 : 20, flexShrink: 0,
+              border: `1.5px solid ${sel ? C.forest : C.muted}`,
+              background: sel ? C.forest : "transparent",
+              color: C.paper,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {sel && <Check size={compact ? 11 : 12} strokeWidth={3} />}
+            </span>
+          </button>
+
+          {/* RIGHT: name + tap to expand details */}
+          <button
+            onClick={() => toggleExpandItem(it.id)}
+            style={{
+              flex: 1, minWidth: 0,
+              padding: compact ? "8px 10px" : "10px 12px",
+              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 8,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: F.body, fontSize: compact ? 12 : 13, fontWeight: 500,
+                display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+              }}>
+                <span>{it.name}</span>
+                {it.quantity > 1 && (
+                  <span style={{ padding: "1px 5px", background: C.ink, color: C.paper, fontFamily: F.mono, fontSize: 8, letterSpacing: "0.12em", fontWeight: 700 }}>
+                    ×{it.quantity}
+                  </span>
+                )}
+                {it.packed && (
+                  <span style={{ padding: "1px 5px", background: C.forest, color: C.paper, fontFamily: F.mono, fontSize: 8, letterSpacing: "0.12em", fontWeight: 700 }}>
+                    PACKED
+                  </span>
+                )}
+                {expired && (
+                  <span style={{ padding: "1px 5px", background: C.rust, color: C.paper, fontFamily: F.mono, fontSize: 8, letterSpacing: "0.12em", fontWeight: 700 }}>
+                    EXPIRED
+                  </span>
+                )}
+                {!expired && expiringSoon && (
+                  <span style={{ padding: "1px 5px", background: C.ochre, color: C.ink, fontFamily: F.mono, fontSize: 8, letterSpacing: "0.12em", fontWeight: 700 }}>
+                    {expiryAlert}d
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: F.mono, fontSize: compact ? 9 : 10, color: C.muted, letterSpacing: "0.1em", marginTop: 2 }}>
+                {formatWeight(it.weight, units)} {it.category ? `· ${tOrLiteral(lang, "cat", it.category)}` : ""}
+              </div>
+            </div>
+            <span style={{
+              fontFamily: F.mono, fontSize: 12, color: C.muted,
+              transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+              transition: "transform 0.15s",
+            }}>▾</span>
+          </button>
+        </div>
+
+        {/* Detail panel — shown when this item is expanded */}
+        {isExpanded && (
+          <div style={{
+            padding: 12, background: C.paperDeep, borderTop: `1px dashed ${C.line}`,
+            display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10,
+            fontFamily: F.body, fontSize: 12,
+          }}>
+            <DetailKV k="Category" v={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon size={12} strokeWidth={1.6} color={C.forest} />
+                {it.category ? tOrLiteral(lang, "cat", it.category) : "—"}
+              </span>
+            } />
+            <DetailKV k="Weight" v={formatWeight(it.weight, units) || "—"} />
+            <DetailKV k="Quantity" v={it.quantity > 0 ? it.quantity : 1} />
+            <DetailKV k="Packed" v={it.packed ? "Yes" : "No"} />
+            <DetailKV k="Consumable" v={it.consumable ? "Yes" : "No"} />
+            <DetailKV k="Expiry" v={
+              it.expiry
+                ? `${it.expiry}${expired ? " (expired)" : expiringSoon ? ` (${expiryAlert}d left)` : ""}`
+                : "—"
+            } />
+            {it.remindDays != null && it.remindDays !== "" && (
+              <DetailKV k="Reminder" v={`${it.remindDays} days before expiry`} />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -5668,7 +5816,7 @@ function UnifiedInventoryBrowser({
 
                 {/* Category body — clickable to expand/collapse */}
                 <button
-                  onClick={() => toggleCategoryCollapse(cat.name)}
+                  onClick={() => toggleCategoryCollapse(cat.name, section.kits)}
                   style={{
                     flex: 1, minWidth: 0,
                     padding: "12px 14px", background: "transparent", border: "none",
@@ -5752,39 +5900,11 @@ function UnifiedInventoryBrowser({
 
                         {/* Expanded item list */}
                         {isExpanded && kitItems.length > 0 && (
-                          <div style={{ padding: "8px 10px 10px 38px", background: C.paperDeep, borderTop: `1px dashed ${C.line}`, display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ padding: "8px 10px 10px 38px", background: C.paperDeep, borderTop: `1px dashed ${C.line}`, display: "flex", flexDirection: "column", gap: 6 }}>
                             <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 4 }}>
                               {t("trips.unifiedKitItemsHeading")}
                             </div>
-                            {kitItems.map((it) => {
-                              const itemSelected = pickedItemIds.includes(it.id);
-                              return (
-                                <button
-                                  key={it.id}
-                                  onClick={() => toggleItem(it.id)}
-                                  style={{
-                                    display: "flex", alignItems: "center", gap: 8, padding: "6px 8px",
-                                    border: `1px solid ${itemSelected ? C.forest : "transparent"}`,
-                                    background: itemSelected ? C.paper : "transparent",
-                                    cursor: "pointer", textAlign: "left", width: "100%",
-                                  }}
-                                >
-                                  <span style={{
-                                    width: 18, height: 18, flexShrink: 0,
-                                    border: `1.5px solid ${itemSelected ? C.forest : C.muted}`,
-                                    background: itemSelected ? C.forest : "transparent",
-                                    color: C.paper,
-                                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                  }}>
-                                    {itemSelected && <Check size={11} strokeWidth={3} />}
-                                  </span>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontFamily: F.body, fontSize: 12, fontWeight: 500 }}>{it.name}</div>
-                                    <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em" }}>{it.weight}</div>
-                                  </div>
-                                </button>
-                              );
-                            })}
+                            {kitItems.map((it) => renderItemRow(it, true))}
                           </div>
                         )}
                       </div>
@@ -5792,37 +5912,7 @@ function UnifiedInventoryBrowser({
                   })}
 
                   {/* Loose items in this category (not in any kit) */}
-                  {section.looseItems.map((it) => {
-                    const sel = pickedItemIds.includes(it.id);
-                    return (
-                      <button
-                        key={it.id}
-                        onClick={() => toggleItem(it.id)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10, padding: 10,
-                          border: `1.5px solid ${sel ? C.forest : C.line}`,
-                          background: sel ? C.paperDeep : C.paper,
-                          cursor: "pointer", textAlign: "left", width: "100%",
-                        }}
-                      >
-                        <span style={{
-                          width: 20, height: 20, flexShrink: 0,
-                          border: `1.5px solid ${sel ? C.forest : C.muted}`,
-                          background: sel ? C.forest : "transparent",
-                          color: C.paper,
-                          display: "inline-flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          {sel && <Check size={12} strokeWidth={3} />}
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 500 }}>{it.name}</div>
-                          <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
-                            {it.weight}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {section.looseItems.map((it) => renderItemRow(it, false))}
                 </div>
               )}
             </div>
@@ -5833,6 +5923,18 @@ function UnifiedInventoryBrowser({
   );
 }
 
+
+// Simple read-only key/value pair used in item-detail panels
+function DetailKV({ k, v }) {
+  return (
+    <div>
+      <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 2 }}>
+        {k}
+      </div>
+      <div style={{ fontFamily: F.body, fontSize: 13, color: C.ink }}>{v}</div>
+    </div>
+  );
+}
 
 // Simple category dropdown for the inline-create forms
 function CategorySelect({ categories, value, onChange }) {
@@ -7115,24 +7217,21 @@ function PacklistEditorDialog({
               </span>
             </div>
 
-            <UnifiedInventoryBrowser
-              categories={categories}
-              kits={kits}
-              items={items}
-              pickedCategoryIds={pickedCategoryIds}
-              setPickedCategoryIds={setPickedCategoryIds}
-              pickedKitIds={pickedKitIds}
-              setPickedKitIds={setPickedKitIds}
-              pickedItemIds={pickedItemIds}
-              setPickedItemIds={setPickedItemIds}
-            />
-
-            {/* Quick add new — collapsible toolbar */}
-            <div style={{ marginTop: 24, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
-              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-                {t("trips.unifiedQuickAdd")}
+            {/* Quick add new — moved to TOP of pack section, rust border, big prominent toggles */}
+            <div style={{
+              marginBottom: 24, padding: isMobile ? 14 : 18,
+              background: C.paperDeep,
+              border: `2px solid ${C.rust}`,
+              boxShadow: `inset 0 0 0 1px ${C.paper}`,
+            }}>
+              <div style={{
+                marginBottom: 12, fontFamily: F.mono, fontSize: 11,
+                color: C.rust, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 8,
+              }}>
+                <Plus size={14} strokeWidth={2.5} /> {t("trips.unifiedQuickAdd")}
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 8 }}>
                 {[
                   ["item", t("trips.addNewItemInline")],
                   ["kit", t("trips.addNewKitInline")],
@@ -7142,21 +7241,24 @@ function PacklistEditorDialog({
                   return (
                     <button key={k} onClick={() => setInlineMode(active ? null : k)}
                       style={{
-                        padding: "6px 12px",
-                        border: `1.5px ${active ? "solid" : "dashed"} ${C.forest}`,
-                        background: active ? C.forest : "transparent",
-                        color: active ? C.paper : C.forest,
+                        padding: isMobile ? "12px 14px" : "14px 16px",
+                        border: `1.5px solid ${active ? C.rust : C.ink}`,
+                        background: active ? C.rust : C.paper,
+                        color: active ? C.paper : C.ink,
                         cursor: "pointer",
-                        fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                        fontFamily: F.mono, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700,
+                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        minHeight: 44,
                       }}>
-                      {label}
+                      {active ? <X size={14} strokeWidth={2.5} /> : <Plus size={14} strokeWidth={2.5} />}
+                      {label.replace(/^\+\s*/, "")}
                     </button>
                   );
                 })}
               </div>
               {inlineMode === "item" && (
-                <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
                     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                       <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
@@ -7170,8 +7272,8 @@ function PacklistEditorDialog({
                 </div>
               )}
               {inlineMode === "kit" && (
-                <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
                     <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
                     <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
@@ -7182,8 +7284,8 @@ function PacklistEditorDialog({
                 </div>
               )}
               {inlineMode === "cat" && (
-                <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
                     <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                       <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
@@ -7193,6 +7295,18 @@ function PacklistEditorDialog({
                 </div>
               )}
             </div>
+
+            <UnifiedInventoryBrowser
+              categories={categories}
+              kits={kits}
+              items={items}
+              pickedCategoryIds={pickedCategoryIds}
+              setPickedCategoryIds={setPickedCategoryIds}
+              pickedKitIds={pickedKitIds}
+              setPickedKitIds={setPickedKitIds}
+              pickedItemIds={pickedItemIds}
+              setPickedItemIds={setPickedItemIds}
+            />
           </div>
         </div>
 
