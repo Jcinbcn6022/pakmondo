@@ -5970,10 +5970,15 @@ function UnifiedInventoryBrowser({
               </div>
             </div>
             <span style={{
-              fontFamily: F.mono, fontSize: 12, color: C.muted,
-              transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
-              transition: "transform 0.15s",
-            }}>▾</span>
+              color: isExpanded ? C.forest : C.muted,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 28, height: 28,
+              border: `1.5px solid ${isExpanded ? C.forest : C.line}`,
+              background: isExpanded ? C.paperDeep : "transparent",
+              flexShrink: 0,
+            }}>
+              <Menu size={14} strokeWidth={2} />
+            </span>
           </button>
         </div>
 
@@ -6122,7 +6127,16 @@ function UnifiedInventoryBrowser({
                       {section.kits.length} kits · {section.looseItems.length} items
                     </div>
                   </div>
-                  <span style={{ fontFamily: F.mono, fontSize: 14, color: C.muted, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▾</span>
+                  <span style={{
+                    color: collapsed ? C.muted : C.forest,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 32, height: 32,
+                    border: `1.5px solid ${collapsed ? C.line : C.forest}`,
+                    background: collapsed ? "transparent" : C.paperDeep,
+                    flexShrink: 0,
+                  }}>
+                    <Menu size={16} strokeWidth={2} />
+                  </span>
                 </button>
               </div>
 
@@ -6169,15 +6183,22 @@ function UnifiedInventoryBrowser({
                             <button
                               onClick={() => toggleExpand(k.id)}
                               style={{
-                                width: 44, background: "transparent", border: "none", borderLeft: `1px dashed ${C.line}`,
-                                cursor: "pointer", color: C.muted,
-                                fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase",
+                                width: 48, background: "transparent", border: "none", borderLeft: `1px dashed ${C.line}`,
+                                cursor: "pointer",
+                                color: isExpanded ? C.forest : C.muted,
                                 display: "flex", alignItems: "center", justifyContent: "center",
                               }}
                               title={isExpanded ? t("trips.unifiedCollapse") : t("trips.unifiedExpand")}
                               aria-label={isExpanded ? t("trips.unifiedCollapse") : t("trips.unifiedExpand")}
                             >
-                              <span style={{ transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}>▾</span>
+                              <span style={{
+                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                width: 32, height: 32,
+                                border: `1.5px solid ${isExpanded ? C.forest : C.line}`,
+                                background: isExpanded ? C.paperDeep : "transparent",
+                              }}>
+                                <Menu size={15} strokeWidth={2} />
+                              </span>
                             </button>
                           )}
                         </div>
@@ -7430,7 +7451,16 @@ function PacklistEditorDialog({
               }}
             >
               <span>{t("trips.stepDetailsTitle")}</span>
-              <span style={{ fontFamily: F.mono, fontSize: 14, color: C.muted, transform: itineraryCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▾</span>
+              <span style={{
+                color: itineraryCollapsed ? C.muted : C.forest,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32,
+                border: `1.5px solid ${itineraryCollapsed ? C.line : C.forest}`,
+                background: itineraryCollapsed ? "transparent" : C.paperDeep,
+                flexShrink: 0,
+              }}>
+                <Menu size={16} strokeWidth={2} />
+              </span>
             </button>
 
             {!itineraryCollapsed && (
