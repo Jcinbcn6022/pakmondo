@@ -820,6 +820,15 @@ const TRANSLATIONS = {
     "trips.unifiedNoCategory": "Uncategorized",
     "trips.unifiedEmptyInventory": "Your inventory is empty. Add items, kits, or categories below.",
     "trips.unifiedQuickAdd": "Quick add new",
+    "addTo.button": "Add to...",
+    "addTo.heading": "Add to a Trip/Packlist",
+    "addTo.empty": "No saved Trip/Packlists yet.",
+    "addTo.newOne": "+ New Trip/Packlist",
+    "addTo.newName": "Name (e.g. Patagonia)",
+    "addTo.newCreate": "Create",
+    "addTo.newCancel": "Cancel",
+    "addTo.confirmedFmt": "Added to {name}",
+    "addTo.alreadyIn": "Already on this list",
     "trips.kitChip": "KIT",
     "trips.packCategoriesHint": "Adding a category brings every item currently in it.",
     "trips.packKitsHeading": "Kits",
@@ -1413,6 +1422,15 @@ const TRANSLATIONS = {
     "trips.unifiedNoCategory": "Sin categoría",
     "trips.unifiedEmptyInventory": "Tu inventario está vacío. Añade artículos, kits o categorías abajo.",
     "trips.unifiedQuickAdd": "Añadir nuevo",
+    "addTo.button": "Añadir a...",
+    "addTo.heading": "Añadir a un Viaje/Lista",
+    "addTo.empty": "Aún no hay Viajes/Listas guardados.",
+    "addTo.newOne": "+ Nuevo Viaje/Lista",
+    "addTo.newName": "Nombre (ej. Patagonia)",
+    "addTo.newCreate": "Crear",
+    "addTo.newCancel": "Cancelar",
+    "addTo.confirmedFmt": "Añadido a {name}",
+    "addTo.alreadyIn": "Ya está en esta lista",
     "trips.kitChip": "KIT",
     "trips.packCategoriesHint": "Al añadir una categoría se incluyen todos sus artículos actuales.",
     "trips.packKitsHeading": "Kits",
@@ -3256,7 +3274,7 @@ function AddTravelTypeForm({ onAdd, onCancel }) {
   );
 }
 
-function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint }) {
+function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint, packlists, setPacklists }) {
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
   if (items.length === 0) return <EmptyState label={emptyLabel || t("inv.emptyItems")} hint={emptyHint || t("inv.emptyItemsHint")} />;
@@ -3332,6 +3350,14 @@ function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint }) {
                     {meta.join("  /  ")}
                   </div>
                 )}
+                {packlists && setPacklists && (
+                  <div style={{ marginTop: 8 }}>
+                    <AddToPacklistMenu
+                      kind="item" entityId={it.id} entityName={it.name}
+                      packlists={packlists} setPacklists={setPacklists}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Delete on the right */}
@@ -3392,6 +3418,14 @@ function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint }) {
                   {meta.join("  /  ")}
                 </div>
               )}
+              {packlists && setPacklists && (
+                <div style={{ marginTop: 6 }}>
+                  <AddToPacklistMenu
+                    kind="item" entityId={it.id} entityName={it.name}
+                    packlists={packlists} setPacklists={setPacklists}
+                  />
+                </div>
+              )}
             </div>
             <div><span style={{ padding: "4px 8px", fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}` }}>{tOrLiteral(lang, "cat", it.category)}</span></div>
             <div style={{ fontFamily: F.mono, fontSize: 13 }}>{formatWeight(it.weight, units)}</div>
@@ -3414,7 +3448,235 @@ function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint }) {
   );
 }
 
-function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish }) {
+/* ============================================================
+   AddToPacklistMenu — small dropdown attached to any item, kit,
+   or category row in Inventory. Lets the user pick which saved
+   Trip/Packlist to add this thing to, or create a new one inline.
+   Shows a brief inline confirmation after a successful add.
+
+   Props:
+     kind            "item" | "kit" | "category"
+     entityId        the id to add (item id, kit id, or category id)
+     entityName      display label used in the confirmation toast
+     packlists       array of saved packlists
+     setPacklists    setter to commit changes
+     placement       "left" | "right" — which side the dropdown opens from
+   ============================================================ */
+function AddToPacklistMenu({ kind, entityId, entityName, packlists, setPacklists, placement = "right" }) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [confirmed, setConfirmed] = useState("");
+
+  // Close the dropdown if the user taps anywhere outside it.
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (!e.target.closest?.("[data-addto-root]")) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  // Auto-clear confirmation after a couple seconds
+  useEffect(() => {
+    if (!confirmed) return;
+    const tm = setTimeout(() => setConfirmed(""), 2400);
+    return () => clearTimeout(tm);
+  }, [confirmed]);
+
+  // Field key on a packlist that holds this entity kind
+  const fieldFor = (k) =>
+    k === "item" ? "itemIds" : k === "kit" ? "kitIds" : "categoryIds";
+
+  const addToPacklist = (plId) => {
+    const field = fieldFor(kind);
+    let alreadyHad = false;
+    let plName = "";
+    setPacklists(packlists.map((p) => {
+      if (p.id !== plId) return p;
+      plName = p.name;
+      const existing = p[field] || [];
+      if (existing.includes(entityId)) { alreadyHad = true; return p; }
+      return { ...p, [field]: [...existing, entityId] };
+    }));
+    setOpen(false);
+    setConfirmed(alreadyHad ? t("addTo.alreadyIn") : t("addTo.confirmedFmt", { name: plName }));
+  };
+
+  const createAndAdd = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const newId = uid("pl");
+    const field = fieldFor(kind);
+    const newPl = {
+      id: newId,
+      name: trimmed,
+      notes: "",
+      dest: "",
+      date: "",
+      type: "",
+      kitIds: kind === "kit" ? [entityId] : [],
+      itemIds: kind === "item" ? [entityId] : [],
+      categoryIds: kind === "category" ? [entityId] : [],
+    };
+    setPacklists([newPl, ...packlists]);
+    setNewName("");
+    setCreating(false);
+    setOpen(false);
+    setConfirmed(t("addTo.confirmedFmt", { name: trimmed }));
+  };
+
+  return (
+    <div data-addto-root style={{ position: "relative", display: "inline-block" }}>
+      {/* Trigger */}
+      <button
+        onClick={() => { setOpen(!open); setCreating(false); }}
+        title={t("addTo.button")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={{
+          padding: "6px 10px",
+          background: open ? C.rust : "transparent",
+          color: open ? C.paper : C.rust,
+          border: `1.5px solid ${C.rust}`,
+          cursor: "pointer",
+          fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+          display: "inline-flex", alignItems: "center", gap: 4,
+          minHeight: 32,
+        }}
+      >
+        <Plus size={12} strokeWidth={2.5} /> {t("addTo.button")}
+      </button>
+
+      {/* Inline confirmation pill */}
+      {confirmed && (
+        <span style={{
+          position: "absolute",
+          top: "100%", marginTop: 6,
+          [placement === "left" ? "right" : "left"]: 0,
+          padding: "4px 10px",
+          background: C.forest, color: C.paper,
+          fontFamily: F.mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700,
+          whiteSpace: "nowrap",
+          zIndex: 5,
+        }}>
+          ✓ {confirmed}
+        </span>
+      )}
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: "absolute",
+            top: "100%", marginTop: 4,
+            [placement === "left" ? "right" : "left"]: 0,
+            minWidth: isMobile ? 220 : 260,
+            maxWidth: 320,
+            background: C.paper,
+            border: `2px solid ${C.rust}`,
+            boxShadow: "0 8px 22px rgba(0,0,0,0.18)",
+            zIndex: 10,
+          }}
+        >
+          {/* Header */}
+          <div style={{ padding: "10px 12px", background: C.rust, color: C.paper, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+            {t("addTo.heading")}
+          </div>
+
+          {/* Existing packlists */}
+          <div style={{ maxHeight: 280, overflowY: "auto" }}>
+            {packlists.length === 0 ? (
+              <div style={{ padding: 12, fontFamily: F.body, fontSize: 12, color: C.muted, fontStyle: "italic", textAlign: "center" }}>
+                {t("addTo.empty")}
+              </div>
+            ) : (
+              packlists.map((p) => {
+                const field = fieldFor(kind);
+                const has = (p[field] || []).includes(entityId);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => addToPacklist(p.id)}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      width: "100%", padding: "10px 12px",
+                      background: "transparent", border: "none", borderBottom: `1px dashed ${C.line}`,
+                      cursor: "pointer", textAlign: "left",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {p.name}
+                      </div>
+                      {(p.dest || p.date) && (
+                        <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 2 }}>
+                          {[p.dest, p.date].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                    {has ? (
+                      <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", color: C.forest, fontWeight: 700, flexShrink: 0 }}>
+                        ✓ ON
+                      </span>
+                    ) : (
+                      <Plus size={13} strokeWidth={2} color={C.muted} style={{ flexShrink: 0 }} />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Inline create-new */}
+          {!creating ? (
+            <button
+              onClick={() => setCreating(true)}
+              style={{
+                display: "block", width: "100%", padding: "10px 12px",
+                background: C.paperDeep, border: "none", borderTop: `1.5px solid ${C.rust}`,
+                cursor: "pointer", textAlign: "left",
+                fontFamily: F.mono, fontSize: 11, color: C.rust, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+              }}
+            >
+              {t("addTo.newOne")}
+            </button>
+          ) : (
+            <div style={{ padding: 12, background: C.paperDeep, borderTop: `1.5px solid ${C.rust}` }}>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") createAndAdd(); }}
+                placeholder={t("addTo.newName")}
+                autoFocus
+                style={{
+                  width: "100%", padding: "8px 0", marginBottom: 10,
+                  background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`,
+                  outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+                }}
+              />
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Btn variant="ghost" icon={X} onClick={() => { setCreating(false); setNewName(""); }}>
+                  {t("addTo.newCancel")}
+                </Btn>
+                <Btn variant="rust" icon={Check} onClick={createAndAdd} disabled={!newName.trim()}>
+                  {t("addTo.newCreate")}
+                </Btn>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish, packlists, setPacklists }) {
   const { t, lang } = useI18n();
   const { isMobile } = useViewport();
   if (categories.length === 0) return <EmptyState label={t("inv.emptyCats")} hint={t("inv.emptyCatsHint")} />;
@@ -3475,6 +3737,16 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, on
             <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
               {itemsLabel}{kitCount > 0 ? `  /  ${kitsLabel}` : ""}
             </div>
+
+            {/* Add-to-Packlist control */}
+            {packlists && setPacklists && (
+              <div style={{ marginTop: 12 }}>
+                <AddToPacklistMenu
+                  kind="category" entityId={c.id} entityName={c.name}
+                  packlists={packlists} setPacklists={setPacklists}
+                />
+              </div>
+            )}
 
             {/* Spacer + explicit OPEN button at the bottom */}
             <div style={{ flex: 1 }} />
@@ -3571,7 +3843,7 @@ function AddKitForm({ categories, onAdd, onCancel, defaultCategory }) {
   );
 }
 
-function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublish }) {
+function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublish, packlists, setPacklists }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [editing, setEditing] = useState(false);
@@ -3649,6 +3921,16 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
           <span style={{ color: C.muted, fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
             {t("inbox.linkedFrom", { who: `@${kit.linkedFrom.username}` })}
           </span>
+        </div>
+      )}
+
+      {/* Add-to-Packlist control */}
+      {packlists && setPacklists && (
+        <div style={{ marginTop: 10 }}>
+          <AddToPacklistMenu
+            kind="kit" entityId={kit.id} entityName={kit.name}
+            packlists={packlists} setPacklists={setPacklists}
+          />
         </div>
       )}
 
@@ -3841,13 +4123,13 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
   );
 }
 
-function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit }) {
+function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit, packlists, setPacklists }) {
   const { t } = useI18n();
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
       {kits.map((kit) => (
-        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} onPublish={onPublishKit ? () => onPublishKit(kit) : null} />
+        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} onPublish={onPublishKit ? () => onPublishKit(kit) : null} packlists={packlists} setPacklists={setPacklists} />
       ))}
     </div>
   );
@@ -4859,7 +5141,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           )}
         </div>
         <div style={{ marginTop: isMobile ? 20 : 32 }}>
-          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} /></>}
+          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} /></>}
           {tab === "categories" && (() => {
             const openCategory = openCategoryId ? categories.find((c) => c.id === openCategoryId) : null;
             if (openCategory) {
@@ -4891,11 +5173,13 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
                   onOpen={(c) => setOpenCategoryId(c.id)}
                   onShare={shareService ? (c) => setSharing({ kind: "category", entity: c }) : null}
                   onPublish={currentUser?.id ? (c) => setPublishing({ kind: "category", entity: c }) : null}
+                  packlists={packlists}
+                  setPacklists={setPacklists}
                 />
               </>
             );
           })()}
-          {tab === "kits" && <>{adding && <AddKitForm categories={categories} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} /></>}
+          {tab === "kits" && <>{adding && <AddKitForm categories={categories} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} packlists={packlists} setPacklists={setPacklists} /></>}
           {tab === "cart" && <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />}
         </div>
       </div>
