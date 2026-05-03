@@ -809,6 +809,18 @@ const TRANSLATIONS = {
     "trips.back": "Back",
     "trips.skipPacking": "Skip — file without packing",
     "trips.packCategoriesHeading": "Categories",
+    "trips.unifiedTitle": "Your inventory",
+    "trips.unifiedSub": "Tap to add. Expand a kit to pick individual items, or grab the whole thing.",
+    "trips.unifiedSearchPh": "Search items, kits, categories…",
+    "trips.unifiedAllInCategory": "Add this whole category",
+    "trips.unifiedAllInCategoryHint": "Brings every current and future item in this category.",
+    "trips.unifiedExpand": "Show items",
+    "trips.unifiedCollapse": "Hide items",
+    "trips.unifiedKitItemsHeading": "Items in this kit",
+    "trips.unifiedNoCategory": "Uncategorized",
+    "trips.unifiedEmptyInventory": "Your inventory is empty. Add items, kits, or categories below.",
+    "trips.unifiedQuickAdd": "Quick add new",
+    "trips.kitChip": "KIT",
     "trips.packCategoriesHint": "Adding a category brings every item currently in it.",
     "trips.packKitsHeading": "Kits",
     "trips.packKitsHint": "Pre-built bundles. Live link — kit edits propagate.",
@@ -1390,6 +1402,18 @@ const TRANSLATIONS = {
     "trips.back": "Atrás",
     "trips.skipPacking": "Saltar — archivar sin preparar",
     "trips.packCategoriesHeading": "Categorías",
+    "trips.unifiedTitle": "Tu inventario",
+    "trips.unifiedSub": "Toca para añadir. Expande un kit para elegir artículos individuales o coger todo el kit.",
+    "trips.unifiedSearchPh": "Buscar artículos, kits, categorías…",
+    "trips.unifiedAllInCategory": "Añadir toda esta categoría",
+    "trips.unifiedAllInCategoryHint": "Incluye todos los artículos actuales y futuros de esta categoría.",
+    "trips.unifiedExpand": "Mostrar artículos",
+    "trips.unifiedCollapse": "Ocultar artículos",
+    "trips.unifiedKitItemsHeading": "Artículos en este kit",
+    "trips.unifiedNoCategory": "Sin categoría",
+    "trips.unifiedEmptyInventory": "Tu inventario está vacío. Añade artículos, kits o categorías abajo.",
+    "trips.unifiedQuickAdd": "Añadir nuevo",
+    "trips.kitChip": "KIT",
     "trips.packCategoriesHint": "Al añadir una categoría se incluyen todos sus artículos actuales.",
     "trips.packKitsHeading": "Kits",
     "trips.packKitsHint": "Paquetes prearmados. Enlace vivo — los cambios al kit se propagan.",
@@ -5391,7 +5415,8 @@ function CreateTrip({
   );
 }
 
-// Reusable picker section: search box + selectable rows + inline-create affordance
+/* Reusable picker section: search box + selectable rows + inline-create affordance.
+   Used by inline-create flows for items/kits/categories within the wizard. */
 function PackPickerSection({ title, hint, count, emptyLabel, items, searchValue, setSearchValue, renderRow, addNewLabel, addingNew, onAddNewClick, inlineCreate }) {
   return (
     <div style={{ marginBottom: 24 }}>
@@ -5444,6 +5469,371 @@ function PackPickerSection({ title, hint, count, emptyLabel, items, searchValue,
     </div>
   );
 }
+
+/* ============================================================
+   UnifiedInventoryBrowser — single picker showing the entire
+   inventory organized by category. Each category section has:
+     • An "Add this whole category" tickable row at the top
+     • Tickable rows for kits in that category (expandable to
+       show individual items)
+     • Tickable rows for items in that category not in any kit
+   Search filters within sections, keeping the structure visible.
+   "Uncategorized" section catches items/kits without a category.
+   ============================================================ */
+function UnifiedInventoryBrowser({
+  categories,
+  kits,
+  items,
+  pickedCategoryIds, setPickedCategoryIds,
+  pickedKitIds, setPickedKitIds,
+  pickedItemIds, setPickedItemIds,
+}) {
+  const { t, lang } = useI18n();
+  const { isMobile } = useViewport();
+  const [search, setSearch] = useState("");
+  const [expandedKits, setExpandedKits] = useState(new Set());
+  const [collapsedCategories, setCollapsedCategories] = useState(new Set());
+
+  // Toggling helpers
+  const toggleCategory = (id) =>
+    setPickedCategoryIds(pickedCategoryIds.includes(id) ? pickedCategoryIds.filter((x) => x !== id) : [...pickedCategoryIds, id]);
+  const toggleKit = (id) =>
+    setPickedKitIds(pickedKitIds.includes(id) ? pickedKitIds.filter((x) => x !== id) : [...pickedKitIds, id]);
+  const toggleItem = (id) =>
+    setPickedItemIds(pickedItemIds.includes(id) ? pickedItemIds.filter((x) => x !== id) : [...pickedItemIds, id]);
+  const toggleExpand = (kitId) => {
+    const next = new Set(expandedKits);
+    if (next.has(kitId)) next.delete(kitId); else next.add(kitId);
+    setExpandedKits(next);
+  };
+  const toggleCategoryCollapse = (catName) => {
+    const next = new Set(collapsedCategories);
+    if (next.has(catName)) next.delete(catName); else next.add(catName);
+    setCollapsedCategories(next);
+  };
+
+  // Build the grouped data structure
+  // For each category: list of kits in that category + list of "loose" items in that category
+  // (items that aren't part of any kit). Plus an "Uncategorized" bucket for kits/items
+  // with no category.
+  const searchLower = search.trim().toLowerCase();
+  const matchesSearch = (text) => !searchLower || (text || "").toLowerCase().includes(searchLower);
+
+  // Build a set of all itemIds that belong to ANY kit, so we can determine which
+  // items are "loose" (not covered by any kit row).
+  const itemsInAnyKit = new Set();
+  kits.forEach((k) => (k.itemIds || []).forEach((iid) => itemsInAnyKit.add(iid)));
+
+  // Group everything
+  const sections = [];
+  const usedItemIds = new Set();
+  const usedKitIds = new Set();
+
+  categories.forEach((cat) => {
+    const kitsInCat = kits.filter((k) => k.category === cat.name);
+    const itemsInCat = items.filter((it) => it.category === cat.name);
+    const looseItems = itemsInCat.filter((it) => !itemsInAnyKit.has(it.id));
+
+    // Apply search filter
+    const visibleKits = kitsInCat.filter((k) => {
+      if (matchesSearch(k.name)) return true;
+      // Also visible if any of its items match
+      return (k.itemIds || []).some((iid) => {
+        const it = items.find((x) => x.id === iid);
+        return it && matchesSearch(it.name);
+      });
+    });
+    const visibleLooseItems = looseItems.filter((it) => matchesSearch(it.name));
+    const matchesCategoryName = matchesSearch(cat.name);
+
+    // Skip empty sections when searching
+    if (searchLower && !matchesCategoryName && visibleKits.length === 0 && visibleLooseItems.length === 0) return;
+
+    visibleKits.forEach((k) => usedKitIds.add(k.id));
+    visibleLooseItems.forEach((it) => usedItemIds.add(it.id));
+
+    sections.push({
+      category: cat,
+      kits: visibleKits,
+      looseItems: visibleLooseItems,
+    });
+  });
+
+  // Uncategorized bucket — kits + items with no matching category
+  const uncatKits = kits.filter((k) => !usedKitIds.has(k.id) && (!k.category || !categories.find((c) => c.name === k.category)));
+  const uncatItems = items.filter((it) => !usedItemIds.has(it.id) && !categories.find((c) => c.name === it.category) && !itemsInAnyKit.has(it.id));
+  const visibleUncatKits = uncatKits.filter((k) => matchesSearch(k.name));
+  const visibleUncatItems = uncatItems.filter((it) => matchesSearch(it.name));
+  if (visibleUncatKits.length || visibleUncatItems.length) {
+    sections.push({
+      category: { id: "_uncat", name: t("trips.unifiedNoCategory"), icon: "tag" },
+      kits: visibleUncatKits,
+      looseItems: visibleUncatItems,
+      isUncategorized: true,
+    });
+  }
+
+  const totalSelected = pickedCategoryIds.length + pickedKitIds.length + pickedItemIds.length;
+  const isInventoryEmpty = items.length === 0 && kits.length === 0 && categories.length === 0;
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <span style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {t("trips.unifiedTitle")}
+            </span>
+            <span style={{ marginLeft: 10, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              {totalSelected} picked
+            </span>
+          </div>
+        </div>
+        <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.muted }}>
+          {t("trips.unifiedSub")}
+        </div>
+      </div>
+
+      {/* Search */}
+      {!isInventoryEmpty && (
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("trips.unifiedSearchPh")}
+          style={{
+            width: "100%",
+            padding: "10px 0",
+            marginBottom: 16,
+            background: "transparent",
+            border: "none",
+            borderBottom: `1.5px solid ${C.ink}`,
+            outline: "none",
+            fontFamily: F.body,
+            fontSize: 15,
+            color: C.ink,
+          }}
+        />
+      )}
+
+      {/* Empty state */}
+      {isInventoryEmpty && (
+        <div style={{ padding: 24, background: C.paperDeep, border: `1px dashed ${C.line}`, fontFamily: F.body, fontSize: 14, color: C.inkSoft, fontStyle: "italic", textAlign: "center" }}>
+          {t("trips.unifiedEmptyInventory")}
+        </div>
+      )}
+
+      {/* Sections */}
+      {!isInventoryEmpty && sections.length === 0 && (
+        <div style={{ padding: 16, background: C.paperDeep, border: `1px dashed ${C.line}`, fontFamily: F.body, fontSize: 13, color: C.muted, fontStyle: "italic", textAlign: "center" }}>
+          No matches. Try a different search.
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {sections.map((section) => {
+          const cat = section.category;
+          const Icon = iconFor(cat.icon || "tag");
+          const collapsed = collapsedCategories.has(cat.name);
+          const catSelected = !section.isUncategorized && pickedCategoryIds.includes(cat.id);
+          const totalInCategory = section.kits.length + section.looseItems.length;
+
+          return (
+            <div key={cat.id} style={{ border: `1.5px solid ${C.line}`, background: C.paper }}>
+              {/* Category header — clickable to collapse/expand */}
+              <button
+                onClick={() => toggleCategoryCollapse(cat.name)}
+                style={{
+                  width: "100%", padding: "12px 14px",
+                  background: C.paperDeep, border: "none", borderBottom: collapsed ? "none" : `1px solid ${C.line}`,
+                  cursor: "pointer", textAlign: "left",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}
+              >
+                <Icon size={18} strokeWidth={1.4} color={C.forest} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                    {tOrLiteral(lang, "cat", cat.name)}
+                  </div>
+                  <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                    {section.kits.length} kits · {section.looseItems.length} items
+                  </div>
+                </div>
+                <span style={{ fontFamily: F.mono, fontSize: 14, color: C.muted, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▾</span>
+              </button>
+
+              {!collapsed && (
+                <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {/* "Add whole category" pill — not for uncategorized */}
+                  {!section.isUncategorized && (
+                    <button
+                      onClick={() => toggleCategory(cat.id)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                        border: `1.5px ${catSelected ? "solid" : "dashed"} ${catSelected ? C.forest : C.forest}`,
+                        background: catSelected ? C.forest : "transparent",
+                        color: catSelected ? C.paper : C.forest,
+                        cursor: "pointer", textAlign: "left", width: "100%",
+                      }}
+                    >
+                      <span style={{
+                        width: 22, height: 22, flexShrink: 0,
+                        border: `1.5px solid ${catSelected ? C.paper : C.forest}`,
+                        background: catSelected ? C.paper : "transparent",
+                        color: catSelected ? C.forest : "transparent",
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {catSelected && <Check size={13} strokeWidth={3} />}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 700 }}>
+                          {t("trips.unifiedAllInCategory")}
+                        </div>
+                        <div style={{ fontFamily: F.body, fontSize: 11, fontStyle: "italic", opacity: 0.75 }}>
+                          {t("trips.unifiedAllInCategoryHint")}
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Kits */}
+                  {section.kits.map((k) => {
+                    const kitSelected = pickedKitIds.includes(k.id);
+                    const isExpanded = expandedKits.has(k.id);
+                    const kitItems = (k.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+                    return (
+                      <div key={k.id} style={{ border: `1.5px solid ${kitSelected ? C.forest : C.line}`, background: kitSelected ? C.paperDeep : C.paper }}>
+                        <div style={{ display: "flex", alignItems: "stretch" }}>
+                          <button
+                            onClick={() => toggleKit(k.id)}
+                            style={{
+                              flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: 10,
+                              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+                            }}
+                          >
+                            <span style={{
+                              width: 22, height: 22, flexShrink: 0,
+                              border: `1.5px solid ${kitSelected ? C.forest : C.muted}`,
+                              background: kitSelected ? C.forest : "transparent",
+                              color: C.paper,
+                              display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            }}>
+                              {kitSelected && <Check size={13} strokeWidth={3} />}
+                            </span>
+                            <Backpack size={16} strokeWidth={1.4} color={C.forest} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 600 }}>
+                                {k.name}
+                                <span style={{ marginLeft: 8, padding: "1px 5px", background: C.forest, color: C.paper, fontFamily: F.mono, fontSize: 8, letterSpacing: "0.15em", fontWeight: 700, verticalAlign: "middle" }}>
+                                  {t("trips.kitChip")}
+                                </span>
+                              </div>
+                              <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                                {kitItems.length} {kitItems.length === 1 ? "item" : "items"}
+                              </div>
+                            </div>
+                          </button>
+                          {kitItems.length > 0 && (
+                            <button
+                              onClick={() => toggleExpand(k.id)}
+                              style={{
+                                width: 44, background: "transparent", border: "none", borderLeft: `1px dashed ${C.line}`,
+                                cursor: "pointer", color: C.muted,
+                                fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                              }}
+                              title={isExpanded ? t("trips.unifiedCollapse") : t("trips.unifiedExpand")}
+                              aria-label={isExpanded ? t("trips.unifiedCollapse") : t("trips.unifiedExpand")}
+                            >
+                              <span style={{ transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}>▾</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Expanded item list */}
+                        {isExpanded && kitItems.length > 0 && (
+                          <div style={{ padding: "8px 10px 10px 38px", background: C.paperDeep, borderTop: `1px dashed ${C.line}`, display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 4 }}>
+                              {t("trips.unifiedKitItemsHeading")}
+                            </div>
+                            {kitItems.map((it) => {
+                              const itemSelected = pickedItemIds.includes(it.id);
+                              return (
+                                <button
+                                  key={it.id}
+                                  onClick={() => toggleItem(it.id)}
+                                  style={{
+                                    display: "flex", alignItems: "center", gap: 8, padding: "6px 8px",
+                                    border: `1px solid ${itemSelected ? C.forest : "transparent"}`,
+                                    background: itemSelected ? C.paper : "transparent",
+                                    cursor: "pointer", textAlign: "left", width: "100%",
+                                  }}
+                                >
+                                  <span style={{
+                                    width: 18, height: 18, flexShrink: 0,
+                                    border: `1.5px solid ${itemSelected ? C.forest : C.muted}`,
+                                    background: itemSelected ? C.forest : "transparent",
+                                    color: C.paper,
+                                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                  }}>
+                                    {itemSelected && <Check size={11} strokeWidth={3} />}
+                                  </span>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontFamily: F.body, fontSize: 12, fontWeight: 500 }}>{it.name}</div>
+                                    <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em" }}>{it.weight}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Loose items in this category (not in any kit) */}
+                  {section.looseItems.map((it) => {
+                    const sel = pickedItemIds.includes(it.id);
+                    return (
+                      <button
+                        key={it.id}
+                        onClick={() => toggleItem(it.id)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: 10,
+                          border: `1.5px solid ${sel ? C.forest : C.line}`,
+                          background: sel ? C.paperDeep : C.paper,
+                          cursor: "pointer", textAlign: "left", width: "100%",
+                        }}
+                      >
+                        <span style={{
+                          width: 20, height: 20, flexShrink: 0,
+                          border: `1.5px solid ${sel ? C.forest : C.muted}`,
+                          background: sel ? C.forest : "transparent",
+                          color: C.paper,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          {sel && <Check size={12} strokeWidth={3} />}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 500 }}>{it.name}</div>
+                          <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
+                            {it.weight}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 // Simple category dropdown for the inline-create forms
 function CategorySelect({ categories, value, onChange }) {
@@ -6353,147 +6743,87 @@ function TripPacklistForm({
         {t("trips.summarySection")}: <span style={{ marginLeft: 6, opacity: 0.85 }}>{summaryText}</span>
       </div>
 
-      {/* CATEGORIES */}
-      <PackPickerSection
-        title={t("trips.packCategoriesHeading")}
-        hint={t("trips.packCategoriesHint")}
-        count={`${pickedCategoryIds.length} / ${categories.length}`}
-        emptyLabel={t("trips.packEmptyCats")}
-        items={filteredCats}
-        searchValue={searchCats}
-        setSearchValue={setSearchCats}
-        renderRow={(c) => {
-          const sel = pickedCategoryIds.includes(c.id);
-          const itemCount = items.filter((i) => i.category === c.name).length;
-          const Icon = iconFor(c.icon);
-          return (
-            <button key={c.id} onClick={() => toggleCategory(c.id)} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: 10,
-              border: `1.5px solid ${sel ? C.forest : C.line}`,
-              background: sel ? C.paper : "transparent",
-              cursor: "pointer", textAlign: "left", width: "100%",
-            }}>
-              <span style={{ width: 22, height: 22, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                {sel && <Check size={13} strokeWidth={3} />}
-              </span>
-              <Icon size={16} strokeWidth={1.4} color={C.forest} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500 }}>{tOrLiteral(lang, "cat", c.name)}</div>
-                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  {itemCount} {itemCount === 1 ? "item" : "items"}
-                </div>
-              </div>
-            </button>
-          );
-        }}
-        addNewLabel={t("trips.addNewCatInline")}
-        addingNew={inlineMode === "cat"}
-        onAddNewClick={() => setInlineMode(inlineMode === "cat" ? null : "cat")}
-        inlineCreate={inlineMode === "cat" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
-            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
-              <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
-            </div>
-          </div>
-        )}
+      {/* === UNIFIED INVENTORY BROWSER === */}
+      <UnifiedInventoryBrowser
+        categories={categories}
+        kits={kits}
+        items={items}
+        pickedCategoryIds={pickedCategoryIds}
+        setPickedCategoryIds={setPickedCategoryIds}
+        pickedKitIds={pickedKitIds}
+        setPickedKitIds={setPickedKitIds}
+        pickedItemIds={pickedItemIds}
+        setPickedItemIds={setPickedItemIds}
       />
 
-      {/* KITS */}
-      <PackPickerSection
-        title={t("trips.packKitsHeading")}
-        hint={t("trips.packKitsHint")}
-        count={`${pickedKitIds.length} / ${kits.length}`}
-        emptyLabel={t("trips.packEmptyKits")}
-        items={filteredKits}
-        searchValue={searchKits}
-        setSearchValue={setSearchKits}
-        renderRow={(k) => {
-          const sel = pickedKitIds.includes(k.id);
-          const itemCount = (k.itemIds || []).length;
-          return (
-            <button key={k.id} onClick={() => toggleKit(k.id)} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: 10,
-              border: `1.5px solid ${sel ? C.forest : C.line}`,
-              background: sel ? C.paper : "transparent",
-              cursor: "pointer", textAlign: "left", width: "100%",
-            }}>
-              <span style={{ width: 22, height: 22, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                {sel && <Check size={13} strokeWidth={3} />}
-              </span>
-              <Backpack size={16} strokeWidth={1.4} color={C.forest} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500 }}>{k.name}</div>
-                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  {itemCount} {itemCount === 1 ? "item" : "items"}{k.category ? `  ·  ${k.category}` : ""}
-                </div>
-              </div>
-            </button>
-          );
-        }}
-        addNewLabel={t("trips.addNewKitInline")}
-        addingNew={inlineMode === "kit"}
-        onAddNewClick={() => setInlineMode(inlineMode === "kit" ? null : "kit")}
-        inlineCreate={inlineMode === "kit" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
-            <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
-            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-              <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
-            </div>
-          </div>
-        )}
-      />
+      {/* === Quick add new — collapsible toolbar for creating new items/kits/categories on the fly === */}
+      <div style={{ marginTop: 24, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
+        <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          {t("trips.unifiedQuickAdd")}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            ["item", t("trips.addNewItemInline")],
+            ["kit", t("trips.addNewKitInline")],
+            ["cat", t("trips.addNewCatInline")],
+          ].map(([k, label]) => {
+            const active = inlineMode === k;
+            return (
+              <button key={k} onClick={() => setInlineMode(active ? null : k)}
+                style={{
+                  padding: "6px 12px",
+                  border: `1.5px ${active ? "solid" : "dashed"} ${C.forest}`,
+                  background: active ? C.forest : "transparent",
+                  color: active ? C.paper : C.forest,
+                  cursor: "pointer",
+                  fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* INDIVIDUAL ITEMS */}
-      <PackPickerSection
-        title={t("trips.packItemsHeading")}
-        hint={t("trips.packItemsHint")}
-        count={`${pickedItemIds.length} / ${items.length}`}
-        emptyLabel={t("trips.packEmptyItems")}
-        items={filteredItems}
-        searchValue={searchItems}
-        setSearchValue={setSearchItems}
-        renderRow={(it) => {
-          const sel = pickedItemIds.includes(it.id);
-          return (
-            <button key={it.id} onClick={() => toggleItem(it.id)} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: 8,
-              border: `1.5px solid ${sel ? C.forest : C.line}`,
-              background: sel ? C.paper : "transparent",
-              cursor: "pointer", textAlign: "left", width: "100%",
-            }}>
-              <span style={{ width: 20, height: 20, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                {sel && <Check size={12} strokeWidth={3} />}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 500 }}>{it.name}</div>
-                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
-                  {tOrLiteral(lang, "cat", it.category)}  ·  {it.weight}
-                </div>
+        {/* Inline create forms */}
+        {inlineMode === "item" && (
+          <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+                <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
               </div>
-            </button>
-          );
-        }}
-        addNewLabel={t("trips.addNewItemInline")}
-        addingNew={inlineMode === "item"}
-        onAddNewClick={() => setInlineMode(inlineMode === "item" ? null : "item")}
-        inlineCreate={inlineMode === "item" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-              <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
-              <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
-            </div>
-            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-              <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+              </div>
             </div>
           </div>
         )}
-      />
+        {inlineMode === "kit" && (
+          <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
+              <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+        {inlineMode === "cat" && (
+          <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Action row */}
       <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "space-between", flexWrap: "wrap" }}>
