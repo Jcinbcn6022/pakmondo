@@ -2930,12 +2930,6 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, marginTop: isMobile ? 24 : 32, background: C.line }}>
-            <Stat label={t("dash.statTrips")} value={String(trips.length)} sub={t("dash.statTripsSub")} />
-            <Stat label={t("dash.statInventory")} value={String(items.length)} sub={t("dash.statInventorySub")} />
-            <Stat label={t("dash.statWeight")} value={totalWeight} sub={t("dash.statWeightSub")} />
-            <Stat label={t("dash.statCart")} value={String(cart.length)} sub={t("dash.statCartSub")} />
-          </div>
           <h2 style={{ marginTop: isMobile ? 48 : 80, marginBottom: isMobile ? 20 : 32, fontFamily: F.display, fontSize: isMobile ? 26 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("dash.kitTitle")}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 1, background: C.line }}>
             <NavCard num="01" title={t("dash.navInventory")} tagline={t("dash.navInventoryTag")} icon={Backpack} onClick={() => go("inventory")} dark badge={alerts.length} />
