@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from "react";
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
   ArrowLeft, Plus, Check, X, ChevronRight, User, Lock, Mail, CreditCard,
-  Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon,
+  Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil,
   Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
@@ -6111,6 +6111,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
   const [tab, setTab] = useState("saved");           // "saved" | "create" | "edit"
   const [editingId, setEditingId] = useState(null);  // when tab === "edit"
   const [openId, setOpenId] = useState(null);        // detail view
+  const [editorOpenId, setEditorOpenId] = useState(null);  // modal editor — independent of tab/detail
 
   const addPacklist = (data) => {
     setPacklists([{ id: uid("pl"), ...data }, ...packlists]);
@@ -6149,6 +6150,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
 
   // Detail view
   if (openPacklist) {
+    const editorPacklist = editorOpenId ? packlists.find((p) => p.id === editorOpenId) : null;
     return (
       <div>
         <Header go={go} active="packlists" />
@@ -6159,7 +6161,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             items={items}
             categories={categories}
             onBack={() => setOpenId(null)}
-            onEdit={() => { setOpenId(null); startEdit(openPacklist.id); }}
+            onEdit={() => setEditorOpenId(openPacklist.id)}
             onDelete={() => deletePacklist(openPacklist.id)}
             onRemoveItem={(itemId) => removeItemFromPacklist(openPacklist.id, itemId)}
             onRemoveKit={(kitId) => removeKitFromPacklist(openPacklist.id, kitId)}
@@ -6167,6 +6169,17 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
           />
         </div>
         <Footer />
+        {editorPacklist && (
+          <PacklistEditorDialog
+            packlist={editorPacklist}
+            categories={categories} setCategories={setCategories}
+            kits={kits} setKits={setKits}
+            items={items} setItems={setItems}
+            travelTypes={travelTypes} setTravelTypes={setTravelTypes}
+            onSave={(data) => { updatePacklist(editorOpenId, data); setEditorOpenId(null); }}
+            onClose={() => setEditorOpenId(null)}
+          />
+        )}
       </div>
     );
   }
@@ -6208,7 +6221,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
               kits={kits}
               items={items}
               onOpen={(id) => setOpenId(id)}
-              onEdit={(id) => startEdit(id)}
+              onEdit={(id) => setEditorOpenId(id)}
               onDelete={deletePacklist}
               onCreate={() => setTab("create")}
             />
@@ -6237,6 +6250,21 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
         </div>
       </div>
       <Footer />
+      {editorOpenId && (() => {
+        const editorPacklist = packlists.find((p) => p.id === editorOpenId);
+        if (!editorPacklist) return null;
+        return (
+          <PacklistEditorDialog
+            packlist={editorPacklist}
+            categories={categories} setCategories={setCategories}
+            kits={kits} setKits={setKits}
+            items={items} setItems={setItems}
+            travelTypes={travelTypes} setTravelTypes={setTravelTypes}
+            onSave={(data) => { updatePacklist(editorOpenId, data); setEditorOpenId(null); }}
+            onClose={() => setEditorOpenId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -6296,7 +6324,7 @@ function PacklistsList({ packlists, kits, items, onOpen, onEdit, onDelete, onCre
                 {t("pl.openBtn")}
               </Btn>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn variant="ghost" icon={Tag} onClick={() => onEdit(p.id)} fullWidth={true}>
+                <Btn variant="ghost" icon={Pencil} onClick={() => onEdit(p.id)} fullWidth={true}>
                   {t("pl.editBtn")}
                 </Btn>
                 <button
@@ -6835,6 +6863,355 @@ function TripPacklistForm({
   );
 }
 
+/* ============================================================
+   PacklistEditorDialog — full-screen modal for editing a saved
+   trip/packlist. Handles BOTH itinerary metadata (name, dates,
+   destination, type, notes) AND the unified inventory browser
+   (categories, kits, items) in one place. Explicit Save/Cancel.
+   Pre-filled with the packlist's current state on open.
+   ============================================================ */
+function PacklistEditorDialog({
+  packlist,
+  categories, setCategories,
+  kits, setKits,
+  items, setItems,
+  travelTypes, setTravelTypes,
+  onSave, onClose,
+}) {
+  const { t, locale, lang } = useI18n();
+  const { isMobile } = useViewport();
+
+  // Local working copy of all editable fields — only committed on Save.
+  const [name, setName] = useState(packlist.name || "");
+  const [notes, setNotes] = useState(packlist.notes || "");
+  const [dest, setDest] = useState(packlist.dest || "");
+  const [type, setType] = useState(packlist.type || "");
+  // We store dates as a string on the packlist; if the user enters new dates
+  // we re-format. If they don't touch the dates, the existing string is kept.
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [pickedCategoryIds, setPickedCategoryIds] = useState(packlist.categoryIds || []);
+  const [pickedKitIds, setPickedKitIds] = useState(packlist.kitIds || []);
+  const [pickedItemIds, setPickedItemIds] = useState(packlist.itemIds || []);
+
+  // Inline-create UI state for new items/kits/categories on the fly
+  const [inlineMode, setInlineMode] = useState(null); // "item" | "kit" | "cat" | null
+  const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
+  const [newKit, setNewKit] = useState({ name: "", category: "" });
+  const [newCat, setNewCat] = useState({ name: "" });
+
+  // Trip-type quick add
+  const [addingType, setAddingType] = useState(false);
+  const [newType, setNewType] = useState({ name: "" });
+
+  // Section collapse state — itinerary section can fold so the inventory browser gets full screen
+  const [itineraryCollapsed, setItineraryCollapsed] = useState(false);
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const fmt = (d) => {
+    if (!d) return "";
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString(locale, { month: "short", day: "2-digit" });
+  };
+
+  // === Inline-create handlers (mirror the wizard) ===
+  const saveInlineItem = () => {
+    const itemName = newItem.name.trim();
+    if (!itemName) return;
+    const id = uid("it");
+    const created = {
+      id, name: itemName,
+      category: newItem.category || (categories[0]?.name || "Other"),
+      weight: newItem.weight.trim() || "0 g",
+      quantity: 1, packed: false, consumable: false,
+      expiry: "", remindDays: null,
+    };
+    setItems([created, ...items]);
+    setPickedItemIds((s) => [...s, id]);
+    setNewItem({ name: "", weight: "", category: "" });
+    setInlineMode(null);
+  };
+  const saveInlineKit = () => {
+    const kitName = newKit.name.trim();
+    if (!kitName) return;
+    const id = uid("kit");
+    const created = { id, name: kitName, category: newKit.category || "", itemIds: [] };
+    setKits([created, ...kits]);
+    setPickedKitIds((s) => [...s, id]);
+    setNewKit({ name: "", category: "" });
+    setInlineMode(null);
+  };
+  const saveInlineCat = () => {
+    const catName = newCat.name.trim();
+    if (!catName) return;
+    const id = uid("cat");
+    const created = { id, name: catName, icon: "tag" };
+    setCategories([created, ...categories]);
+    setPickedCategoryIds((s) => [...s, id]);
+    setNewCat({ name: "" });
+    setInlineMode(null);
+  };
+  const saveNewType = () => {
+    const tName = newType.name.trim();
+    if (!tName) return;
+    setTravelTypes([{ id: uid("tt"), icon: "mountain", name: tName, climate: "Variable", days: "1-7" }, ...travelTypes]);
+    setType(tName);
+    setNewType({ name: "" });
+    setAddingType(false);
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    let dateString = packlist.date || "";
+    if (start && end) dateString = `${fmt(start)} - ${fmt(end)}`;
+    else if (start) dateString = fmt(start);
+
+    onSave({
+      name: name.trim(),
+      notes: notes.trim(),
+      dest: dest.trim(),
+      date: dateString,
+      type: type || "",
+      kitIds: pickedKitIds,
+      itemIds: pickedItemIds,
+      categoryIds: pickedCategoryIds,
+    });
+  };
+
+  const totalSelected = pickedCategoryIds.length + pickedKitIds.length + pickedItemIds.length;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("pl.editFormTitle")}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(26, 36, 33, 0.55)",
+        display: "flex", alignItems: "stretch", justifyContent: "center",
+        padding: isMobile ? 0 : 24,
+      }}
+    >
+      <div style={{
+        width: "100%", maxWidth: 920, background: C.paper,
+        display: "flex", flexDirection: "column",
+        maxHeight: isMobile ? "100%" : "calc(100vh - 48px)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+        border: `1.5px solid ${C.ink}`,
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: isMobile ? "16px 18px" : "20px 28px",
+          background: C.ink, color: C.paper,
+          display: "flex", alignItems: "center", gap: 12,
+          borderBottom: `2px solid ${C.rust}`,
+        }}>
+          <Pencil size={18} strokeWidth={1.6} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.7 }}>
+              {t("pl.editFormTitle")}
+            </div>
+            <div style={{ marginTop: 2, fontFamily: F.display, fontSize: isMobile ? 18 : 22, fontWeight: 700, letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {name || packlist.name}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ width: 36, height: 36, background: "transparent", border: `1px solid ${C.paper}`, color: C.paper, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            aria-label={t("common.cancel")}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 18px" : "28px 28px" }}>
+          {/* === SECTION 1: Itinerary (collapsible) === */}
+          <div style={{ marginBottom: 28 }}>
+            <button
+              onClick={() => setItineraryCollapsed(!itineraryCollapsed)}
+              style={{
+                width: "100%", padding: "10px 0", background: "transparent",
+                border: "none", borderBottom: `1.5px solid ${C.ink}`, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em",
+                color: C.ink, textAlign: "left",
+              }}
+            >
+              <span>{t("trips.stepDetailsTitle")}</span>
+              <span style={{ fontFamily: F.mono, fontSize: 14, color: C.muted, transform: itineraryCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▾</span>
+            </button>
+
+            {!itineraryCollapsed && (
+              <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: isMobile ? 18 : 22 }}>
+                <Field label={t("trips.tripName")} icon={MapPin} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("trips.tripNamePh")} />
+                <Field label={t("trips.destination")} icon={Globe} value={dest} onChange={(e) => setDest(e.target.value)} placeholder={t("trips.destinationPh")} />
+
+                {/* Show existing date as a hint if user hasn't picked new ones */}
+                {packlist.date && !(start || end) && (
+                  <div style={{ padding: 10, background: C.paperDeep, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    Current dates: {packlist.date}
+                  </div>
+                )}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 20 }}>
+                  <Field label={t("trips.startDate")} type="date" icon={Calendar} value={start} onChange={(e) => setStart(e.target.value)} />
+                  <Field label={t("trips.endDate")} type="date" icon={Calendar} value={end} onChange={(e) => setEnd(e.target.value)} />
+                </div>
+
+                {/* Trip type chips */}
+                <div>
+                  <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                    {t("trips.tripType")}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {travelTypes.map((tt) => {
+                      const sel = type === tt.name;
+                      return (
+                        <button key={tt.id} onClick={() => setType(sel ? "" : tt.name)}
+                          style={{ padding: "6px 12px", border: `1.5px solid ${sel ? C.forest : C.line}`, background: sel ? C.forest : "transparent", color: sel ? C.paper : C.ink, cursor: "pointer", fontFamily: F.body, fontSize: 13 }}>
+                          {tOrLiteral(lang, "tt", tt.name)}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => setAddingType(!addingType)}
+                      style={{ padding: "6px 12px", border: `1.5px dashed ${C.line}`, background: "transparent", color: C.forest, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", fontWeight: 700 }}>
+                      + {t("common.add")}
+                    </button>
+                  </div>
+                  {addingType && (
+                    <div style={{ marginTop: 12, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
+                      <Field label="Type name" value={newType.name} onChange={(e) => setNewType({ name: e.target.value })} />
+                      <div style={{ marginTop: 10, display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <Btn variant="ghost" icon={X} onClick={() => { setAddingType(false); setNewType({ name: "" }); }}>{t("common.cancel")}</Btn>
+                        <Btn variant="rust" icon={Check} onClick={saveNewType} disabled={!newType.name.trim()}>{t("common.save")}</Btn>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes */}
+                <label style={{ display: "block" }}>
+                  <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                    {t("pl.notes")}
+                  </div>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("pl.notesPh")} rows={3}
+                    style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink, resize: "vertical" }} />
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* === SECTION 2: Pack === */}
+          <div>
+            <div style={{ marginBottom: 18, padding: "10px 0", borderBottom: `1.5px solid ${C.ink}`, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>{t("trips.stepPackTitle")}</span>
+              <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                {totalSelected} {totalSelected === 1 ? "pick" : "picks"}
+              </span>
+            </div>
+
+            <UnifiedInventoryBrowser
+              categories={categories}
+              kits={kits}
+              items={items}
+              pickedCategoryIds={pickedCategoryIds}
+              setPickedCategoryIds={setPickedCategoryIds}
+              pickedKitIds={pickedKitIds}
+              setPickedKitIds={setPickedKitIds}
+              pickedItemIds={pickedItemIds}
+              setPickedItemIds={setPickedItemIds}
+            />
+
+            {/* Quick add new — collapsible toolbar */}
+            <div style={{ marginTop: 24, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("trips.unifiedQuickAdd")}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  ["item", t("trips.addNewItemInline")],
+                  ["kit", t("trips.addNewKitInline")],
+                  ["cat", t("trips.addNewCatInline")],
+                ].map(([k, label]) => {
+                  const active = inlineMode === k;
+                  return (
+                    <button key={k} onClick={() => setInlineMode(active ? null : k)}
+                      style={{
+                        padding: "6px 12px",
+                        border: `1.5px ${active ? "solid" : "dashed"} ${C.forest}`,
+                        background: active ? C.forest : "transparent",
+                        color: active ? C.paper : C.forest,
+                        cursor: "pointer",
+                        fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                      }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {inlineMode === "item" && (
+                <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                      <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+                      <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+                    </div>
+                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                      <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {inlineMode === "kit" && (
+                <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
+                    <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
+                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                      <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {inlineMode === "cat" && (
+                <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
+                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                      <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky footer with Cancel / Save */}
+        <div style={{
+          padding: isMobile ? "12px 16px" : "16px 24px",
+          borderTop: `1.5px solid ${C.ink}`, background: C.paperDeep,
+          display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row",
+        }}>
+          <Btn variant="ghost" icon={X} onClick={onClose} fullWidth={isMobile}>{t("common.cancel")}</Btn>
+          <Btn variant="rust" icon={Check} onClick={handleSave} disabled={!name.trim()} fullWidth={isMobile}>
+            {t("pl.saveBtn")}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Detail view of a single packlist — shows kits with their items + standalone items */
 function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory }) {
   const { t, lang, units } = useI18n();
@@ -6901,7 +7278,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         </div>
 
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Btn variant="ghost" icon={Tag} onClick={onEdit}>{t("pl.editBtn")}</Btn>
+          <Btn variant="rust" icon={Pencil} onClick={onEdit}>{t("pl.editBtn")}</Btn>
           <Btn variant="ghost" icon={Trash2} onClick={() => setConfirming(true)}>{t("pl.deleteBtn")}</Btn>
         </div>
 
