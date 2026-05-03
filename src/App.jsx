@@ -198,6 +198,78 @@ const supabaseService = {
     if (error) return { error: error.message };
     return { share: data };
   },
+
+  // ============== LIBRARY ==============
+  // Fetch the list of activity types (defaults + user-created) for the dropdown
+  fetchActivities: async () => {
+    const { data, error } = await supabase
+      .from("library_activities")
+      .select("id, name, is_default")
+      .order("is_default", { ascending: false })
+      .order("name", { ascending: true });
+    if (error) return [];
+    return data || [];
+  },
+
+  // Create a new custom activity (or no-op if a matching one already exists, case-insensitive)
+  ensureActivity: async (name, userId) => {
+    const trimmed = name.trim();
+    if (!trimmed) return { error: "Activity name required" };
+    // Check existing first
+    const { data: existing } = await supabase
+      .from("library_activities")
+      .select("name")
+      .ilike("name", trimmed)
+      .maybeSingle();
+    if (existing) return { name: existing.name };
+    // Insert new
+    const { data, error } = await supabase
+      .from("library_activities")
+      .insert({ name: trimmed, is_default: false, created_by: userId })
+      .select("name")
+      .single();
+    if (error) return { error: error.message };
+    return { name: data.name };
+  },
+
+  // Submit content to the library (status starts as 'pending', awaiting admin review)
+  publishToLibrary: async ({ kind, title, description, activity, payload, publisher }) => {
+    const { data, error } = await supabase
+      .from("library_items")
+      .insert({
+        publisher_user_id: publisher.id,
+        publisher_username: publisher.username,
+        publisher_region: publisher.region,
+        kind,
+        title: title.trim(),
+        description: (description || "").trim() || null,
+        activity: activity.trim(),
+        payload,
+        status: "pending",
+      })
+      .select()
+      .single();
+    if (error) return { error: error.message };
+    return { item: data };
+  },
+
+  // Fetch a user's own submissions (any status — they always see their own)
+  fetchMySubmissions: async (userId) => {
+    const { data, error } = await supabase
+      .from("library_items")
+      .select("*")
+      .eq("publisher_user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  // Delete a submission (publisher's own)
+  deleteSubmission: async (id) => {
+    const { error } = await supabase.from("library_items").delete().eq("id", id);
+    if (error) return { error: error.message };
+    return { ok: true };
+  },
 };
 
 const C = {
@@ -310,6 +382,43 @@ const TRANSLATIONS = {
 
     // === Sharing & Inbox ===
     "share.btn": "Share",
+
+    // === Library / Publish ===
+    "lib.publishBtn": "Publish to library",
+    "lib.publishedBadge": "Published",
+    "lib.pendingBadge": "Pending review",
+    "lib.rejectedBadge": "Rejected",
+    "lib.dialogTitle": "Publish to the community library",
+    "lib.dialogSub": "Curated submissions appear in the public Library where any explorer can browse and import them.",
+    "lib.fieldTitle": "Title",
+    "lib.fieldTitleHint": "How should this appear in the library?",
+    "lib.fieldActivity": "Activity",
+    "lib.fieldActivityHint": "Pick the closest match, or type a new one.",
+    "lib.activityPh": "Trekking, Camping, …",
+    "lib.activityCustomLabel": "Use \"{name}\" as a new activity",
+    "lib.fieldDescription": "Description",
+    "lib.fieldDescriptionHint": "What is this for? When/where did you use it? Why is it useful?",
+    "lib.descriptionPh": "Three weeks in the Cordillera Darwin range. Wet, cold, exposed.",
+    "lib.submit": "Submit for review",
+    "lib.submitting": "Submitting...",
+    "lib.submitted": "Submitted! An admin will review it shortly.",
+    "lib.cancel": "Cancel",
+    "lib.titleRequired": "Title is required",
+    "lib.activityRequired": "Activity is required",
+    "lib.descriptionRequired": "A short description is required",
+
+    // === My submissions (in Settings) ===
+    "lib.mySubsTitle": "My library submissions",
+    "lib.mySubsEmpty": "You haven't published anything yet.",
+    "lib.mySubsEmptyHint": "Publish a kit, category, or trip from its share menu.",
+    "lib.subStatusPending": "PENDING REVIEW",
+    "lib.subStatusApproved": "APPROVED",
+    "lib.subStatusRejected": "REJECTED",
+    "lib.subDelete": "Delete submission",
+    "lib.subDeleteConfirm": "Delete this submission? It removes it from the library. Anyone who already imported a copy keeps theirs.",
+    "lib.subDeleteYes": "Yes, delete",
+    "lib.subRejectReason": "Reason: {r}",
+    "lib.viewMySubs": "View my submissions",
     "share.dialogTitle": "Share with another explorer",
     "share.dialogSub": "Send a copy or a live link.",
     "share.recipient": "Recipient",
@@ -790,6 +899,41 @@ const TRANSLATIONS = {
     "nav.inbox": "Bandeja",
 
     "share.btn": "Compartir",
+
+    "lib.publishBtn": "Publicar en biblioteca",
+    "lib.publishedBadge": "Publicado",
+    "lib.pendingBadge": "En revisión",
+    "lib.rejectedBadge": "Rechazado",
+    "lib.dialogTitle": "Publicar en la biblioteca comunitaria",
+    "lib.dialogSub": "Las publicaciones curadas aparecen en la Biblioteca pública para que cualquier explorador pueda navegarlas e importarlas.",
+    "lib.fieldTitle": "Título",
+    "lib.fieldTitleHint": "¿Cómo debería aparecer en la biblioteca?",
+    "lib.fieldActivity": "Actividad",
+    "lib.fieldActivityHint": "Elige la mejor opción, o escribe una nueva.",
+    "lib.activityPh": "Trekking, Acampar, …",
+    "lib.activityCustomLabel": "Usar \"{name}\" como actividad nueva",
+    "lib.fieldDescription": "Descripción",
+    "lib.fieldDescriptionHint": "¿Para qué sirve? ¿Cuándo/dónde lo usaste? ¿Por qué es útil?",
+    "lib.descriptionPh": "Tres semanas en la Cordillera Darwin. Húmedo, frío, expuesto.",
+    "lib.submit": "Enviar para revisión",
+    "lib.submitting": "Enviando...",
+    "lib.submitted": "¡Enviado! Un administrador lo revisará en breve.",
+    "lib.cancel": "Cancelar",
+    "lib.titleRequired": "El título es obligatorio",
+    "lib.activityRequired": "La actividad es obligatoria",
+    "lib.descriptionRequired": "Se requiere una breve descripción",
+
+    "lib.mySubsTitle": "Mis publicaciones",
+    "lib.mySubsEmpty": "Aún no has publicado nada.",
+    "lib.mySubsEmptyHint": "Publica un kit, categoría o viaje desde su menú de compartir.",
+    "lib.subStatusPending": "EN REVISIÓN",
+    "lib.subStatusApproved": "APROBADO",
+    "lib.subStatusRejected": "RECHAZADO",
+    "lib.subDelete": "Borrar publicación",
+    "lib.subDeleteConfirm": "¿Borrar esta publicación? La elimina de la biblioteca. Quien ya la haya importado conserva su copia.",
+    "lib.subDeleteYes": "Sí, borrar",
+    "lib.subRejectReason": "Motivo: {r}",
+    "lib.viewMySubs": "Ver mis publicaciones",
     "share.dialogTitle": "Comparte con otro explorador",
     "share.dialogSub": "Envía una copia o un enlace en vivo.",
     "share.recipient": "Destinatario",
@@ -3036,7 +3180,7 @@ function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint }) {
   );
 }
 
-function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare }) {
+function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish }) {
   const { t, lang } = useI18n();
   const { isMobile } = useViewport();
   if (categories.length === 0) return <EmptyState label={t("inv.emptyCats")} hint={t("inv.emptyCatsHint")} />;
@@ -3060,7 +3204,7 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare }) 
               flexDirection: "column",
             }}
           >
-            {/* Top-right action stack: share + delete */}
+            {/* Top-right action stack: share + publish + delete */}
             <div style={{ position: "absolute", top: 12, right: 12, display: "flex", flexDirection: "column", gap: 4, zIndex: 2 }}>
               {onShare && (
                 <button
@@ -3069,6 +3213,15 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare }) 
                   aria-label={t("share.btn")}
                   title={t("share.btn")}>
                   <ChevronRight size={14} style={{ transform: "rotate(-45deg)" }} />
+                </button>
+              )}
+              {onPublish && (
+                <button
+                  onClick={() => onPublish(c)}
+                  style={{ width: 34, height: 34, cursor: "pointer", background: C.paperDeep, border: `1px solid ${C.forest}`, color: C.forest, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  aria-label={t("lib.publishBtn")}
+                  title={t("lib.publishBtn")}>
+                  <Globe size={14} />
                 </button>
               )}
               <button
@@ -3184,7 +3337,7 @@ function AddKitForm({ categories, onAdd, onCancel, defaultCategory }) {
   );
 }
 
-function KitCard({ kit, items, categories, onUpdate, onDelete, onShare }) {
+function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublish }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [editing, setEditing] = useState(false);
@@ -3233,6 +3386,15 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare }) {
               aria-label={t("share.btn")}
               title={t("share.btn")}>
               <ChevronRight size={14} style={{ transform: "rotate(-45deg)" }} />
+            </button>
+          )}
+          {onPublish && !isLinked && (
+            <button
+              onClick={onPublish}
+              style={{ width: 38, height: 38, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.forest}`, color: C.forest, display: "flex", alignItems: "center", justifyContent: "center" }}
+              aria-label={t("lib.publishBtn")}
+              title={t("lib.publishBtn")}>
+              <Globe size={14} />
             </button>
           )}
           {!isLinked && (
@@ -3445,13 +3607,13 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare }) {
   );
 }
 
-function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit }) {
+function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit }) {
   const { t } = useI18n();
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
       {kits.map((kit) => (
-        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} />
+        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} onPublish={onPublishKit ? () => onPublishKit(kit) : null} />
       ))}
     </div>
   );
@@ -4137,6 +4299,226 @@ function ToggleRow({ label, hint, value, onChange }) {
   );
 }
 
+/* ============================================================
+   PublishDialog — submits a kit/category/trip to the community
+   library for admin review. Three fields: title, activity (with
+   autocomplete + custom-create), description.
+   ============================================================ */
+function PublishDialog({
+  kind,           // "kit" | "category" | "trip"
+  entity,         // the thing being published
+  currentUser,
+  items, kits, categories, packlists,
+  onClose,
+}) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+
+  const [title, setTitle] = useState(entity?.name || "");
+  const [activity, setActivity] = useState("");
+  const [activityFocused, setActivityFocused] = useState(false);
+  const [description, setDescription] = useState("");
+  const [knownActivities, setKnownActivities] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  // Load activity list once on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list = await supabaseService.fetchActivities();
+      if (!cancelled) setKnownActivities(list);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Autocomplete: filter known activities by current input
+  const activityLower = activity.trim().toLowerCase();
+  const filteredActivities = activityLower
+    ? knownActivities.filter((a) => a.name.toLowerCase().includes(activityLower))
+    : knownActivities;
+  const exactMatch = knownActivities.some((a) => a.name.toLowerCase() === activityLower);
+  const showCustomOption = activityLower.length > 0 && !exactMatch;
+
+  const validate = () => {
+    if (!title.trim()) return t("lib.titleRequired");
+    if (!activity.trim()) return t("lib.activityRequired");
+    if (!description.trim()) return t("lib.descriptionRequired");
+    return null;
+  };
+
+  // Build the payload to publish — same shape as ShareDialog uses
+  const submit = async () => {
+    const v = validate();
+    if (v) { setError(v); return; }
+    setSubmitting(true);
+    setError("");
+
+    // Ensure the activity exists in library_activities
+    const activityResult = await supabaseService.ensureActivity(activity, currentUser.id);
+    if (activityResult.error) {
+      setError(activityResult.error);
+      setSubmitting(false);
+      return;
+    }
+
+    // Build the snapshot payload with referenced data baked in
+    const payload = buildSharePayload({
+      kind,
+      entity,
+      options: {
+        includeItems: true,        // category: bring items
+        includePacklist: true,     // trip: bring packlist
+        includeKits: true,         // trip: bring kits
+      },
+      items, kits, categories, packlists,
+    });
+
+    const result = await supabaseService.publishToLibrary({
+      kind,
+      title,
+      description,
+      activity: activityResult.name,
+      payload,
+      publisher: {
+        id: currentUser.id,
+        username: currentUser.username,
+        region: currentUser.region,
+      },
+    });
+
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setSubmitted(true);
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(26,36,33,0.55)", zIndex: 999,
+      display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center",
+      padding: isMobile ? 0 : 24,
+    }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 540, maxHeight: isMobile ? "92vh" : "88vh", overflowY: "auto",
+        background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 20 : 28,
+      }}>
+        {!submitted ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+              <div>
+                <Coord>{t("lib.publishBtn").toUpperCase()}</Coord>
+                <h3 style={{ margin: "6px 0 2px", fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+                  {t("lib.dialogTitle")}<span style={{ color: C.rust }}>.</span>
+                </h3>
+                <div style={{ fontFamily: F.body, fontStyle: "italic", color: C.muted, fontSize: 13, marginTop: 4 }}>{t("lib.dialogSub")}</div>
+              </div>
+              <button onClick={onClose}
+                style={{ width: 36, height: 36, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 18 }}>
+
+              {/* Title */}
+              <div>
+                <Field label={t("lib.fieldTitle")} icon={Tag} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={entity?.name || ""} />
+                <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldTitleHint")}</div>
+              </div>
+
+              {/* Activity with autocomplete */}
+              <div style={{ position: "relative" }}>
+                <Field label={t("lib.fieldActivity")} icon={Mountain} value={activity}
+                  onChange={(e) => setActivity(e.target.value)}
+                  onFocus={() => setActivityFocused(true)}
+                  onBlur={() => setTimeout(() => setActivityFocused(false), 200)}
+                  placeholder={t("lib.activityPh")} />
+                <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldActivityHint")}</div>
+
+                {/* Autocomplete dropdown */}
+                {activityFocused && (filteredActivities.length > 0 || showCustomOption) && (
+                  <div style={{
+                    position: "absolute",
+                    top: "calc(100% + 4px)", left: 0, right: 0,
+                    maxHeight: 220, overflowY: "auto",
+                    background: C.paper, border: `1.5px solid ${C.ink}`,
+                    zIndex: 10,
+                  }}>
+                    {filteredActivities.slice(0, 12).map((a) => (
+                      <button key={a.id || a.name} onClick={() => { setActivity(a.name); setActivityFocused(false); }}
+                        style={{
+                          display: "block", width: "100%", textAlign: "left",
+                          padding: "10px 14px", border: "none",
+                          borderBottom: `1px dashed ${C.line}`,
+                          background: "transparent", cursor: "pointer",
+                          fontFamily: F.body, fontSize: 14,
+                        }}>
+                        {a.name}
+                        {!a.is_default && <span style={{ marginLeft: 8, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em" }}>· custom</span>}
+                      </button>
+                    ))}
+                    {showCustomOption && (
+                      <button onClick={() => setActivityFocused(false)}
+                        style={{
+                          display: "block", width: "100%", textAlign: "left",
+                          padding: "10px 14px", border: "none",
+                          background: C.paperDeep, cursor: "pointer",
+                          fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.rust,
+                        }}>
+                        + {t("lib.activityCustomLabel", { name: activity.trim() })}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <label style={{ display: "block" }}>
+                <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                  {t("lib.fieldDescription")}
+                </div>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                  placeholder={t("lib.descriptionPh")} rows={4}
+                  style={{
+                    width: "100%", padding: "10px 0", background: "transparent", border: "none",
+                    borderBottom: `1.5px solid ${C.ink}`, outline: "none",
+                    fontFamily: F.body, fontSize: 16, color: C.ink, resize: "vertical",
+                  }} />
+                <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldDescriptionHint")}</div>
+              </label>
+
+              {error && (
+                <div style={{ padding: 10, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "flex-end", marginTop: 4 }}>
+                <Btn variant="ghost" icon={X} onClick={onClose} fullWidth={isMobile}>{t("lib.cancel")}</Btn>
+                <Btn variant="rust" icon={Check} onClick={submit} fullWidth={isMobile} disabled={submitting}>
+                  {submitting ? t("lib.submitting") : t("lib.submit")}
+                </Btn>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <Stamp rotate={-3} color={C.forest}>SUBMITTED</Stamp>
+            <h3 style={{ margin: "16px 0 10px", fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {t("lib.submitted")}
+            </h3>
+            <Btn variant="rust" icon={Check} onClick={onClose} fullWidth={true}>{t("lib.cancel").replace("Cancel", "Close").replace("Cancelar", "Cerrar")}</Btn>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Inventory({ go, items, setItems, categories, setCategories, travelTypes, setTravelTypes, kits, setKits, packlists, setPacklists, cart, setCart, shareService, currentUser, filter, clearFilter }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -4145,6 +4527,8 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   const [openCategoryId, setOpenCategoryId] = useState(null);
   // Share dialog state — { kind, entity } or null
   const [sharing, setSharing] = useState(null);
+  // Publish dialog state — { kind, entity } or null
+  const [publishing, setPublishing] = useState(null);
 
   useEffect(() => {
     if (filter === "expiring") setTab("items");
@@ -4272,11 +4656,12 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
                   onDelete={deleteCategory}
                   onOpen={(c) => setOpenCategoryId(c.id)}
                   onShare={shareService ? (c) => setSharing({ kind: "category", entity: c }) : null}
+                  onPublish={currentUser?.id ? (c) => setPublishing({ kind: "category", entity: c }) : null}
                 />
               </>
             );
           })()}
-          {tab === "kits" && <>{adding && <AddKitForm categories={categories} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} /></>}
+          {tab === "kits" && <>{adding && <AddKitForm categories={categories} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} /></>}
           {tab === "cart" && <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />}
         </div>
       </div>
@@ -4294,11 +4679,23 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           onClose={() => setSharing(null)}
         />
       )}
+      {publishing && currentUser?.id && (
+        <PublishDialog
+          kind={publishing.kind}
+          entity={publishing.entity}
+          currentUser={currentUser}
+          items={items}
+          kits={kits}
+          categories={categories}
+          packlists={packlists}
+          onClose={() => setPublishing(null)}
+        />
+      )}
     </div>
   );
 }
 
-function SavedTrips({ trips, onDelete, onPlan, onShare }) {
+function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
   const { t, lang } = useI18n();
   const { isMobile } = useViewport();
   if (trips.length === 0) {
@@ -4328,6 +4725,11 @@ function SavedTrips({ trips, onDelete, onPlan, onShare }) {
                 {onShare && !tr.linkedFrom && (
                   <button onClick={() => onShare(tr)} style={{ width: 38, height: 38, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, display: "flex", alignItems: "center", justifyContent: "center" }} aria-label={t("share.btn")} title={t("share.btn")}>
                     <ChevronRight size={14} style={{ transform: "rotate(-45deg)" }} />
+                  </button>
+                )}
+                {onPublish && !tr.linkedFrom && (
+                  <button onClick={() => onPublish(tr)} style={{ width: 38, height: 38, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.forest}`, color: C.forest, display: "flex", alignItems: "center", justifyContent: "center" }} aria-label={t("lib.publishBtn")} title={t("lib.publishBtn")}>
+                    <Globe size={14} />
                   </button>
                 )}
                 {!tr.linkedFrom && (
@@ -4384,6 +4786,11 @@ function SavedTrips({ trips, onDelete, onPlan, onShare }) {
             {onShare && !tr.linkedFrom && (
               <button onClick={() => onShare(tr)} style={{ width: 38, height: 38, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, display: "flex", alignItems: "center", justifyContent: "center" }} aria-label={t("share.btn")}>
                 <ChevronRight size={14} style={{ transform: "rotate(-45deg)" }} />
+              </button>
+            )}
+            {onPublish && !tr.linkedFrom && (
+              <button onClick={() => onPublish(tr)} style={{ width: 38, height: 38, cursor: "pointer", background: "transparent", border: `1.5px solid ${C.forest}`, color: C.forest, display: "flex", alignItems: "center", justifyContent: "center" }} aria-label={t("lib.publishBtn")} title={t("lib.publishBtn")}>
+                <Globe size={14} />
               </button>
             )}
             {!tr.linkedFrom && (
@@ -4458,6 +4865,7 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
   const { isMobile } = useViewport();
   const [tab, setTab] = useState("saved");
   const [sharing, setSharing] = useState(null);
+  const [publishing, setPublishing] = useState(null);
   const addTrip = (data) => { setTrips([{ id: uid("tr"), ...data }, ...trips]); setTab("saved"); };
   const deleteTrip = (id) => setTrips(trips.filter((tr) => tr.id !== id));
   const addType = (data) => setTravelTypes([{ id: uid("tt"), icon: "mountain", ...data }, ...travelTypes]);
@@ -4484,7 +4892,9 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
           {tab === "saved" && <Btn variant="rust" icon={Plus} onClick={() => setTab("create")} fullWidth={isMobile}>{t("dash.planTrip")}</Btn>}
         </div>
         <div style={{ marginTop: isMobile ? 20 : 32 }}>
-          {tab === "saved" && <SavedTrips trips={trips} onDelete={deleteTrip} onPlan={() => setTab("create")} onShare={shareService ? (tr) => setSharing({ kind: "trip", entity: tr }) : null} />}
+          {tab === "saved" && <SavedTrips trips={trips} onDelete={deleteTrip} onPlan={() => setTab("create")}
+            onShare={shareService ? (tr) => setSharing({ kind: "trip", entity: tr }) : null}
+            onPublish={currentUser?.id ? (tr) => setPublishing({ kind: "trip", entity: tr }) : null} />}
           {tab === "create" && <CreateTrip travelTypes={travelTypes} onAddType={addType} onDeleteType={deleteType} onCreate={addTrip} onCancel={() => setTab("saved")} />}
         </div>
       </div>
@@ -4500,6 +4910,18 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
           categories={categories}
           packlists={packlists}
           onClose={() => setSharing(null)}
+        />
+      )}
+      {publishing && currentUser?.id && (
+        <PublishDialog
+          kind={publishing.kind}
+          entity={publishing.entity}
+          currentUser={currentUser}
+          items={items}
+          kits={kits}
+          categories={categories}
+          packlists={packlists}
+          onClose={() => setPublishing(null)}
         />
       )}
     </div>
@@ -5771,6 +6193,125 @@ function SharePreview({ share, existingItems, existingKits, onCancel, onAccept }
   );
 }
 
+/* ============================================================
+   MySubmissions — shown inside Settings. Lists this user's
+   library submissions with status (pending/approved/rejected),
+   and lets them delete their own.
+   ============================================================ */
+function MySubmissions({ currentUser }) {
+  const { t, locale } = useI18n();
+  const { isMobile } = useViewport();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmingId, setConfirmingId] = useState(null);
+
+  const refresh = async () => {
+    if (!currentUser?.id) { setItems([]); setLoading(false); return; }
+    setLoading(true);
+    const list = await supabaseService.fetchMySubmissions(currentUser.id);
+    setItems(list);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, [currentUser?.id]);
+
+  const handleDelete = async (id) => {
+    const result = await supabaseService.deleteSubmission(id);
+    if (!result.error) refresh();
+    setConfirmingId(null);
+  };
+
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(locale, { month: "short", day: "2-digit", year: "numeric" });
+  };
+
+  const statusInfo = (s) => {
+    if (s === "approved") return { label: t("lib.subStatusApproved"), color: C.forest };
+    if (s === "rejected") return { label: t("lib.subStatusRejected"), color: C.rust };
+    return { label: t("lib.subStatusPending"), color: C.muted };
+  };
+
+  return (
+    <SettingGroup title={t("lib.mySubsTitle")} num="03">
+      {!currentUser?.id ? (
+        <div style={{ padding: 12, fontFamily: F.body, fontSize: 13, color: C.muted, fontStyle: "italic" }}>
+          Sign in to manage your library submissions.
+        </div>
+      ) : loading ? (
+        <div style={{ padding: 12, fontFamily: F.body, fontSize: 13, color: C.muted, fontStyle: "italic" }}>Loading...</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: 16, background: C.paperDeep, border: `1px dashed ${C.line}`, textAlign: "center" }}>
+          <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: 16, color: C.inkSoft }}>{t("lib.mySubsEmpty")}</div>
+          <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>{t("lib.mySubsEmptyHint")}</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {items.map((s) => {
+            const status = statusInfo(s.status);
+            const isConfirming = confirmingId === s.id;
+            return (
+              <div key={s.id} style={{ background: C.paper, border: `1.5px solid ${C.line}`, padding: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Coord>{s.kind.toUpperCase()}  ·  {s.activity}</Coord>
+                    <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{s.title}</div>
+                    {s.description && (
+                      <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>{s.description}</div>
+                    )}
+                  </div>
+                  <span style={{
+                    padding: "3px 8px",
+                    fontFamily: F.mono,
+                    fontSize: 9,
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    border: `1.5px solid ${status.color}`,
+                    color: status.color,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}>
+                    {status.label}
+                  </span>
+                </div>
+
+                {s.status === "rejected" && s.rejection_reason && (
+                  <div style={{ marginTop: 8, padding: 8, background: C.paperDeep, border: `1px dashed ${C.rust}`, fontFamily: F.body, fontSize: 12, color: C.inkSoft, fontStyle: "italic" }}>
+                    {t("lib.subRejectReason", { r: s.rejection_reason })}
+                  </div>
+                )}
+
+                <div style={{ marginTop: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  {fmtDate(s.created_at)}
+                  {s.status === "approved" && (
+                    <> · {s.view_count || 0} views · {s.import_count || 0} imports</>
+                  )}
+                </div>
+
+                {!isConfirming ? (
+                  <div style={{ marginTop: 10 }}>
+                    <Btn variant="ghost" icon={Trash2} onClick={() => setConfirmingId(s.id)}>{t("lib.subDelete")}</Btn>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 10, padding: 10, background: C.paperDeep, border: `1px dashed ${C.rust}` }}>
+                    <div style={{ fontFamily: F.body, fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>{t("lib.subDeleteConfirm")}</div>
+                    <div style={{ display: "flex", gap: 6, flexDirection: isMobile ? "column-reverse" : "row" }}>
+                      <Btn variant="ghost" icon={X} onClick={() => setConfirmingId(null)} fullWidth={isMobile}>{t("share.cancel")}</Btn>
+                      <Btn variant="rust" icon={Trash2} onClick={() => handleDelete(s.id)} fullWidth={isMobile}>{t("lib.subDeleteYes")}</Btn>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </SettingGroup>
+  );
+}
+
 function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, setLocationEnabled, language, setLanguage, units, setUnits }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -5950,6 +6491,7 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
             <SettingRow label={t("set.renews")} value="03 / 14 / 2026" />
             <SettingRow label={t("set.payment")} value="4242" />
           </SettingGroup>
+          <MySubmissions currentUser={user} />
           <SettingGroup title={t("set.data")} num="04">
             <SettingRow label={t("set.storage")} value={
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
