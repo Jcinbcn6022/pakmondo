@@ -810,7 +810,7 @@ const TRANSLATIONS = {
     "trips.skipPacking": "Skip — file without packing",
     "trips.packCategoriesHeading": "Categories",
     "trips.unifiedTitle": "Your inventory",
-    "trips.unifiedSub": "Tap to add. Expand a kit to pick individual items, or grab the whole thing.",
+    "trips.unifiedSub": "Tap a category or kit to expand it and tick items individually. Or check the box to grab the whole thing.",
     "trips.unifiedSearchPh": "Search items, kits, categories…",
     "trips.unifiedAllInCategory": "Add this whole category",
     "trips.unifiedAllInCategoryHint": "Brings every current and future item in this category.",
@@ -1403,7 +1403,7 @@ const TRANSLATIONS = {
     "trips.skipPacking": "Saltar — archivar sin preparar",
     "trips.packCategoriesHeading": "Categorías",
     "trips.unifiedTitle": "Tu inventario",
-    "trips.unifiedSub": "Toca para añadir. Expande un kit para elegir artículos individuales o coger todo el kit.",
+    "trips.unifiedSub": "Toca una categoría o kit para expandirlo y elegir artículos. O marca la casilla para coger todo.",
     "trips.unifiedSearchPh": "Buscar artículos, kits, categorías…",
     "trips.unifiedAllInCategory": "Añadir toda esta categoría",
     "trips.unifiedAllInCategoryHint": "Incluye todos los artículos actuales y futuros de esta categoría.",
@@ -5640,63 +5640,62 @@ function UnifiedInventoryBrowser({
           const totalInCategory = section.kits.length + section.looseItems.length;
 
           return (
-            <div key={cat.id} style={{ border: `1.5px solid ${C.line}`, background: C.paper }}>
-              {/* Category header — clickable to collapse/expand */}
-              <button
-                onClick={() => toggleCategoryCollapse(cat.name)}
-                style={{
-                  width: "100%", padding: "12px 14px",
-                  background: C.paperDeep, border: "none", borderBottom: collapsed ? "none" : `1px solid ${C.line}`,
-                  cursor: "pointer", textAlign: "left",
-                  display: "flex", alignItems: "center", gap: 10,
-                }}
-              >
-                <Icon size={18} strokeWidth={1.4} color={C.forest} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
-                    {tOrLiteral(lang, "cat", cat.name)}
+            <div key={cat.id} style={{ border: `1.5px solid ${catSelected ? C.forest : C.line}`, background: catSelected ? C.paperDeep : C.paper }}>
+              {/* Category header: checkbox (whole-category live-link) + body (collapse/expand) */}
+              <div style={{ display: "flex", alignItems: "stretch", borderBottom: collapsed ? "none" : `1px solid ${C.line}`, background: C.paperDeep }}>
+                {/* Checkbox toggle — only for real categories, not "Uncategorized" */}
+                {!section.isUncategorized && (
+                  <button
+                    onClick={() => toggleCategory(cat.id)}
+                    aria-label={t("trips.unifiedAllInCategory")}
+                    title={t("trips.unifiedAllInCategoryHint")}
+                    style={{
+                      padding: "0 14px", background: "transparent", border: "none", borderRight: `1px dashed ${C.line}`,
+                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <span style={{
+                      width: 22, height: 22, flexShrink: 0,
+                      border: `1.5px solid ${catSelected ? C.forest : C.muted}`,
+                      background: catSelected ? C.forest : "transparent",
+                      color: C.paper,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {catSelected && <Check size={13} strokeWidth={3} />}
+                    </span>
+                  </button>
+                )}
+
+                {/* Category body — clickable to expand/collapse */}
+                <button
+                  onClick={() => toggleCategoryCollapse(cat.name)}
+                  style={{
+                    flex: 1, minWidth: 0,
+                    padding: "12px 14px", background: "transparent", border: "none",
+                    cursor: "pointer", textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 10,
+                  }}
+                >
+                  <Icon size={18} strokeWidth={1.4} color={C.forest} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                      {tOrLiteral(lang, "cat", cat.name)}
+                      {catSelected && (
+                        <span style={{ marginLeft: 8, padding: "1px 6px", background: C.forest, color: C.paper, fontFamily: F.mono, fontSize: 8, letterSpacing: "0.15em", fontWeight: 700, verticalAlign: "middle" }}>
+                          ALL · LIVE
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                      {section.kits.length} kits · {section.looseItems.length} items
+                    </div>
                   </div>
-                  <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                    {section.kits.length} kits · {section.looseItems.length} items
-                  </div>
-                </div>
-                <span style={{ fontFamily: F.mono, fontSize: 14, color: C.muted, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▾</span>
-              </button>
+                  <span style={{ fontFamily: F.mono, fontSize: 14, color: C.muted, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▾</span>
+                </button>
+              </div>
 
               {!collapsed && (
                 <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                  {/* "Add whole category" pill — not for uncategorized */}
-                  {!section.isUncategorized && (
-                    <button
-                      onClick={() => toggleCategory(cat.id)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-                        border: `1.5px ${catSelected ? "solid" : "dashed"} ${catSelected ? C.forest : C.forest}`,
-                        background: catSelected ? C.forest : "transparent",
-                        color: catSelected ? C.paper : C.forest,
-                        cursor: "pointer", textAlign: "left", width: "100%",
-                      }}
-                    >
-                      <span style={{
-                        width: 22, height: 22, flexShrink: 0,
-                        border: `1.5px solid ${catSelected ? C.paper : C.forest}`,
-                        background: catSelected ? C.paper : "transparent",
-                        color: catSelected ? C.forest : "transparent",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {catSelected && <Check size={13} strokeWidth={3} />}
-                      </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 700 }}>
-                          {t("trips.unifiedAllInCategory")}
-                        </div>
-                        <div style={{ fontFamily: F.body, fontSize: 11, fontStyle: "italic", opacity: 0.75 }}>
-                          {t("trips.unifiedAllInCategoryHint")}
-                        </div>
-                      </div>
-                    </button>
-                  )}
-
                   {/* Kits */}
                   {section.kits.map((k) => {
                     const kitSelected = pickedKitIds.includes(k.id);
