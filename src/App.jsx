@@ -1780,9 +1780,9 @@ const SEED_TRIPS = [
   { id: "tr-3", name: "Inside Passage", dest: "Vancouver Island, CA", date: "Jun 18 - Jun 25", type: "Coastal Kayak" },
 ];
 const SEED_CART = [
-  { id: "c-1", name: "Iridium Satellite Beacon", price: 289.0, qty: 1 },
-  { id: "c-2", name: "Merino Sock 3pk", price: 42.0, qty: 2 },
-  { id: "c-3", name: "Featherweight Tarp 8x10", price: 119.0, qty: 1 },
+  { id: "c-1", name: "Iridium Satellite Beacon", qty: 1 },
+  { id: "c-2", name: "Merino Sock 3pk", qty: 2 },
+  { id: "c-3", name: "Featherweight Tarp 8x10", qty: 1 },
 ];
 const SEED_KITS = [
   { id: "kit-1", name: "Cold Camp Essentials", category: "Shelter", itemIds: ["it-1", "it-2", "it-6", "it-5"] },
@@ -5097,19 +5097,14 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
 function AddCartForm({ onAdd, onCancel }) {
   const { t } = useI18n();
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
   const [qty, setQty] = useState(1);
   const save = () => {
     if (!name.trim()) return;
-    const p = parseFloat(price);
-    onAdd({ name: name.trim(), price: isNaN(p) ? 0 : p, qty: Math.max(1, qty) });
+    onAdd({ name: name.trim(), qty: Math.max(1, qty) });
   };
   return (
     <AddPanel title={t("cart.formTitle")} onSave={save} onCancel={onCancel} saveLabel={t("cart.add")}>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
-        <Field label={t("cart.formItemName")} icon={ShoppingCart} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("cart.formItemNamePh")} />
-        <Field label={t("cart.formPrice")} value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("cart.formPricePh")} />
-      </div>
+      <Field label={t("cart.formItemName")} icon={ShoppingCart} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("cart.formItemNamePh")} />
       <div style={{ marginTop: 24 }}>
         <div style={{ marginBottom: 12, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>{t("form.qty")}</div>
         <div style={{ display: "inline-flex", border: `1.5px solid ${C.ink}` }}>
@@ -5124,38 +5119,30 @@ function AddCartForm({ onAdd, onCancel }) {
 
 // Reusable cart panel — used by the standalone Cart screen AND
 // the Cart tab on the Inventory roster page. Renders the add form,
-// item list (mobile cards / desktop rows), and totals sidebar.
+// item list (mobile cards / desktop rows), and a simple item-count summary.
 function CartPanel({ cart, setCart, adding, setAdding, hideHeader = false }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
-  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const ship = cart.length > 0 ? 12 : 0;
-  const total = subtotal + ship;
+
+  const totalQty = cart.reduce((s, i) => s + i.qty, 0);
 
   const addCart = (data) => { setCart([{ id: uid("c"), ...data }, ...cart]); setAdding(false); };
   const deleteCart = (id) => setCart(cart.filter((c) => c.id !== id));
   const updateQty = (id, delta) => setCart(cart.map((c) => (c.id === id ? { ...c, qty: Math.max(1, c.qty + delta) } : c)));
 
-  const billOfLading = (
-    <div style={{ padding: isMobile ? 20 : 24, background: C.ink, color: C.paper, position: isMobile ? "static" : "sticky", top: 24 }}>
-      <Stamp rotate={-3} color={C.ochre}>{t("cart.bill")}</Stamp>
-      <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 16 }}>
-        <Row label={t("cart.subtotal", { n: cart.length })} value={`$${subtotal.toFixed(2)}`} />
-        <Row label={t("cart.shipping")} value={`$${ship.toFixed(2)}`} />
-        <div style={{ height: 1, background: C.paper, opacity: 0.3 }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.7 }}>{t("cart.total")}</div>
-          <div style={{ fontFamily: F.display, fontSize: isMobile ? 28 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>${total.toFixed(2)}</div>
+  // Simple "what's on the list" summary — replaces the priced bill of lading
+  const summary = cart.length > 0 && (
+    <div style={{ padding: isMobile ? 18 : 22, background: C.ink, color: C.paper, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+      <div>
+        <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.7 }}>{t("cart.bill")}</div>
+        <div style={{ marginTop: 4, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em" }}>
+          {cart.length} {cart.length === 1 ? "line" : "lines"} · {totalQty} {totalQty === 1 ? "unit" : "units"}
         </div>
       </div>
-      <button disabled={cart.length === 0}
-        style={{ marginTop: 24, width: "100%", padding: "14px 0", background: cart.length === 0 ? C.muted : C.rust, color: C.paper, border: "none", cursor: cart.length === 0 ? "not-allowed" : "pointer", opacity: cart.length === 0 ? 0.5 : 1, fontFamily: F.body, fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
-        {t("cart.dispatch")}
-      </button>
     </div>
   );
 
-  // Mobile cart item: stacked card; Desktop: tabular row
+  // Mobile cart item: stacked card; Desktop: tabular row — both without price
   const cartItems = (
     cart.length === 0 ? (
       <EmptyState label={t("cart.empty")} hint={t("cart.emptyHint")} />
@@ -5172,24 +5159,23 @@ function CartPanel({ cart, setCart, adding, setAdding, hideHeader = false }) {
                 <Trash2 size={14} />
               </button>
             </div>
-            <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-start", alignItems: "center", gap: 12 }}>
               <div style={{ display: "inline-flex", border: `1.5px solid ${C.ink}` }}>
                 <button onClick={() => updateQty(c.id, -1)} disabled={c.qty <= 1} style={{ width: 38, height: 38, border: "none", cursor: c.qty <= 1 ? "not-allowed" : "pointer", background: "transparent", opacity: c.qty <= 1 ? 0.3 : 1, fontFamily: F.mono, fontSize: 18, fontWeight: 700 }}>-</button>
                 <div style={{ minWidth: 40, textAlign: "center", padding: "9px 0", borderLeft: `1px solid ${C.ink}`, borderRight: `1px solid ${C.ink}`, fontFamily: F.mono, fontSize: 15, fontWeight: 700 }}>{c.qty}</div>
                 <button onClick={() => updateQty(c.id, 1)} style={{ width: 38, height: 38, border: "none", cursor: "pointer", background: "transparent", fontFamily: F.mono, fontSize: 18, fontWeight: 700 }}>+</button>
               </div>
-              <div style={{ fontFamily: F.mono, fontSize: 17, fontWeight: 700 }}>${(c.price * c.qty).toFixed(2)}</div>
             </div>
           </div>
         ))}
       </div>
     ) : (
       <>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 130px 100px 50px", padding: "12px 24px", background: C.ink, color: C.paper, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-          <div>{t("cart.colItem")}</div><div style={{ textAlign: "center" }}>{t("cart.colQty")}</div><div style={{ textAlign: "right" }}>{t("cart.colPrice")}</div><div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 160px 50px", padding: "12px 24px", background: C.ink, color: C.paper, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+          <div>{t("cart.colItem")}</div><div style={{ textAlign: "center" }}>{t("cart.colQty")}</div><div></div>
         </div>
         {cart.map((c, idx) => (
-          <div key={c.id} style={{ display: "grid", gridTemplateColumns: "2fr 130px 100px 50px", padding: "20px 24px", alignItems: "center", background: C.paper, borderBottom: `1px dashed ${C.line}` }}>
+          <div key={c.id} style={{ display: "grid", gridTemplateColumns: "2fr 160px 50px", padding: "20px 24px", alignItems: "center", background: C.paper, borderBottom: `1px dashed ${C.line}` }}>
             <div>
               <Coord>SKU PMD-{1000 + idx}</Coord>
               <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 19, fontWeight: 600 }}>{c.name}</div>
@@ -5201,7 +5187,6 @@ function CartPanel({ cart, setCart, adding, setAdding, hideHeader = false }) {
                 <button onClick={() => updateQty(c.id, 1)} style={{ width: 32, height: 32, border: "none", cursor: "pointer", background: "transparent", fontFamily: F.mono, fontSize: 16, fontWeight: 700 }}>+</button>
               </div>
             </div>
-            <div style={{ textAlign: "right", fontFamily: F.mono, fontSize: 15, fontWeight: 700 }}>${(c.price * c.qty).toFixed(2)}</div>
             <div style={{ textAlign: "right" }}>
               <button onClick={() => deleteCart(c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.rust, padding: 4 }} aria-label="Remove">
                 <Trash2 size={14} />
@@ -5213,19 +5198,12 @@ function CartPanel({ cart, setCart, adding, setAdding, hideHeader = false }) {
     )
   );
 
-  return isMobile ? (
+  // Single-column layout — no more priced sidebar
+  return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {adding && <AddCartForm onAdd={addCart} onCancel={() => setAdding(false)} />}
       {cartItems}
-      {cart.length > 0 && billOfLading}
-    </div>
-  ) : (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 48 }}>
-      <div>
-        {adding && <AddCartForm onAdd={addCart} onCancel={() => setAdding(false)} />}
-        {cartItems}
-      </div>
-      <aside>{billOfLading}</aside>
+      {summary}
     </div>
   );
 }
