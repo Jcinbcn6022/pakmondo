@@ -664,6 +664,7 @@ const TRANSLATIONS = {
     "kit.empty": "No kits assembled yet",
     "kit.emptyHint": "Build a kit to template your packs",
     "kit.formTitle": "Assemble a kit",
+    "kit.editFormTitle": "Edit kit",
     "kit.fileKit": "File kit",
     "kit.kitName": "Kit Name",
     "kit.kitNamePh": "Weekend Hiking",
@@ -765,6 +766,7 @@ const TRANSLATIONS = {
     "form.remind.180": "6 months before",
     "form.remind.365": "1 year before",
     "form.catTitle": "New category",
+    "form.editCatTitle": "Edit category",
     "form.fileCategory": "File category",
     "form.catName": "Category Name",
     "form.catNamePh": "Hydration",
@@ -1270,6 +1272,7 @@ const TRANSLATIONS = {
     "kit.empty": "Sin kits ensamblados",
     "kit.emptyHint": "Crea un kit para preparar tus mochilas",
     "kit.formTitle": "Ensamblar un kit",
+    "kit.editFormTitle": "Editar kit",
     "kit.fileKit": "Archivar kit",
     "kit.kitName": "Nombre del kit",
     "kit.kitNamePh": "Senderismo Fin de Semana",
@@ -1368,6 +1371,7 @@ const TRANSLATIONS = {
     "form.remind.180": "6 meses antes",
     "form.remind.365": "1 año antes",
     "form.catTitle": "Nueva categoría",
+    "form.editCatTitle": "Editar categoría",
     "form.fileCategory": "Archivar categoría",
     "form.catName": "Nombre de categoría",
     "form.catNamePh": "Hidratación",
@@ -3246,12 +3250,87 @@ function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory }) 
   );
 }
 
-function AddCategoryForm({ onAdd, onCancel }) {
+/* ============================================================
+   Modal — lightweight overlay shell. Wraps any form/content,
+   dims the background, locks body scroll, ESC closes.
+   Used by the edit dialogs for items, kits, and categories.
+   ============================================================ */
+function Modal({ title, onClose, children }) {
+  const { isMobile } = useViewport();
+
+  // Lock body scroll while open + ESC to close
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title || "Dialog"}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1100,
+        background: "rgba(26, 36, 33, 0.55)",
+        display: "flex", alignItems: isMobile ? "stretch" : "flex-start", justifyContent: "center",
+        padding: isMobile ? 0 : "32px 24px",
+        overflowY: "auto",
+      }}
+    >
+      <div
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 720,
+          background: C.paper,
+          border: `1.5px solid ${C.ink}`,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+          display: "flex", flexDirection: "column",
+          maxHeight: isMobile ? "100%" : "calc(100vh - 64px)",
+        }}
+      >
+        {/* Header */}
+        {title && (
+          <div style={{
+            padding: isMobile ? "14px 18px" : "16px 24px",
+            background: C.ink, color: C.paper,
+            display: "flex", alignItems: "center", gap: 12,
+            borderBottom: `2px solid ${C.rust}`,
+          }}>
+            <Pencil size={16} strokeWidth={1.6} />
+            <div style={{ flex: 1, minWidth: 0, fontFamily: F.display, fontSize: isMobile ? 16 : 18, fontWeight: 700, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {title}
+            </div>
+            <button onClick={onClose}
+              style={{ width: 32, height: 32, background: "transparent", border: `1px solid ${C.paper}`, color: C.paper, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+              aria-label="Close">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "20px 24px" }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddCategoryForm({ onAdd, onCancel, initial }) {
   const { t } = useI18n();
-  const [name, setName] = useState("");
+  const editMode = !!initial;
+  const [name, setName] = useState(initial?.name || "");
   const save = () => { if (!name.trim()) return; onAdd({ name: name.trim() }); };
   return (
-    <AddPanel title={t("form.catTitle")} onSave={save} onCancel={onCancel} saveLabel={t("form.fileCategory")}>
+    <AddPanel title={editMode ? t("form.editCatTitle") : t("form.catTitle")} onSave={save} onCancel={onCancel} saveLabel={editMode ? t("common.save") : t("form.fileCategory")}>
       <Field label={t("form.catName")} icon={Layers} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("form.catNamePh")} />
     </AddPanel>
   );
@@ -3274,7 +3353,7 @@ function AddTravelTypeForm({ onAdd, onCancel }) {
   );
 }
 
-function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint, packlists, setPacklists }) {
+function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, packlists, setPacklists, categories }) {
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
   if (items.length === 0) return <EmptyState label={emptyLabel || t("inv.emptyItems")} hint={emptyHint || t("inv.emptyItemsHint")} />;
@@ -3327,7 +3406,11 @@ function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint, packlists
                   {String(idx + 1).padStart(3, "0")}
                 </div>
                 <div style={{ marginTop: 2, fontFamily: F.display, fontSize: 17, fontWeight: 600, lineHeight: 1.2, wordBreak: "break-word" }}>
-                  {it.name}
+                  {onEdit ? (
+                    <button onClick={() => onEdit(it.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", fontWeight: "inherit", color: C.ink, textAlign: "left", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 4, textDecorationColor: C.muted }}>
+                      {it.name}
+                    </button>
+                  ) : it.name}
                 </div>
                 <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                   <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}`, fontWeight: 700 }}>
@@ -3401,7 +3484,13 @@ function ItemsView({ items, onToggle, onDelete, emptyLabel, emptyHint, packlists
             <div style={{ fontFamily: F.mono, fontSize: 12, color: C.muted }}>{String(idx + 1).padStart(3, "0")}</div>
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: F.display, fontSize: 18, fontWeight: 500 }}>{it.name}</span>
+                {onEdit ? (
+                  <button onClick={() => onEdit(it.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: F.display, fontSize: 18, fontWeight: 500, color: C.ink, textAlign: "left", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 4, textDecorationColor: C.muted }}>
+                    {it.name}
+                  </button>
+                ) : (
+                  <span style={{ fontFamily: F.display, fontSize: 18, fontWeight: 500 }}>{it.name}</span>
+                )}
                 {it.consumable && (
                   <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ochre}`, color: C.ochre, fontWeight: 700 }}>
                     {t("inv.badgeConsumable")}
@@ -3676,7 +3765,7 @@ function AddToPacklistMenu({ kind, entityId, entityName, packlists, setPacklists
   );
 }
 
-function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish, packlists, setPacklists }) {
+function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish, onEdit, packlists, setPacklists }) {
   const { t, lang } = useI18n();
   const { isMobile } = useViewport();
   if (categories.length === 0) return <EmptyState label={t("inv.emptyCats")} hint={t("inv.emptyCatsHint")} />;
@@ -3732,7 +3821,11 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, on
             {/* Icon, name, counts */}
             <Icon size={26} strokeWidth={1.4} color={C.forest} />
             <div style={{ marginTop: 24, fontFamily: F.display, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, paddingRight: 40 }}>
-              {tOrLiteral(lang, "cat", c.name)}
+              {onEdit ? (
+                <button onClick={() => onEdit(c.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", lineHeight: "inherit", color: C.ink, textAlign: "left", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 5, textDecorationColor: C.muted }}>
+                  {tOrLiteral(lang, "cat", c.name)}
+                </button>
+              ) : tOrLiteral(lang, "cat", c.name)}
             </div>
             <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
               {itemsLabel}{kitCount > 0 ? `  /  ${kitsLabel}` : ""}
@@ -3793,17 +3886,19 @@ function TravelTypesView({ types, onDelete }) {
   );
 }
 
-function AddKitForm({ categories, onAdd, onCancel, defaultCategory }) {
+function AddKitForm({ categories, onAdd, onCancel, defaultCategory, initial }) {
   const { t, lang } = useI18n();
   const { isMobile } = useViewport();
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState(defaultCategory || "");
+  const editMode = !!initial;
+  const [name, setName] = useState(initial?.name || "");
+  const [category, setCategory] = useState(initial?.category || defaultCategory || "");
   const save = () => {
     if (!name.trim()) return;
-    onAdd({ name: name.trim(), category: category || null, itemIds: [] });
+    // In edit mode preserve existing itemIds; in create mode start empty
+    onAdd({ name: name.trim(), category: category || null, itemIds: initial?.itemIds || [] });
   };
   return (
-    <AddPanel title={t("kit.formTitle")} onSave={save} onCancel={onCancel} saveLabel={t("kit.fileKit")}>
+    <AddPanel title={editMode ? t("kit.editFormTitle") : t("kit.formTitle")} onSave={save} onCancel={onCancel} saveLabel={editMode ? t("common.save") : t("kit.fileKit")}>
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 22 }}>
         <Field label={t("kit.kitName")} icon={Backpack} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("kit.kitNamePh")} />
         <label style={{ display: "block" }}>
@@ -3843,7 +3938,7 @@ function AddKitForm({ categories, onAdd, onCancel, defaultCategory }) {
   );
 }
 
-function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublish, packlists, setPacklists }) {
+function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublish, packlists, setPacklists, onEdit }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [editing, setEditing] = useState(false);
@@ -3879,7 +3974,13 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <Coord>KIT</Coord>
-          <div style={{ marginTop: 4, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>{kit.name}</div>
+          <div style={{ marginTop: 4, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+            {onEdit && !isLinked ? (
+              <button onClick={onEdit} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", lineHeight: "inherit", color: C.ink, textAlign: "left", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 5, textDecorationColor: C.muted }}>
+                {kit.name}
+              </button>
+            ) : kit.name}
+          </div>
           <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
             {countLabel}  /  {t("kit.totalWeight", { weight: weightStr })}
           </div>
@@ -4123,13 +4224,13 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
   );
 }
 
-function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit, packlists, setPacklists }) {
+function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit, onEditKit, packlists, setPacklists }) {
   const { t } = useI18n();
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
       {kits.map((kit) => (
-        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} onPublish={onPublishKit ? () => onPublishKit(kit) : null} packlists={packlists} setPacklists={setPacklists} />
+        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} onPublish={onPublishKit ? () => onPublishKit(kit) : null} packlists={packlists} setPacklists={setPacklists} onEdit={onEditKit ? () => onEditKit(kit.id) : null} />
       ))}
     </div>
   );
@@ -5045,6 +5146,10 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   const [sharing, setSharing] = useState(null);
   // Publish dialog state — { kind, entity } or null
   const [publishing, setPublishing] = useState(null);
+  // Modal-edit state — open when user taps a name
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editingKitId, setEditingKitId] = useState(null);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
 
   useEffect(() => {
     if (filter === "expiring") setTab("items");
@@ -5061,6 +5166,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
     setPacklists(packlists.map((p) => p.itemIds.includes(id) ? { ...p, itemIds: p.itemIds.filter((x) => x !== id) } : p));
   };
   const addCategory = (data) => { setCategories([{ id: uid("cat"), count: 0, icon: "tag", ...data }, ...categories]); setAdding(false); };
+  const updateCategory = (id, data) => setCategories(categories.map((c) => (c.id === id ? { ...c, ...data } : c)));
   const deleteCategory = (id) => {
     const cat = categories.find((c) => c.id === id);
     setCategories(categories.filter((c) => c.id !== id));
@@ -5141,7 +5247,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           )}
         </div>
         <div style={{ marginTop: isMobile ? 20 : 32 }}>
-          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} /></>}
+          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} onEdit={(id) => setEditingItemId(id)} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} categories={categories} /></>}
           {tab === "categories" && (() => {
             const openCategory = openCategoryId ? categories.find((c) => c.id === openCategoryId) : null;
             if (openCategory) {
@@ -5173,13 +5279,14 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
                   onOpen={(c) => setOpenCategoryId(c.id)}
                   onShare={shareService ? (c) => setSharing({ kind: "category", entity: c }) : null}
                   onPublish={currentUser?.id ? (c) => setPublishing({ kind: "category", entity: c }) : null}
+                  onEdit={(id) => setEditingCategoryId(id)}
                   packlists={packlists}
                   setPacklists={setPacklists}
                 />
               </>
             );
           })()}
-          {tab === "kits" && <>{adding && <AddKitForm categories={categories} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} packlists={packlists} setPacklists={setPacklists} /></>}
+          {tab === "kits" && <>{adding && <AddKitForm categories={categories} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} onEditKit={(id) => setEditingKitId(id)} packlists={packlists} setPacklists={setPacklists} /></>}
           {tab === "cart" && <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />}
         </div>
       </div>
@@ -5209,6 +5316,53 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           onClose={() => setPublishing(null)}
         />
       )}
+
+      {/* Modal: edit Item — opens when user taps an item name */}
+      {editingItemId && (() => {
+        const it = items.find((x) => x.id === editingItemId);
+        if (!it) return null;
+        return (
+          <Modal title={t("form.editItemTitle")} onClose={() => setEditingItemId(null)}>
+            <AddItemForm
+              categories={categories}
+              initial={it}
+              onAdd={(data) => { updateItem(editingItemId, data); setEditingItemId(null); }}
+              onCancel={() => setEditingItemId(null)}
+            />
+          </Modal>
+        );
+      })()}
+
+      {/* Modal: edit Kit */}
+      {editingKitId && (() => {
+        const k = kits.find((x) => x.id === editingKitId);
+        if (!k) return null;
+        return (
+          <Modal title={t("kit.editFormTitle")} onClose={() => setEditingKitId(null)}>
+            <AddKitForm
+              categories={categories}
+              initial={k}
+              onAdd={(data) => { updateKit({ ...k, ...data }); setEditingKitId(null); }}
+              onCancel={() => setEditingKitId(null)}
+            />
+          </Modal>
+        );
+      })()}
+
+      {/* Modal: edit Category */}
+      {editingCategoryId && (() => {
+        const c = categories.find((x) => x.id === editingCategoryId);
+        if (!c) return null;
+        return (
+          <Modal title={t("form.editCatTitle")} onClose={() => setEditingCategoryId(null)}>
+            <AddCategoryForm
+              initial={c}
+              onAdd={(data) => { updateCategory(editingCategoryId, data); setEditingCategoryId(null); }}
+              onCancel={() => setEditingCategoryId(null)}
+            />
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
