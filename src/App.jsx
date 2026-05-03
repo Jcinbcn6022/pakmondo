@@ -799,6 +799,37 @@ const TRANSLATIONS = {
     "trips.defineType": "Define a new ADV Style",
     "trips.addType": "Add style",
     "trips.fileTrip": "File the trip",
+    "trips.step1": "Step 1 of 2",
+    "trips.step2": "Step 2 of 2",
+    "trips.stepDetailsTitle": "Itinerary",
+    "trips.stepPackTitle": "Pack the trip",
+    "trips.stepPackSub": "Bring categories, kits, and individual items. Anything you add becomes a linked packlist with the trip's name.",
+    "trips.next": "Continue",
+    "trips.back": "Back",
+    "trips.skipPacking": "Skip — file without packing",
+    "trips.packCategoriesHeading": "Categories",
+    "trips.packCategoriesHint": "Adding a category brings every item currently in it.",
+    "trips.packKitsHeading": "Kits",
+    "trips.packKitsHint": "Pre-built bundles. Live link — kit edits propagate.",
+    "trips.packItemsHeading": "Individual items",
+    "trips.packItemsHint": "Standalone gear that isn't part of a kit.",
+    "trips.packEmptyCats": "No categories yet. Create one in Inventory.",
+    "trips.packEmptyKits": "No kits yet. Create one in Inventory.",
+    "trips.packEmptyItems": "No items yet. Create one in Inventory.",
+    "trips.searchPh": "Search…",
+    "trips.addNewItemInline": "+ Add new item",
+    "trips.addNewKitInline": "+ Add new kit",
+    "trips.addNewCatInline": "+ Add new category",
+    "trips.inlineItemName": "Item name",
+    "trips.inlineItemWeight": "Weight (e.g. 0.5 kg)",
+    "trips.inlineItemCategory": "Category",
+    "trips.inlineKitName": "Kit name",
+    "trips.inlineCatName": "Category name",
+    "trips.inlineSave": "Save",
+    "trips.inlineCancel": "Cancel",
+    "trips.summarySection": "On this trip",
+    "trips.summaryNothing": "Nothing packed yet.",
+    "trips.summaryFmt": "{c} categories · {k} kits · {i} items",
     "trips.unspecified": "Unspecified",
     "trips.datePending": "Date pending",
     "trips.destPending": "Destination pending",
@@ -1348,6 +1379,37 @@ const TRANSLATIONS = {
     "trips.defineType": "Define un nuevo Estilo ADV",
     "trips.addType": "Añadir estilo",
     "trips.fileTrip": "Archivar el viaje",
+    "trips.step1": "Paso 1 de 2",
+    "trips.step2": "Paso 2 de 2",
+    "trips.stepDetailsTitle": "Itinerario",
+    "trips.stepPackTitle": "Prepara el viaje",
+    "trips.stepPackSub": "Añade categorías, kits y artículos sueltos. Lo que añadas se convierte en una lista vinculada con el nombre del viaje.",
+    "trips.next": "Continuar",
+    "trips.back": "Atrás",
+    "trips.skipPacking": "Saltar — archivar sin preparar",
+    "trips.packCategoriesHeading": "Categorías",
+    "trips.packCategoriesHint": "Al añadir una categoría se incluyen todos sus artículos actuales.",
+    "trips.packKitsHeading": "Kits",
+    "trips.packKitsHint": "Paquetes prearmados. Enlace vivo — los cambios al kit se propagan.",
+    "trips.packItemsHeading": "Artículos sueltos",
+    "trips.packItemsHint": "Equipo independiente que no es parte de un kit.",
+    "trips.packEmptyCats": "Aún no hay categorías. Crea una en Inventario.",
+    "trips.packEmptyKits": "Aún no hay kits. Crea uno en Inventario.",
+    "trips.packEmptyItems": "Aún no hay artículos. Crea uno en Inventario.",
+    "trips.searchPh": "Buscar…",
+    "trips.addNewItemInline": "+ Añadir artículo nuevo",
+    "trips.addNewKitInline": "+ Añadir kit nuevo",
+    "trips.addNewCatInline": "+ Añadir categoría nueva",
+    "trips.inlineItemName": "Nombre del artículo",
+    "trips.inlineItemWeight": "Peso (ej. 0.5 kg)",
+    "trips.inlineItemCategory": "Categoría",
+    "trips.inlineKitName": "Nombre del kit",
+    "trips.inlineCatName": "Nombre de la categoría",
+    "trips.inlineSave": "Guardar",
+    "trips.inlineCancel": "Cancelar",
+    "trips.summarySection": "En este viaje",
+    "trips.summaryNothing": "Aún nada preparado.",
+    "trips.summaryFmt": "{c} categorías · {k} kits · {i} artículos",
     "trips.unspecified": "Sin especificar",
     "trips.datePending": "Fecha pendiente",
     "trips.destPending": "Destino pendiente",
@@ -4971,14 +5033,43 @@ function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
   );
 }
 
-function CreateTrip({ travelTypes, onAddType, onDeleteType, onCreate, onCancel }) {
-  const { t, locale, lang } = useI18n();
+function CreateTrip({
+  travelTypes, onAddType, onDeleteType,
+  onCreate, onCancel,
+  items, setItems,
+  kits, setKits,
+  categories, setCategories,
+  packlists, setPacklists,
+}) {
+  const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
+
+  // Two-step wizard
+  const [step, setStep] = useState(1);
+
+  // Step 1 — trip details (unchanged from before)
   const [form, setForm] = useState({ name: "", dest: "", start: "", end: "", type: "" });
   const [addingType, setAddingType] = useState(false);
   const [newType, setNewType] = useState({ name: "", climate: "", days: "" });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const setNT = (k) => (e) => setNewType({ ...newType, [k]: e.target.value });
+
+  // Step 2 — packing selection
+  // We track categoryIds even though packlists don't have a categoryIds field today.
+  // On save we expand the categories into the items they currently contain (live-link
+  // semantics: live at save time; future edits would re-expand if we re-saved).
+  const [pickedCategoryIds, setPickedCategoryIds] = useState([]);
+  const [pickedKitIds, setPickedKitIds] = useState([]);
+  const [pickedItemIds, setPickedItemIds] = useState([]);
+
+  // Inline-create UI state
+  const [inlineMode, setInlineMode] = useState(null); // "item" | "kit" | "cat" | null
+  const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
+  const [newKit, setNewKit] = useState({ name: "", category: "" });
+  const [newCat, setNewCat] = useState({ name: "" });
+  const [searchItems, setSearchItems] = useState("");
+  const [searchKits, setSearchKits] = useState("");
+  const [searchCats, setSearchCats] = useState("");
 
   const fmt = (d) => {
     if (!d) return "";
@@ -4987,10 +5078,121 @@ function CreateTrip({ travelTypes, onAddType, onDeleteType, onCreate, onCancel }
     return dt.toLocaleDateString(locale, { month: "short", day: "2-digit" });
   };
 
+  // Toggling helpers
+  const toggleCategory = (id) =>
+    setPickedCategoryIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  const toggleKit = (id) =>
+    setPickedKitIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  const toggleItem = (id) =>
+    setPickedItemIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+
+  // Filtered lists for search
+  const filteredCats = searchCats.trim()
+    ? categories.filter((c) => c.name.toLowerCase().includes(searchCats.toLowerCase()))
+    : categories;
+  const filteredKits = searchKits.trim()
+    ? kits.filter((k) => k.name.toLowerCase().includes(searchKits.toLowerCase()))
+    : kits;
+  const filteredItems = searchItems.trim()
+    ? items.filter((i) => i.name.toLowerCase().includes(searchItems.toLowerCase()))
+    : items;
+
+  // === Inline create handlers ===
+  const saveInlineItem = () => {
+    const name = newItem.name.trim();
+    if (!name) return;
+    const id = uid("it");
+    const created = {
+      id, name,
+      category: newItem.category || (categories[0]?.name || "Other"),
+      weight: newItem.weight.trim() || "0 g",
+      quantity: 1,
+      packed: false,
+      consumable: false,
+      expiry: "",
+      remindDays: null,
+    };
+    setItems([created, ...items]);
+    setPickedItemIds((s) => [...s, id]);
+    setNewItem({ name: "", weight: "", category: "" });
+    setInlineMode(null);
+  };
+
+  const saveInlineKit = () => {
+    const name = newKit.name.trim();
+    if (!name) return;
+    const id = uid("kit");
+    const created = { id, name, category: newKit.category || "", itemIds: [] };
+    setKits([created, ...kits]);
+    setPickedKitIds((s) => [...s, id]);
+    setNewKit({ name: "", category: "" });
+    setInlineMode(null);
+  };
+
+  const saveInlineCat = () => {
+    const name = newCat.name.trim();
+    if (!name) return;
+    const id = uid("cat");
+    const created = { id, name, icon: "tag" };
+    setCategories([created, ...categories]);
+    setPickedCategoryIds((s) => [...s, id]);
+    setNewCat({ name: "" });
+    setInlineMode(null);
+  };
+
+  // === Submit: create the trip + linked packlist if anything was packed ===
   const submit = () => {
     if (!form.name.trim()) return;
-    const dateRange = form.start && form.end ? `${fmt(form.start)} - ${fmt(form.end)}` : form.start ? fmt(form.start) : t("trips.datePending");
-    onCreate({ name: form.name.trim(), dest: form.dest.trim() || t("trips.destPending"), date: dateRange, type: form.type || t("trips.unspecified") });
+    const tripName = form.name.trim();
+    const dateRange = form.start && form.end
+      ? `${fmt(form.start)} - ${fmt(form.end)}`
+      : form.start ? fmt(form.start) : t("trips.datePending");
+
+    // Create the linked packlist if anything was picked.
+    // Categories are expanded to their current items (live snapshot at save time)
+    // PLUS any individual items picked. Kits are referenced by ID directly.
+    const hasAnyPacking = pickedCategoryIds.length || pickedKitIds.length || pickedItemIds.length;
+    if (hasAnyPacking) {
+      // Resolve category items to ids
+      const catItemIds = new Set();
+      pickedCategoryIds.forEach((cid) => {
+        const cat = categories.find((c) => c.id === cid);
+        if (!cat) return;
+        items.forEach((it) => {
+          if (it.category === cat.name) catItemIds.add(it.id);
+        });
+      });
+      // Merge with explicitly-picked individual items
+      pickedItemIds.forEach((iid) => catItemIds.add(iid));
+
+      // Create or update packlist with the same name as the trip
+      const existing = packlists.find((p) => p.name.toLowerCase() === tripName.toLowerCase());
+      if (existing) {
+        // Merge into existing packlist (avoid wiping prior contents)
+        const mergedKitIds = Array.from(new Set([...existing.kitIds, ...pickedKitIds]));
+        const mergedItemIds = Array.from(new Set([...existing.itemIds, ...catItemIds]));
+        setPacklists(packlists.map((p) =>
+          p.id === existing.id ? { ...p, kitIds: mergedKitIds, itemIds: mergedItemIds } : p
+        ));
+      } else {
+        const newPl = {
+          id: uid("pl"),
+          name: tripName,
+          notes: form.dest.trim() ? `Trip to ${form.dest.trim()}` : "",
+          kitIds: pickedKitIds,
+          itemIds: Array.from(catItemIds),
+        };
+        setPacklists([newPl, ...packlists]);
+      }
+    }
+
+    // Save the trip
+    onCreate({
+      name: tripName,
+      dest: form.dest.trim() || t("trips.destPending"),
+      date: dateRange,
+      type: form.type || t("trips.unspecified"),
+    });
   };
 
   const saveNewType = () => {
@@ -5007,26 +5209,284 @@ function CreateTrip({ travelTypes, onAddType, onDeleteType, onCreate, onCancel }
     if (form.type === tt.name) setForm({ ...form, type: "" });
   };
 
-  return (
-    <div style={{ maxWidth: 720 }}>
-      <SectionHeader num="A" label={t("trips.itinerary")} right={t("trips.formCode")} />
-      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 22 : 28 }}>
-        <Field label={t("trips.tripName")} icon={MapPin} value={form.name} onChange={set("name")} placeholder={t("trips.tripNamePh")} />
-        <Field label={t("trips.destination")} icon={Globe} value={form.dest} onChange={set("dest")} placeholder={t("trips.destinationPh")} />
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 24 }}>
-          <Field label={t("trips.startDate")} type="date" icon={Calendar} value={form.start} onChange={set("start")} />
-          <Field label={t("trips.endDate")} type="date" icon={Calendar} value={form.end} onChange={set("end")} />
+  // ============== STEP 1 ==============
+  if (step === 1) {
+    return (
+      <div style={{ maxWidth: 720 }}>
+        <div style={{ marginBottom: 14, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+          {t("trips.step1")}  ·  {t("trips.stepDetailsTitle")}
+        </div>
+        <SectionHeader num="A" label={t("trips.itinerary")} right={t("trips.formCode")} />
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 22 : 28 }}>
+          <Field label={t("trips.tripName")} icon={MapPin} value={form.name} onChange={set("name")} placeholder={t("trips.tripNamePh")} />
+          <Field label={t("trips.destination")} icon={Globe} value={form.dest} onChange={set("dest")} placeholder={t("trips.destinationPh")} />
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 24 }}>
+            <Field label={t("trips.startDate")} type="date" icon={Calendar} value={form.start} onChange={set("start")} />
+            <Field label={t("trips.endDate")} type="date" icon={Calendar} value={form.end} onChange={set("end")} />
+          </div>
+        </div>
+        <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row" }}>
+          <Btn variant="ghost" icon={X} onClick={onCancel} fullWidth={isMobile}>{t("common.cancel")}</Btn>
+          <Btn onClick={() => form.name.trim() && setStep(2)} variant="rust" icon={ChevronRight} fullWidth={isMobile} disabled={!form.name.trim()}>
+            {t("trips.next")}
+          </Btn>
         </div>
       </div>
-      <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row" }}>
-        <Btn variant="ghost" icon={X} onClick={onCancel} fullWidth={isMobile}>{t("common.cancel")}</Btn>
-        <Btn onClick={submit} variant="rust" icon={Check} fullWidth={isMobile}>{t("trips.fileTrip")}</Btn>
+    );
+  }
+
+  // ============== STEP 2 ==============
+  const summaryText = (pickedCategoryIds.length || pickedKitIds.length || pickedItemIds.length)
+    ? t("trips.summaryFmt", { c: pickedCategoryIds.length, k: pickedKitIds.length, i: pickedItemIds.length })
+    : t("trips.summaryNothing");
+
+  return (
+    <div style={{ maxWidth: 720 }}>
+      <div style={{ marginBottom: 14, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        {t("trips.step2")}  ·  {t("trips.stepPackTitle")}
+      </div>
+      <SectionHeader num="B" label={t("trips.stepPackTitle")} right={t("trips.formCode")} />
+      <div style={{ marginBottom: 18, fontFamily: F.body, fontStyle: "italic", color: C.inkSoft, fontSize: 14 }}>
+        {t("trips.stepPackSub")}
+      </div>
+
+      {/* Live summary */}
+      <div style={{ padding: "10px 14px", background: C.ink, color: C.paper, marginBottom: 24, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
+        {t("trips.summarySection")}: <span style={{ marginLeft: 6, opacity: 0.85 }}>{summaryText}</span>
+      </div>
+
+      {/* === CATEGORIES picker === */}
+      <PackPickerSection
+        title={t("trips.packCategoriesHeading")}
+        hint={t("trips.packCategoriesHint")}
+        count={`${pickedCategoryIds.length} / ${categories.length}`}
+        emptyLabel={t("trips.packEmptyCats")}
+        items={filteredCats}
+        searchValue={searchCats}
+        setSearchValue={setSearchCats}
+        renderRow={(c) => {
+          const sel = pickedCategoryIds.includes(c.id);
+          const itemCount = items.filter((i) => i.category === c.name).length;
+          const Icon = iconFor(c.icon);
+          return (
+            <button key={c.id} onClick={() => toggleCategory(c.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: 10,
+              border: `1.5px solid ${sel ? C.forest : C.line}`,
+              background: sel ? C.paper : "transparent",
+              cursor: "pointer", textAlign: "left", width: "100%",
+            }}>
+              <span style={{ width: 22, height: 22, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sel && <Check size={13} strokeWidth={3} />}
+              </span>
+              <Icon size={16} strokeWidth={1.4} color={C.forest} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500 }}>{tOrLiteral(lang, "cat", c.name)}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  {itemCount} {itemCount === 1 ? "item" : "items"}
+                </div>
+              </div>
+            </button>
+          );
+        }}
+        addNewLabel={t("trips.addNewCatInline")}
+        addingNew={inlineMode === "cat"}
+        onAddNewClick={() => setInlineMode(inlineMode === "cat" ? null : "cat")}
+        inlineCreate={inlineMode === "cat" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* === KITS picker === */}
+      <PackPickerSection
+        title={t("trips.packKitsHeading")}
+        hint={t("trips.packKitsHint")}
+        count={`${pickedKitIds.length} / ${kits.length}`}
+        emptyLabel={t("trips.packEmptyKits")}
+        items={filteredKits}
+        searchValue={searchKits}
+        setSearchValue={setSearchKits}
+        renderRow={(k) => {
+          const sel = pickedKitIds.includes(k.id);
+          const itemCount = (k.itemIds || []).length;
+          return (
+            <button key={k.id} onClick={() => toggleKit(k.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: 10,
+              border: `1.5px solid ${sel ? C.forest : C.line}`,
+              background: sel ? C.paper : "transparent",
+              cursor: "pointer", textAlign: "left", width: "100%",
+            }}>
+              <span style={{ width: 22, height: 22, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sel && <Check size={13} strokeWidth={3} />}
+              </span>
+              <Backpack size={16} strokeWidth={1.4} color={C.forest} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500 }}>{k.name}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  {itemCount} {itemCount === 1 ? "item" : "items"}{k.category ? `  ·  ${k.category}` : ""}
+                </div>
+              </div>
+            </button>
+          );
+        }}
+        addNewLabel={t("trips.addNewKitInline")}
+        addingNew={inlineMode === "kit"}
+        onAddNewClick={() => setInlineMode(inlineMode === "kit" ? null : "kit")}
+        inlineCreate={inlineMode === "kit" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
+            <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* === INDIVIDUAL ITEMS picker === */}
+      <PackPickerSection
+        title={t("trips.packItemsHeading")}
+        hint={t("trips.packItemsHint")}
+        count={`${pickedItemIds.length} / ${items.length}`}
+        emptyLabel={t("trips.packEmptyItems")}
+        items={filteredItems}
+        searchValue={searchItems}
+        setSearchValue={setSearchItems}
+        renderRow={(it) => {
+          const sel = pickedItemIds.includes(it.id);
+          return (
+            <button key={it.id} onClick={() => toggleItem(it.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: 8,
+              border: `1.5px solid ${sel ? C.forest : C.line}`,
+              background: sel ? C.paper : "transparent",
+              cursor: "pointer", textAlign: "left", width: "100%",
+            }}>
+              <span style={{ width: 20, height: 20, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sel && <Check size={12} strokeWidth={3} />}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 500 }}>{it.name}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
+                  {tOrLiteral(lang, "cat", it.category)}  ·  {it.weight}
+                </div>
+              </div>
+            </button>
+          );
+        }}
+        addNewLabel={t("trips.addNewItemInline")}
+        addingNew={inlineMode === "item"}
+        onAddNewClick={() => setInlineMode(inlineMode === "item" ? null : "item")}
+        inlineCreate={inlineMode === "item" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+              <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+              <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+            </div>
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* Action row */}
+      <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <Btn variant="ghost" icon={ArrowLeft} onClick={() => setStep(1)} fullWidth={isMobile}>{t("trips.back")}</Btn>
+        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row" }}>
+          <Btn variant="ghost" icon={Check} onClick={submit} fullWidth={isMobile}>{t("trips.skipPacking")}</Btn>
+          <Btn onClick={submit} variant="rust" icon={Check} fullWidth={isMobile}>{t("trips.fileTrip")}</Btn>
+        </div>
       </div>
     </div>
   );
 }
 
-function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService, currentUser, items, kits, categories, packlists }) {
+// Reusable picker section: search box + selectable rows + inline-create affordance
+function PackPickerSection({ title, hint, count, emptyLabel, items, searchValue, setSearchValue, renderRow, addNewLabel, addingNew, onAddNewClick, inlineCreate }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, paddingBottom: 6, borderBottom: `1px dashed ${C.line}` }}>
+        <div>
+          <span style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>{title}</span>
+          <span style={{ marginLeft: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>{count}</span>
+        </div>
+      </div>
+      {hint && <div style={{ marginBottom: 10, fontFamily: F.body, fontSize: 12, color: C.muted, fontStyle: "italic" }}>{hint}</div>}
+
+      {/* Search box */}
+      {items.length > 0 && (
+        <input
+          type="text"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          placeholder="Search…"
+          style={{
+            width: "100%", padding: "8px 0", marginBottom: 10,
+            background: "transparent", border: "none", borderBottom: `1px solid ${C.line}`,
+            outline: "none", fontFamily: F.body, fontSize: 13, color: C.ink,
+          }}
+        />
+      )}
+
+      {/* Rows */}
+      {items.length === 0 ? (
+        <div style={{ padding: 14, background: C.paperDeep, border: `1px dashed ${C.line}`, fontFamily: F.body, fontSize: 13, color: C.inkSoft, fontStyle: "italic", textAlign: "center" }}>
+          {emptyLabel}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
+          {items.map(renderRow)}
+        </div>
+      )}
+
+      {/* Inline create */}
+      <div style={{ marginTop: 10 }}>
+        <button onClick={onAddNewClick}
+          style={{ background: "transparent", border: `1px dashed ${C.line}`, padding: "8px 12px", cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: C.forest, fontWeight: 700, width: "100%", textAlign: "center" }}>
+          {addNewLabel}
+        </button>
+        {addingNew && (
+          <div style={{ marginTop: 10, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
+            {inlineCreate}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Simple category dropdown for the inline-create forms
+function CategorySelect({ categories, value, onChange }) {
+  const { t } = useI18n();
+  return (
+    <label style={{ display: "block" }}>
+      <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        {t("trips.inlineItemCategory")}
+      </div>
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+          borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+          appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+          backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+        }}>
+        <option value="">—</option>
+        {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+      </select>
+    </label>
+  );
+}
+
+function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService, currentUser, items, setItems, kits, setKits, categories, setCategories, packlists, setPacklists }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const [tab, setTab] = useState("saved");
@@ -5061,7 +5521,17 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
           {tab === "saved" && <SavedTrips trips={trips} onDelete={deleteTrip} onPlan={() => setTab("create")}
             onShare={shareService ? (tr) => setSharing({ kind: "trip", entity: tr }) : null}
             onPublish={currentUser?.id ? (tr) => setPublishing({ kind: "trip", entity: tr }) : null} />}
-          {tab === "create" && <CreateTrip travelTypes={travelTypes} onAddType={addType} onDeleteType={deleteType} onCreate={addTrip} onCancel={() => setTab("saved")} />}
+          {tab === "create" && <CreateTrip
+            travelTypes={travelTypes}
+            onAddType={addType}
+            onDeleteType={deleteType}
+            onCreate={addTrip}
+            onCancel={() => setTab("saved")}
+            items={items} setItems={setItems}
+            kits={kits} setKits={setKits}
+            categories={categories} setCategories={setCategories}
+            packlists={packlists} setPacklists={setPacklists}
+          />}
         </div>
       </div>
       <Footer />
@@ -7419,7 +7889,7 @@ export default function App() {
     screen === "reset" ? <ResetPassword go={go} /> :
     screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} /> :
     screen === "inventory" ? <Inventory go={go} items={items} setItems={setItems} categories={categories} setCategories={setCategories} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKits} packlists={packlists} setPacklists={setPacklists} cart={cart} setCart={setCart} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
-    screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} kits={kits} categories={categories} packlists={packlists} /> :
+    screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} packlists={packlists} setPacklists={setPacklists} /> :
     screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklists} kits={kits} items={items} categories={categories} /> :
     screen === "cart" ? <Cart go={go} cart={cart} setCart={setCart} /> :
     screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} shareService={shareService} /> :
