@@ -350,6 +350,7 @@ const TRANSLATIONS = {
     "footer.fieldEd": "FIELD ED. MMXXV",
     "common.back": "Back",
     "common.cancel": "Cancel",
+    "common.add": "Add",
     "common.discard": "Discard",
     "common.save": "Save",
     "common.yes": "Yes",
@@ -421,7 +422,7 @@ const TRANSLATIONS = {
     "nav.camp": "Home",
     "nav.inventory": "Inventory",
     "nav.trips": "Trips",
-    "nav.packlists": "Packlists",
+    "nav.packlists": "Trip/Packlist",
     "nav.cart": "Cart",
     "nav.inbox": "Inbox",
     "nav.library": "Library",
@@ -948,6 +949,7 @@ const TRANSLATIONS = {
     "footer.fieldEd": "ED. CAMPO MMXXV",
     "common.back": "Atrás",
     "common.cancel": "Cancelar",
+    "common.add": "Añadir",
     "common.discard": "Descartar",
     "common.save": "Guardar",
     "common.yes": "Sí",
@@ -1015,7 +1017,7 @@ const TRANSLATIONS = {
     "nav.camp": "Inicio",
     "nav.inventory": "Inventario",
     "nav.trips": "Viajes",
-    "nav.packlists": "Listas",
+    "nav.packlists": "Viaje/Lista",
     "nav.cart": "Carrito",
     "nav.inbox": "Bandeja",
     "nav.library": "Biblioteca",
@@ -2932,26 +2934,6 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
               </div>
             </>
           )}
-          <h2 style={{ marginTop: isMobile ? 48 : 80, marginBottom: isMobile ? 20 : 32, fontFamily: F.display, fontSize: isMobile ? 26 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("dash.nextDeparture")}</h2>
-          <div style={{ position: "relative", padding: isMobile ? 24 : 48, background: C.forestDeep, color: C.paper, overflow: "hidden" }}>
-            <TopoBG opacity={0.18} />
-            <div style={{ position: "relative", zIndex: 1 }}>
-              {trips[0] ? (
-                <>
-                  <Coord>{trips[0].dest}</Coord>
-                  <div style={{ marginTop: 12, fontFamily: F.display, fontSize: isMobile ? 32 : 48, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>{trips[0].name}</div>
-                  <div style={{ marginTop: 8, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 15 : 18, opacity: 0.8 }}>{trips[0].date} {tOrLiteral(lang, "tt", trips[0].type)}</div>
-                  <div style={{ marginTop: 24 }}><Btn onClick={() => go("trips")} variant="rust" icon={ChevronRight}>{t("dash.openTrip")}</Btn></div>
-                </>
-              ) : (
-                <>
-                  <Coord>{t("dash.noTrip")}</Coord>
-                  <div style={{ marginTop: 12, fontFamily: F.display, fontSize: isMobile ? 32 : 48, fontWeight: 700, fontStyle: "italic", lineHeight: 1 }}>{t("dash.horizon")}</div>
-                  <div style={{ marginTop: 24 }}><Btn onClick={() => go("trips")} variant="rust" icon={Plus}>{t("dash.planTrip")}</Btn></div>
-                </>
-              )}
-            </div>
-          </div>
 
           {/* Library CTA card */}
           <div style={{
@@ -5734,7 +5716,7 @@ function SettingRow({ label, value }) {
    PACKLISTS — top-level entity. A packlist combines kits + items
    for a specific trip or purpose. Users can compose, edit, delete.
    ============================================================ */
-function Packlists({ go, packlists, setPacklists, kits, items, categories }) {
+function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems, categories, setCategories, travelTypes, setTravelTypes }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const [tab, setTab] = useState("saved");           // "saved" | "create" | "edit"
@@ -5755,6 +5737,23 @@ function Packlists({ go, packlists, setPacklists, kits, items, categories }) {
     if (openId === id) setOpenId(null);
   };
 
+  // Remove a single item or kit from an existing packlist (used by detail view)
+  const removeItemFromPacklist = (plId, itemId) => {
+    setPacklists(packlists.map((p) =>
+      p.id === plId ? { ...p, itemIds: (p.itemIds || []).filter((x) => x !== itemId) } : p
+    ));
+  };
+  const removeKitFromPacklist = (plId, kitId) => {
+    setPacklists(packlists.map((p) =>
+      p.id === plId ? { ...p, kitIds: (p.kitIds || []).filter((x) => x !== kitId) } : p
+    ));
+  };
+  const removeCategoryFromPacklist = (plId, catId) => {
+    setPacklists(packlists.map((p) =>
+      p.id === plId ? { ...p, categoryIds: (p.categoryIds || []).filter((x) => x !== catId) } : p
+    ));
+  };
+
   const startEdit = (id) => { setEditingId(id); setTab("edit"); setOpenId(null); };
   const editingPacklist = editingId ? packlists.find((p) => p.id === editingId) : null;
   const openPacklist = openId ? packlists.find((p) => p.id === openId) : null;
@@ -5773,6 +5772,9 @@ function Packlists({ go, packlists, setPacklists, kits, items, categories }) {
             onBack={() => setOpenId(null)}
             onEdit={() => { setOpenId(null); startEdit(openPacklist.id); }}
             onDelete={() => deletePacklist(openPacklist.id)}
+            onRemoveItem={(itemId) => removeItemFromPacklist(openPacklist.id, itemId)}
+            onRemoveKit={(kitId) => removeKitFromPacklist(openPacklist.id, kitId)}
+            onRemoveCategory={(catId) => removeCategoryFromPacklist(openPacklist.id, catId)}
           />
         </div>
         <Footer />
@@ -5823,20 +5825,22 @@ function Packlists({ go, packlists, setPacklists, kits, items, categories }) {
             />
           )}
           {tab === "create" && (
-            <PacklistForm
-              kits={kits}
-              items={items}
-              categories={categories}
+            <TripPacklistForm
+              kits={kits} setKits={setKits}
+              items={items} setItems={setItems}
+              categories={categories} setCategories={setCategories}
+              travelTypes={travelTypes} setTravelTypes={setTravelTypes}
               onSubmit={addPacklist}
               onCancel={() => setTab("saved")}
             />
           )}
           {tab === "edit" && editingPacklist && (
-            <PacklistForm
+            <TripPacklistForm
               initial={editingPacklist}
-              kits={kits}
-              items={items}
-              categories={categories}
+              kits={kits} setKits={setKits}
+              items={items} setItems={setItems}
+              categories={categories} setCategories={setCategories}
+              travelTypes={travelTypes} setTravelTypes={setTravelTypes}
               onSubmit={(data) => updatePacklist(editingPacklist.id, data)}
               onCancel={() => { setEditingId(null); setTab("saved"); }}
             />
@@ -6120,27 +6124,414 @@ function PacklistForm({ initial, kits, items, categories, onSubmit, onCancel }) 
   );
 }
 
+/* ============================================================
+   TripPacklistForm — unified create/edit wizard for the merged
+   Trip/Packlist entity. Two steps:
+     1) Itinerary — name, dates, destination, type
+     2) Pack — categories, kits, individual items (with inline-create)
+   Used for both creating new entries and editing existing ones.
+   ============================================================ */
+function TripPacklistForm({
+  initial,                 // existing packlist for edit mode (or null for create)
+  kits, setKits,
+  items, setItems,
+  categories, setCategories,
+  travelTypes, setTravelTypes,
+  onSubmit, onCancel,
+}) {
+  const { t, locale, lang } = useI18n();
+  const { isMobile } = useViewport();
+  const editMode = !!initial;
+
+  // Two-step wizard
+  const [step, setStep] = useState(1);
+
+  // Step 1 — itinerary metadata. All optional except name.
+  const [name, setName] = useState(initial?.name || "");
+  const [notes, setNotes] = useState(initial?.notes || "");
+  const [dest, setDest] = useState(initial?.dest || "");
+  // We store dates as a single 'date' string (e.g. "Jun 12 - Jun 26") to match
+  // existing trip data shape. Internally we keep two date inputs and format.
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [type, setType] = useState(initial?.type || "");
+  const [addingType, setAddingType] = useState(false);
+  const [newType, setNewType] = useState({ name: "", climate: "", days: "" });
+
+  // Step 2 — packing selections. categoryIds, kitIds, itemIds.
+  const [pickedCategoryIds, setPickedCategoryIds] = useState(initial?.categoryIds || []);
+  const [pickedKitIds, setPickedKitIds] = useState(initial?.kitIds || []);
+  const [pickedItemIds, setPickedItemIds] = useState(initial?.itemIds || []);
+
+  // Inline-create UI state
+  const [inlineMode, setInlineMode] = useState(null); // "item" | "kit" | "cat" | null
+  const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
+  const [newKit, setNewKit] = useState({ name: "", category: "" });
+  const [newCat, setNewCat] = useState({ name: "" });
+  const [searchItems, setSearchItems] = useState("");
+  const [searchKits, setSearchKits] = useState("");
+  const [searchCats, setSearchCats] = useState("");
+
+  const fmt = (d) => {
+    if (!d) return "";
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString(locale, { month: "short", day: "2-digit" });
+  };
+
+  // Toggling helpers
+  const toggleCategory = (id) =>
+    setPickedCategoryIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  const toggleKit = (id) =>
+    setPickedKitIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  const toggleItem = (id) =>
+    setPickedItemIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+
+  // Filtered lists for search
+  const filteredCats = searchCats.trim()
+    ? categories.filter((c) => c.name.toLowerCase().includes(searchCats.toLowerCase()))
+    : categories;
+  const filteredKits = searchKits.trim()
+    ? kits.filter((k) => k.name.toLowerCase().includes(searchKits.toLowerCase()))
+    : kits;
+  const filteredItems = searchItems.trim()
+    ? items.filter((i) => i.name.toLowerCase().includes(searchItems.toLowerCase()))
+    : items;
+
+  // === Inline create handlers ===
+  const saveInlineItem = () => {
+    const itemName = newItem.name.trim();
+    if (!itemName) return;
+    const id = uid("it");
+    const created = {
+      id, name: itemName,
+      category: newItem.category || (categories[0]?.name || "Other"),
+      weight: newItem.weight.trim() || "0 g",
+      quantity: 1, packed: false, consumable: false,
+      expiry: "", remindDays: null,
+    };
+    setItems([created, ...items]);
+    setPickedItemIds((s) => [...s, id]);
+    setNewItem({ name: "", weight: "", category: "" });
+    setInlineMode(null);
+  };
+
+  const saveInlineKit = () => {
+    const kitName = newKit.name.trim();
+    if (!kitName) return;
+    const id = uid("kit");
+    const created = { id, name: kitName, category: newKit.category || "", itemIds: [] };
+    setKits([created, ...kits]);
+    setPickedKitIds((s) => [...s, id]);
+    setNewKit({ name: "", category: "" });
+    setInlineMode(null);
+  };
+
+  const saveInlineCat = () => {
+    const catName = newCat.name.trim();
+    if (!catName) return;
+    const id = uid("cat");
+    const created = { id, name: catName, icon: "tag" };
+    setCategories([created, ...categories]);
+    setPickedCategoryIds((s) => [...s, id]);
+    setNewCat({ name: "" });
+    setInlineMode(null);
+  };
+
+  const saveNewType = () => {
+    const tName = newType.name.trim();
+    if (!tName) return;
+    setTravelTypes([{ id: uid("tt"), icon: "mountain", name: tName, climate: newType.climate.trim() || "Variable", days: newType.days.trim() || "1-7" }, ...travelTypes]);
+    setType(tName);
+    setNewType({ name: "", climate: "", days: "" });
+    setAddingType(false);
+  };
+
+  // === Submit ===
+  const submit = () => {
+    if (!name.trim()) return;
+    // Build the date string from start/end (only update if user actually entered new dates)
+    let dateString = initial?.date || "";
+    if (start && end) dateString = `${fmt(start)} - ${fmt(end)}`;
+    else if (start) dateString = fmt(start);
+
+    onSubmit({
+      name: name.trim(),
+      notes: notes.trim(),
+      dest: dest.trim(),
+      date: dateString,
+      type: type || "",
+      kitIds: pickedKitIds,
+      itemIds: pickedItemIds,
+      categoryIds: pickedCategoryIds,
+    });
+  };
+
+  // ============== STEP 1 ==============
+  if (step === 1) {
+    return (
+      <div style={{ maxWidth: 720 }}>
+        <div style={{ marginBottom: 14, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+          {t("trips.step1")}  ·  {t("trips.stepDetailsTitle")}
+        </div>
+        <SectionHeader num="A" label={t("trips.itinerary")} right={editMode ? "EDIT" : t("trips.formCode")} />
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 22 : 28 }}>
+          <Field label={t("trips.tripName")} icon={MapPin} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("trips.tripNamePh")} />
+          <Field label={t("trips.destination")} icon={Globe} value={dest} onChange={(e) => setDest(e.target.value)} placeholder={t("trips.destinationPh")} />
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 24 }}>
+            <Field label={t("trips.startDate")} type="date" icon={Calendar} value={start} onChange={(e) => setStart(e.target.value)} />
+            <Field label={t("trips.endDate")} type="date" icon={Calendar} value={end} onChange={(e) => setEnd(e.target.value)} />
+          </div>
+
+          {/* Trip type chips */}
+          <div>
+            <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("trips.tripType")}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {travelTypes.map((tt) => {
+                const sel = type === tt.name;
+                return (
+                  <button key={tt.id} onClick={() => setType(sel ? "" : tt.name)}
+                    style={{ padding: "6px 12px", border: `1.5px solid ${sel ? C.forest : C.line}`, background: sel ? C.forest : "transparent", color: sel ? C.paper : C.ink, cursor: "pointer", fontFamily: F.body, fontSize: 13 }}>
+                    {tOrLiteral(lang, "tt", tt.name)}
+                  </button>
+                );
+              })}
+              <button onClick={() => setAddingType(!addingType)}
+                style={{ padding: "6px 12px", border: `1.5px dashed ${C.line}`, background: "transparent", color: C.forest, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", fontWeight: 700 }}>
+                + {t("common.add")}
+              </button>
+            </div>
+            {addingType && (
+              <div style={{ marginTop: 12, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
+                <Field label="Type name" value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} />
+                <div style={{ marginTop: 10, display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <Btn variant="ghost" icon={X} onClick={() => { setAddingType(false); setNewType({ name: "", climate: "", days: "" }); }}>{t("common.cancel")}</Btn>
+                  <Btn variant="rust" icon={Check} onClick={saveNewType} disabled={!newType.name.trim()}>{t("common.save")}</Btn>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          <label style={{ display: "block" }}>
+            <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("pl.notes")}
+            </div>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("pl.notesPh")} rows={3}
+              style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink, resize: "vertical" }} />
+          </label>
+        </div>
+        <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row" }}>
+          <Btn variant="ghost" icon={X} onClick={onCancel} fullWidth={isMobile}>{t("common.cancel")}</Btn>
+          <Btn onClick={() => name.trim() && setStep(2)} variant="rust" icon={ChevronRight} fullWidth={isMobile} disabled={!name.trim()}>
+            {t("trips.next")}
+          </Btn>
+        </div>
+      </div>
+    );
+  }
+
+  // ============== STEP 2 ==============
+  const summaryText = (pickedCategoryIds.length || pickedKitIds.length || pickedItemIds.length)
+    ? t("trips.summaryFmt", { c: pickedCategoryIds.length, k: pickedKitIds.length, i: pickedItemIds.length })
+    : t("trips.summaryNothing");
+
+  return (
+    <div style={{ maxWidth: 720 }}>
+      <div style={{ marginBottom: 14, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        {t("trips.step2")}  ·  {t("trips.stepPackTitle")}
+      </div>
+      <SectionHeader num="B" label={t("trips.stepPackTitle")} right={editMode ? "EDIT" : t("trips.formCode")} />
+      <div style={{ marginBottom: 18, fontFamily: F.body, fontStyle: "italic", color: C.inkSoft, fontSize: 14 }}>
+        {t("trips.stepPackSub")}
+      </div>
+
+      {/* Live summary */}
+      <div style={{ padding: "10px 14px", background: C.ink, color: C.paper, marginBottom: 24, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
+        {t("trips.summarySection")}: <span style={{ marginLeft: 6, opacity: 0.85 }}>{summaryText}</span>
+      </div>
+
+      {/* CATEGORIES */}
+      <PackPickerSection
+        title={t("trips.packCategoriesHeading")}
+        hint={t("trips.packCategoriesHint")}
+        count={`${pickedCategoryIds.length} / ${categories.length}`}
+        emptyLabel={t("trips.packEmptyCats")}
+        items={filteredCats}
+        searchValue={searchCats}
+        setSearchValue={setSearchCats}
+        renderRow={(c) => {
+          const sel = pickedCategoryIds.includes(c.id);
+          const itemCount = items.filter((i) => i.category === c.name).length;
+          const Icon = iconFor(c.icon);
+          return (
+            <button key={c.id} onClick={() => toggleCategory(c.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: 10,
+              border: `1.5px solid ${sel ? C.forest : C.line}`,
+              background: sel ? C.paper : "transparent",
+              cursor: "pointer", textAlign: "left", width: "100%",
+            }}>
+              <span style={{ width: 22, height: 22, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sel && <Check size={13} strokeWidth={3} />}
+              </span>
+              <Icon size={16} strokeWidth={1.4} color={C.forest} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500 }}>{tOrLiteral(lang, "cat", c.name)}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  {itemCount} {itemCount === 1 ? "item" : "items"}
+                </div>
+              </div>
+            </button>
+          );
+        }}
+        addNewLabel={t("trips.addNewCatInline")}
+        addingNew={inlineMode === "cat"}
+        onAddNewClick={() => setInlineMode(inlineMode === "cat" ? null : "cat")}
+        inlineCreate={inlineMode === "cat" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* KITS */}
+      <PackPickerSection
+        title={t("trips.packKitsHeading")}
+        hint={t("trips.packKitsHint")}
+        count={`${pickedKitIds.length} / ${kits.length}`}
+        emptyLabel={t("trips.packEmptyKits")}
+        items={filteredKits}
+        searchValue={searchKits}
+        setSearchValue={setSearchKits}
+        renderRow={(k) => {
+          const sel = pickedKitIds.includes(k.id);
+          const itemCount = (k.itemIds || []).length;
+          return (
+            <button key={k.id} onClick={() => toggleKit(k.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: 10,
+              border: `1.5px solid ${sel ? C.forest : C.line}`,
+              background: sel ? C.paper : "transparent",
+              cursor: "pointer", textAlign: "left", width: "100%",
+            }}>
+              <span style={{ width: 22, height: 22, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sel && <Check size={13} strokeWidth={3} />}
+              </span>
+              <Backpack size={16} strokeWidth={1.4} color={C.forest} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500 }}>{k.name}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  {itemCount} {itemCount === 1 ? "item" : "items"}{k.category ? `  ·  ${k.category}` : ""}
+                </div>
+              </div>
+            </button>
+          );
+        }}
+        addNewLabel={t("trips.addNewKitInline")}
+        addingNew={inlineMode === "kit"}
+        onAddNewClick={() => setInlineMode(inlineMode === "kit" ? null : "kit")}
+        inlineCreate={inlineMode === "kit" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
+            <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* INDIVIDUAL ITEMS */}
+      <PackPickerSection
+        title={t("trips.packItemsHeading")}
+        hint={t("trips.packItemsHint")}
+        count={`${pickedItemIds.length} / ${items.length}`}
+        emptyLabel={t("trips.packEmptyItems")}
+        items={filteredItems}
+        searchValue={searchItems}
+        setSearchValue={setSearchItems}
+        renderRow={(it) => {
+          const sel = pickedItemIds.includes(it.id);
+          return (
+            <button key={it.id} onClick={() => toggleItem(it.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: 8,
+              border: `1.5px solid ${sel ? C.forest : C.line}`,
+              background: sel ? C.paper : "transparent",
+              cursor: "pointer", textAlign: "left", width: "100%",
+            }}>
+              <span style={{ width: 20, height: 20, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sel && <Check size={12} strokeWidth={3} />}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 500 }}>{it.name}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
+                  {tOrLiteral(lang, "cat", it.category)}  ·  {it.weight}
+                </div>
+              </div>
+            </button>
+          );
+        }}
+        addNewLabel={t("trips.addNewItemInline")}
+        addingNew={inlineMode === "item"}
+        onAddNewClick={() => setInlineMode(inlineMode === "item" ? null : "item")}
+        inlineCreate={inlineMode === "item" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+              <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+              <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+            </div>
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* Action row */}
+      <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <Btn variant="ghost" icon={ArrowLeft} onClick={() => setStep(1)} fullWidth={isMobile}>{t("trips.back")}</Btn>
+        <Btn onClick={submit} variant="rust" icon={Check} fullWidth={isMobile}>
+          {editMode ? t("pl.saveBtn") : t("trips.fileTrip")}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
 
   // Hydrate
-  const includedKits = packlist.kitIds.map((id) => kits.find((k) => k.id === id)).filter(Boolean);
-  const includedItems = packlist.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  const includedKits = (packlist.kitIds || []).map((id) => kits.find((k) => k.id === id)).filter(Boolean);
+  const includedItems = (packlist.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  const includedCategories = (packlist.categoryIds || []).map((id) => categories.find((c) => c.id === id)).filter(Boolean);
 
-  // For total unique calc
+  // For total unique calc — include items from referenced categories too
   const idsInKits = new Set();
   includedKits.forEach((k) => k.itemIds.forEach((iid) => idsInKits.add(iid)));
   includedItems.forEach((it) => idsInKits.add(it.id));
+  // Live link: pull current items in each referenced category
+  includedCategories.forEach((c) => {
+    items.forEach((it) => { if (it.category === c.name) idsInKits.add(it.id); });
+  });
   const totalUnique = idsInKits.size;
-  // Total weight across all unique items
   const allUniqueItems = Array.from(idsInKits).map((id) => items.find((i) => i.id === id)).filter(Boolean);
   const totalKg = allUniqueItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
   const totalWeightStr = formatWeightFromKg(totalKg, units);
 
-  const isEmpty = includedKits.length === 0 && includedItems.length === 0;
+  const isEmpty = includedKits.length === 0 && includedItems.length === 0 && includedCategories.length === 0;
+  const hasMetadata = packlist.dest || packlist.date || packlist.type;
 
   return (
     <div>
@@ -6148,27 +6539,29 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         <button
           onClick={onBack}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontFamily: F.mono,
-            fontSize: 11,
-            color: C.muted,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            padding: "8px 0",
-            marginBottom: 12,
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "none", border: "none", cursor: "pointer",
+            fontFamily: F.mono, fontSize: 11, color: C.muted,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            padding: "8px 0", marginBottom: 12,
           }}
         >
           <ArrowLeft size={14} /> {t("nav.packlists")}
         </button>
-        <Coord>PACKLIST</Coord>
+        <Coord>{packlist.dest ? packlist.dest.toUpperCase() : "PACKLIST"}</Coord>
         <h2 style={{ margin: "8px 0 8px", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>
           {packlist.name}<span style={{ color: C.rust }}>.</span>
         </h2>
+
+        {/* Trip metadata strip */}
+        {hasMetadata && (
+          <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 12, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            {packlist.date && <span>📅 {packlist.date}</span>}
+            {packlist.type && <span>· {tOrLiteral(lang, "tt", packlist.type)}</span>}
+            {packlist.dest && <span>· {packlist.dest}</span>}
+          </div>
+        )}
+
         {packlist.notes && (
           <div style={{ marginTop: 10, fontFamily: F.display, fontStyle: "italic", color: C.inkSoft, fontSize: isMobile ? 14 : 16, lineHeight: 1.5 }}>
             {packlist.notes}
@@ -6200,6 +6593,46 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         <EmptyState label={t("pl.detailEmpty")} hint={t("pl.empty")} />
       )}
 
+      {/* CATEGORIES section (new) — live-linked */}
+      {includedCategories.length > 0 && (
+        <div style={{ marginTop: 16, marginBottom: 32 }}>
+          <div style={{ marginBottom: 14, paddingBottom: 6, borderBottom: `1px dashed ${C.line}` }}>
+            <span style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {t("trips.packCategoriesHeading")}
+            </span>
+            <span style={{ marginLeft: 10, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              {includedCategories.length}
+            </span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 12 }}>
+            {includedCategories.map((c) => {
+              const Icon = iconFor(c.icon);
+              const itemCount = items.filter((i) => i.category === c.name).length;
+              return (
+                <div key={c.id} style={{ background: C.paper, border: `1.5px solid ${C.line}`, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                    <Icon size={18} strokeWidth={1.4} color={C.forest} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 600 }}>{tOrLiteral(lang, "cat", c.name)}</div>
+                      <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                        {itemCount} {itemCount === 1 ? "item" : "items"}
+                      </div>
+                    </div>
+                  </div>
+                  {onRemoveCategory && (
+                    <button onClick={() => onRemoveCategory(c.id)}
+                      style={{ width: 32, height: 32, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                      title="Remove from this list" aria-label="Remove">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {includedKits.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <div style={{ marginBottom: 14, paddingBottom: 6, borderBottom: `1px dashed ${C.line}` }}>
@@ -6216,9 +6649,16 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
               const kitKg = itemNames.reduce((s, i) => s + parseKg(i.weight || ""), 0);
               const kitWeightStr = formatWeightFromKg(kitKg, units);
               return (
-                <div key={k.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16 }}>
+                <div key={k.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16, position: "relative" }}>
+                  {onRemoveKit && (
+                    <button onClick={() => onRemoveKit(k.id)}
+                      style={{ position: "absolute", top: 10, right: 10, width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                      title="Remove from this list" aria-label="Remove">
+                      <X size={13} />
+                    </button>
+                  )}
                   <Coord>KIT</Coord>
-                  <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+                  <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 36 }}>
                     {k.name}
                   </div>
                   <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
@@ -6277,11 +6717,20 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                     {it.name}
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                  <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}`, fontWeight: 700 }}>
-                    {tOrLiteral(lang, "cat", it.category)}
-                  </span>
-                  <span style={{ fontFamily: F.mono, fontSize: 11, color: C.inkSoft, fontWeight: 700 }}>{formatWeight(it.weight, units)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                    <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}`, fontWeight: 700 }}>
+                      {tOrLiteral(lang, "cat", it.category)}
+                    </span>
+                    <span style={{ fontFamily: F.mono, fontSize: 11, color: C.inkSoft, fontWeight: 700 }}>{formatWeight(it.weight, units)}</span>
+                  </div>
+                  {onRemoveItem && (
+                    <button onClick={() => onRemoveItem(it.id)}
+                      style={{ width: 30, height: 30, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                      title="Remove from this list" aria-label="Remove">
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -7724,9 +8173,58 @@ export default function App() {
             if (Array.isArray(data.categories)) setCategories(data.categories);
             if (Array.isArray(data.travelTypes)) setTravelTypes(data.travelTypes);
             if (Array.isArray(data.cart)) setCart(data.cart);
-            if (Array.isArray(data.trips)) setTrips(data.trips);
             if (Array.isArray(data.kits)) setKits(data.kits);
-            if (Array.isArray(data.packlists)) setPacklists(data.packlists);
+
+            // === Migration (one-time) ===
+            // Trips and packlists used to be separate; they're now unified as
+            // packlists with optional trip metadata. We:
+            //   1) Start from any existing packlists (they're already the right shape).
+            //   2) Match each old trip to a packlist by name; if matched, copy trip
+            //      metadata onto it. If unmatched, create a new packlist for the trip.
+            // Already-migrated data has data._merged === true so we skip on subsequent loads.
+            const oldPacklists = Array.isArray(data.packlists) ? data.packlists : [];
+            const oldTrips = Array.isArray(data.trips) ? data.trips : [];
+            if (data._merged) {
+              setPacklists(oldPacklists);
+              setTrips([]);
+            } else {
+              const usedTripIds = new Set();
+              const merged = oldPacklists.map((p) => {
+                const matchedTrip = oldTrips.find((tr) =>
+                  !usedTripIds.has(tr.id) && tr.name && p.name &&
+                  tr.name.toLowerCase() === p.name.toLowerCase()
+                );
+                if (matchedTrip) {
+                  usedTripIds.add(matchedTrip.id);
+                  return {
+                    ...p,
+                    dest: matchedTrip.dest || p.dest || "",
+                    date: matchedTrip.date || p.date || "",
+                    type: matchedTrip.type || p.type || "",
+                    categoryIds: p.categoryIds || [],
+                  };
+                }
+                return { ...p, categoryIds: p.categoryIds || [] };
+              });
+              // Trips with no matching packlist become new packlists
+              oldTrips.forEach((tr) => {
+                if (!usedTripIds.has(tr.id)) {
+                  merged.unshift({
+                    id: uid("pl"),
+                    name: tr.name,
+                    notes: "",
+                    dest: tr.dest || "",
+                    date: tr.date || "",
+                    type: tr.type || "",
+                    kitIds: [],
+                    itemIds: [],
+                    categoryIds: [],
+                  });
+                }
+              });
+              setPacklists(merged);
+              setTrips([]);  // trips array is now empty — packlists is the source of truth
+            }
             if (Array.isArray(data.inbox)) setInbox(data.inbox);
             if (typeof data.locationEnabled === "boolean") setLocationEnabled(data.locationEnabled);
             if (data.language === "en" || data.language === "es") setLanguage(data.language);
@@ -7819,7 +8317,7 @@ export default function App() {
     if (!loaded) return;
     if (typeof window === "undefined" || !window.localStorage) return;
     setStorageStatus("saving");
-    const payload = JSON.stringify({ user, takenUsernames, items, categories, travelTypes, cart, trips, kits, packlists, inbox, locationEnabled, language, units });
+    const payload = JSON.stringify({ user, takenUsernames, items, categories, travelTypes, cart, trips, kits, packlists, inbox, locationEnabled, language, units, _merged: true });
     try {
       window.localStorage.setItem(STORAGE_KEY, payload);
       setStorageStatus("ready");
@@ -7890,7 +8388,7 @@ export default function App() {
     screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} /> :
     screen === "inventory" ? <Inventory go={go} items={items} setItems={setItems} categories={categories} setCategories={setCategories} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKits} packlists={packlists} setPacklists={setPacklists} cart={cart} setCart={setCart} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
     screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} packlists={packlists} setPacklists={setPacklists} /> :
-    screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklists} kits={kits} items={items} categories={categories} /> :
+    screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklists} kits={kits} setKits={setKits} items={items} setItems={setItems} categories={categories} setCategories={setCategories} travelTypes={travelTypes} setTravelTypes={setTravelTypes} /> :
     screen === "cart" ? <Cart go={go} cart={cart} setCart={setCart} /> :
     screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} shareService={shareService} /> :
     screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} /> :
