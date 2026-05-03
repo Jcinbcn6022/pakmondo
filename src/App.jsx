@@ -81,6 +81,26 @@ const supabaseService = {
     await supabase.auth.signOut();
   },
 
+  // Send a password-reset email. Supabase emails a magic link to the address;
+  // when clicked, it lands on the app at /?reset=true with a temporary session
+  // active, allowing the user to set a new password.
+  resetPasswordForEmail: async (email) => {
+    const redirectTo = typeof window !== "undefined"
+      ? `${window.location.origin}?reset=true`
+      : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    if (error) return { error: error.message };
+    return { ok: true };
+  },
+
+  // Apply a new password (requires the user to be in the post-reset session
+  // that arrives when they click the email link).
+  updatePassword: async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    return { ok: true };
+  },
+
   getSession: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data?.session?.user) return null;
@@ -232,6 +252,28 @@ const TRANSLATIONS = {
     "login.password": "Password",
     "login.submit": "Enter Camp",
     "login.noAccount": "No account yet?",
+    "login.forgotPassword": "Forgot password?",
+    "fp.title": "Reset",
+    "fp.title2": "password",
+    "fp.sub": "We'll email you a link to set a new one.",
+    "fp.emailLabel": "Email",
+    "fp.emailPh": "explorer@pakmondo.co",
+    "fp.send": "Send reset link",
+    "fp.sent": "Check your inbox",
+    "fp.sentSub": "If an account exists for that email, a reset link is on the way. The link expires in 1 hour.",
+    "fp.backToLogin": "Back to sign in",
+    "fp.newTitle": "Set a new",
+    "fp.newTitle2": "password",
+    "fp.newSub": "Enter a new password to finish resetting.",
+    "fp.newPwLabel": "New password",
+    "fp.newPwPh": "At least 6 characters",
+    "fp.confirmPwLabel": "Confirm password",
+    "fp.confirmPwPh": "Type it again",
+    "fp.mismatch": "Passwords don't match",
+    "fp.tooShort": "Password must be at least 6 characters",
+    "fp.update": "Update password",
+    "fp.updated": "Password updated. Sign in with your new password.",
+    "fp.linkExpired": "This reset link has expired or is invalid. Request a new one.",
 
     // Signup
     "signup.stamp": "New Enrollment",
@@ -693,6 +735,28 @@ const TRANSLATIONS = {
     "login.password": "Contraseña",
     "login.submit": "Entrar al Campamento",
     "login.noAccount": "¿Aún sin cuenta?",
+    "login.forgotPassword": "¿Contraseña olvidada?",
+    "fp.title": "Restablecer",
+    "fp.title2": "contraseña",
+    "fp.sub": "Te enviaremos un enlace por correo para crear una nueva.",
+    "fp.emailLabel": "Correo",
+    "fp.emailPh": "explorador@pakmondo.co",
+    "fp.send": "Enviar enlace",
+    "fp.sent": "Revisa tu correo",
+    "fp.sentSub": "Si existe una cuenta con ese correo, recibirás un enlace para restablecer. Caduca en 1 hora.",
+    "fp.backToLogin": "Volver a iniciar sesión",
+    "fp.newTitle": "Crea una",
+    "fp.newTitle2": "contraseña nueva",
+    "fp.newSub": "Introduce una contraseña nueva para terminar.",
+    "fp.newPwLabel": "Contraseña nueva",
+    "fp.newPwPh": "Mínimo 6 caracteres",
+    "fp.confirmPwLabel": "Confirmar contraseña",
+    "fp.confirmPwPh": "Escríbela otra vez",
+    "fp.mismatch": "Las contraseñas no coinciden",
+    "fp.tooShort": "La contraseña debe tener al menos 6 caracteres",
+    "fp.update": "Actualizar contraseña",
+    "fp.updated": "Contraseña actualizada. Inicia sesión con la nueva.",
+    "fp.linkExpired": "Este enlace ha caducado o no es válido. Solicita uno nuevo.",
 
     "signup.stamp": "Nueva Inscripción",
     "signup.title1": "Únete a la",
@@ -1925,6 +1989,154 @@ function Login({ go, setUser }) {
             {t("login.noAccount")}
           </button>
         </div>
+        <div style={{ marginTop: 12, textAlign: isMobile ? "center" : "left" }}>
+          <button onClick={() => go("forgot")} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: F.body, fontSize: 12, color: C.muted, textDecoration: "underline", padding: "6px 0" }}>
+            {t("login.forgotPassword")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   FORGOT PASSWORD — request reset email screen.
+   User enters email → Supabase emails them a link → they land
+   on the reset screen via /?reset=true.
+   ============================================================ */
+function ForgotPassword({ go }) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    if (!email.trim() || submitting) return;
+    setSubmitting(true);
+    setError("");
+    const result = await supabaseService.resetPasswordForEmail(email.trim());
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setSent(true);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
+        <button onClick={() => go("login")} style={{ marginBottom: 36, display: "inline-flex", alignItems: "center", gap: 8, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", background: "none", border: "none", cursor: "pointer", padding: "8px 0" }}>
+          <ArrowLeft size={14} /> {t("fp.backToLogin")}
+        </button>
+
+        {!sent ? (
+          <>
+            <h2 style={{ margin: "20px 0 8px 0", fontFamily: F.display, fontSize: "clamp(36px, 9vw, 52px)", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>
+              {t("fp.title")} <span style={{ fontStyle: "italic", color: C.forest }}>{t("fp.title2")}</span><span style={{ color: C.rust }}>.</span>
+            </h2>
+            <p style={{ fontFamily: F.display, fontStyle: "italic", color: C.muted, fontSize: 17, margin: "0 0 32px 0" }}>{t("fp.sub")}</p>
+            <Field label={t("fp.emailLabel")} icon={Mail} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("fp.emailPh")} />
+            {error && (
+              <div style={{ marginTop: 16, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+                {error}
+              </div>
+            )}
+            <div style={{ marginTop: 32 }}>
+              <Btn onClick={submit} variant="rust" icon={ChevronRight} fullWidth={true} disabled={submitting || !email.trim()}>
+                {submitting ? "..." : t("fp.send")}
+              </Btn>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 style={{ margin: "20px 0 8px 0", fontFamily: F.display, fontSize: "clamp(36px, 9vw, 52px)", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>
+              {t("fp.sent")}<span style={{ color: C.rust }}>.</span>
+            </h2>
+            <p style={{ fontFamily: F.display, fontStyle: "italic", color: C.muted, fontSize: 16, margin: "16px 0 32px 0", lineHeight: 1.5 }}>{t("fp.sentSub")}</p>
+            <Btn onClick={() => go("login")} variant="ghost" icon={ArrowLeft} fullWidth={true}>
+              {t("fp.backToLogin")}
+            </Btn>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   RESET PASSWORD — page user lands on after clicking the email link.
+   They have a temporary post-recovery session active; we just need
+   to update their password.
+   ============================================================ */
+function ResetPassword({ go }) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
+  const validate = () => {
+    if (pw.length < 6) return t("fp.tooShort");
+    if (pw !== pw2) return t("fp.mismatch");
+    return null;
+  };
+
+  const submit = async () => {
+    const v = validate();
+    if (v) { setError(v); return; }
+    setSubmitting(true);
+    setError("");
+    const result = await supabaseService.updatePassword(pw);
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    // Clear the post-recovery session so they have to sign in cleanly
+    await supabaseService.signOut();
+    setDone(true);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
+        {!done ? (
+          <>
+            <h2 style={{ margin: "20px 0 8px 0", fontFamily: F.display, fontSize: "clamp(36px, 9vw, 52px)", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>
+              {t("fp.newTitle")} <span style={{ fontStyle: "italic", color: C.forest }}>{t("fp.newTitle2")}</span><span style={{ color: C.rust }}>.</span>
+            </h2>
+            <p style={{ fontFamily: F.display, fontStyle: "italic", color: C.muted, fontSize: 17, margin: "0 0 32px 0" }}>{t("fp.newSub")}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <Field label={t("fp.newPwLabel")} icon={Lock} type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("fp.newPwPh")} />
+              <Field label={t("fp.confirmPwLabel")} icon={Lock} type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder={t("fp.confirmPwPh")} />
+            </div>
+            {error && (
+              <div style={{ marginTop: 16, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+                {error}
+              </div>
+            )}
+            <div style={{ marginTop: 32 }}>
+              <Btn onClick={submit} variant="rust" icon={ChevronRight} fullWidth={true} disabled={submitting || !pw || !pw2}>
+                {submitting ? "..." : t("fp.update")}
+              </Btn>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 style={{ margin: "20px 0 8px 0", fontFamily: F.display, fontSize: "clamp(36px, 9vw, 52px)", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em" }}>
+              <span style={{ fontStyle: "italic", color: C.forest }}>{t("fp.updated").split(".")[0]}</span><span style={{ color: C.rust }}>.</span>
+            </h2>
+            <p style={{ fontFamily: F.display, fontStyle: "italic", color: C.muted, fontSize: 16, margin: "16px 0 32px 0", lineHeight: 1.5 }}>{t("fp.updated")}</p>
+            <Btn onClick={() => go("login")} variant="rust" icon={ChevronRight} fullWidth={true}>
+              {t("login.submit")}
+            </Btn>
+          </>
+        )}
       </div>
     </div>
   );
@@ -5837,6 +6049,24 @@ export default function App() {
   // === SUPABASE: restore session on mount, fetch inbox ===
   useEffect(() => {
     let cancelled = false;
+
+    // Special case: if the URL contains ?reset=true OR a recovery token from
+    // Supabase's email link, route to the reset screen FIRST (before normal
+    // session restoration kicks in). The Supabase auth client picks up the
+    // recovery hash automatically and creates a temporary session that
+    // updateUser({ password }) can use.
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      const hash = window.location.hash || "";
+      if (url.searchParams.get("reset") === "true" || hash.includes("type=recovery")) {
+        setScreen("reset");
+        // Clean the URL so a refresh doesn't re-trigger
+        if (window.history?.replaceState) {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      }
+    }
+
     (async () => {
       const session = await supabaseService.getSession();
       if (cancelled || !session) return;
@@ -5848,7 +6078,8 @@ export default function App() {
         username: session.profile?.username || "",
         region: session.profile?.region || "",
       });
-      // If we're on welcome/login screen, jump to dashboard
+      // If we're on welcome/login/signup screen, jump to dashboard.
+      // BUT: don't override "reset" — we need to stay there even with a session.
       setScreen((s) => (s === "welcome" || s === "login" || s === "signup") ? "dashboard" : s);
     })();
     return () => { cancelled = true; };
@@ -5956,6 +6187,8 @@ export default function App() {
     screen === "welcome" ? <Welcome go={go} /> :
     screen === "login" ? <Login go={go} setUser={setUser} /> :
     screen === "signup" ? <Signup go={go} setUser={setUser} takenUsernames={takenUsernames} setTakenUsernames={setTakenUsernames} /> :
+    screen === "forgot" ? <ForgotPassword go={go} /> :
+    screen === "reset" ? <ResetPassword go={go} /> :
     screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} /> :
     screen === "inventory" ? <Inventory go={go} items={items} setItems={setItems} categories={categories} setCategories={setCategories} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKits} packlists={packlists} setPacklists={setPacklists} cart={cart} setCart={setCart} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
     screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} kits={kits} categories={categories} packlists={packlists} /> :
