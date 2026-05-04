@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
@@ -546,8 +545,31 @@ const TRANSLATIONS = {
     "common.save": "Save",
     "common.yes": "Yes",
     "common.no": "No",
+    "common.done": "Done",
     "common.loading": "Breaking camp...",
     "common.loadingSub": "Loading field journal",
+
+    "import.button": "Import",
+    "import.heading": "Bulk Import",
+    "import.title": "Import from spreadsheet",
+    "import.intro": "Add items, kits, and categories in bulk from an Excel (.xlsx) or CSV file. Existing entries with the same name will be skipped — your inventory is never overwritten.",
+    "import.stepA": "Step 1 — get the template",
+    "import.stepB": "Step 2 — upload your file",
+    "import.templateHint": "Download a starter spreadsheet with example rows. Fill it in with your gear, save, then upload it back here.",
+    "import.fileHint": "Upload your filled-in .xlsx or .csv file. We'll show a preview before saving anything.",
+    "import.downloadTemplate": "Download template",
+    "import.chooseFile": "Choose file",
+    "import.loading": "Reading your file...",
+    "import.parseError": "Couldn't read this file. Make sure it's a valid .xlsx or .csv.",
+    "import.templateError": "Couldn't generate the template. Please try again.",
+    "import.previewIntro": "Here's what will be imported. Review and confirm.",
+    "import.warnings": "Warnings",
+    "import.samplePreview": "Sample item names",
+    "import.startOver": "Start over",
+    "import.confirm": "Import everything",
+    "import.successTitle": "Import complete",
+    "import.summaryAdded": "Added {i} items, {k} kits, {c} categories.",
+    "import.summarySkipped": "Skipped {i} duplicate items, {k} kits, {c} categories (already in inventory).",
 
     // Welcome
     "welcome.signIn": "Sign In",
@@ -1210,8 +1232,31 @@ const TRANSLATIONS = {
     "common.save": "Guardar",
     "common.yes": "Sí",
     "common.no": "No",
+    "common.done": "Listo",
     "common.loading": "Levantando el campamento...",
     "common.loadingSub": "Cargando el diario de campo",
+
+    "import.button": "Importar",
+    "import.heading": "Importación masiva",
+    "import.title": "Importar desde hoja de cálculo",
+    "import.intro": "Añade artículos, kits y categorías en masa desde un archivo Excel (.xlsx) o CSV. Las entradas existentes con el mismo nombre se omitirán — tu inventario nunca se sobrescribe.",
+    "import.stepA": "Paso 1 — descargar la plantilla",
+    "import.stepB": "Paso 2 — subir tu archivo",
+    "import.templateHint": "Descarga una hoja de cálculo inicial con filas de ejemplo. Rellénala con tu equipo, guárdala y súbela aquí.",
+    "import.fileHint": "Sube tu archivo .xlsx o .csv. Verás una vista previa antes de guardar nada.",
+    "import.downloadTemplate": "Descargar plantilla",
+    "import.chooseFile": "Elegir archivo",
+    "import.loading": "Leyendo tu archivo...",
+    "import.parseError": "No se pudo leer este archivo. Asegúrate de que sea un .xlsx o .csv válido.",
+    "import.templateError": "No se pudo generar la plantilla. Inténtalo de nuevo.",
+    "import.previewIntro": "Esto es lo que se va a importar. Revísalo y confirma.",
+    "import.warnings": "Avisos",
+    "import.samplePreview": "Muestra de nombres",
+    "import.startOver": "Empezar de nuevo",
+    "import.confirm": "Importar todo",
+    "import.successTitle": "Importación completada",
+    "import.summaryAdded": "Añadidos: {i} artículos, {k} kits, {c} categorías.",
+    "import.summarySkipped": "Omitidos: {i} artículos duplicados, {k} kits, {c} categorías (ya en inventario).",
 
     "welcome.signIn": "Iniciar Sesión",
     "welcome.createAccount": "Crear Cuenta",
@@ -1926,6 +1971,172 @@ function formatCoords(lat, lon, decimals = 4) {
 /* Build a Google Maps URL pointing at a coordinate. Works on web + mobile. */
 function googleMapsUrl(lat, lon) {
   return `https://www.google.com/maps?q=${lat},${lon}`;
+}
+
+/* ============================================================
+   Excel/CSV import + template helpers.
+
+   We load the SheetJS (xlsx) library on demand from CDN — it's
+   ~400KB so we only pay that cost when the user actually imports.
+   ============================================================ */
+let _xlsxPromise = null;
+function loadXLSX() {
+  if (typeof window === "undefined") return Promise.reject(new Error("no window"));
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (_xlsxPromise) return _xlsxPromise;
+  _xlsxPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => reject(new Error("Failed to load XLSX library"));
+    document.head.appendChild(script);
+  });
+  return _xlsxPromise;
+}
+
+/* Build and download a blank template workbook with three sheets:
+   Items, Kits, Categories. Each sheet has headers + 2-3 example rows
+   the user can replace. Used as a starting point for bulk import. */
+async function downloadImportTemplate() {
+  const XLSX = await loadXLSX();
+  const wb = XLSX.utils.book_new();
+
+  // === Items sheet ===
+  const itemsData = [
+    ["name", "category", "weight", "quantity", "size", "consumable", "expiry", "notes"],
+    ["Down Sleeping Bag", "Shelter", "1.2 kg", 1, "Regular", false, "", "0°C rated"],
+    ["Merino Base Layer", "Apparel", "0.18 kg", 2, "Medium", false, "", ""],
+    ["Trauma Kit", "First Aid", "0.45 kg", 1, "", true, "2027-06-30", "Check expiry annually"],
+  ];
+  const itemsSheet = XLSX.utils.aoa_to_sheet(itemsData);
+  // Auto-fit column widths a bit
+  itemsSheet["!cols"] = [{ wch: 24 }, { wch: 14 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 30 }];
+  XLSX.utils.book_append_sheet(wb, itemsSheet, "Items");
+
+  // === Kits sheet ===
+  // item_names is a comma-separated list — must match item names from the
+  // Items sheet (or items already in your inventory).
+  const kitsData = [
+    ["name", "category", "item_names"],
+    ["Cold Camp Essentials", "Shelter", "Down Sleeping Bag, Merino Base Layer"],
+    ["Day Hike Light", "Navigation", "Trauma Kit"],
+  ];
+  const kitsSheet = XLSX.utils.aoa_to_sheet(kitsData);
+  kitsSheet["!cols"] = [{ wch: 26 }, { wch: 14 }, { wch: 50 }];
+  XLSX.utils.book_append_sheet(wb, kitsSheet, "Kits");
+
+  // === Categories sheet ===
+  const categoriesData = [
+    ["name", "icon"],
+    ["Shelter", "tent"],
+    ["Apparel", "tag"],
+    ["Navigation", "map"],
+    ["First Aid", "alert"],
+    ["Cooking", "flame"],
+  ];
+  const categoriesSheet = XLSX.utils.aoa_to_sheet(categoriesData);
+  categoriesSheet["!cols"] = [{ wch: 20 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, categoriesSheet, "Categories");
+
+  // Trigger download
+  XLSX.writeFile(wb, "PakMondo_Import_Template.xlsx");
+}
+
+/* Parse an uploaded XLSX/CSV file into structured objects.
+   Returns { items, kits, categories, errors } where errors is an
+   array of strings to surface in the preview UI. */
+async function parseInventoryImport(file) {
+  const XLSX = await loadXLSX();
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, { type: "array" });
+
+  const errors = [];
+  const items = [];
+  const kits = [];
+  const categories = [];
+
+  // Helper: read a sheet by name (case-insensitive) and return rows as
+  // arrays of objects keyed by lowercased header. Empty-row safe.
+  const readSheet = (sheetName) => {
+    const realName = wb.SheetNames.find((n) => n.toLowerCase() === sheetName.toLowerCase());
+    if (!realName) return [];
+    const sheet = wb.Sheets[realName];
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+    // Normalize keys to lowercase for case-insensitive header matching
+    return json.map((row) => {
+      const out = {};
+      Object.keys(row).forEach((k) => { out[k.toLowerCase().trim()] = row[k]; });
+      return out;
+    });
+  };
+
+  // === ITEMS ===
+  const itemRows = readSheet("Items");
+  itemRows.forEach((row, idx) => {
+    const name = String(row.name || "").trim();
+    if (!name) {
+      // Skip blank rows silently. Only flag rows that have other data but no name.
+      const hasOther = Object.values(row).some((v) => String(v).trim());
+      if (hasOther) errors.push(`Items row ${idx + 2}: missing name (skipped)`);
+      return;
+    }
+    const consumable = ["true", "yes", "y", "1"].includes(String(row.consumable).toLowerCase().trim());
+    const quantity = parseInt(row.quantity, 10);
+    items.push({
+      id: uid("it"),
+      name,
+      category: String(row.category || "").trim() || null,
+      weight: String(row.weight || "").trim() || null,
+      quantity: isNaN(quantity) ? 1 : quantity,
+      size: String(row.size || "").trim() || null,
+      consumable,
+      expiry: String(row.expiry || "").trim() || null,
+      notes: String(row.notes || "").trim() || null,
+      packed: false,
+    });
+  });
+
+  // === CATEGORIES ===
+  const catRows = readSheet("Categories");
+  catRows.forEach((row, idx) => {
+    const name = String(row.name || "").trim();
+    if (!name) {
+      const hasOther = Object.values(row).some((v) => String(v).trim());
+      if (hasOther) errors.push(`Categories row ${idx + 2}: missing name (skipped)`);
+      return;
+    }
+    categories.push({
+      id: uid("cat"),
+      name,
+      icon: String(row.icon || "tag").trim() || "tag",
+    });
+  });
+
+  // === KITS ===
+  // Kits reference items by NAME. We resolve the names to ids of items
+  // we just imported (or that already exist — caller handles existing).
+  const kitRows = readSheet("Kits");
+  kitRows.forEach((row, idx) => {
+    const name = String(row.name || "").trim();
+    if (!name) {
+      const hasOther = Object.values(row).some((v) => String(v).trim());
+      if (hasOther) errors.push(`Kits row ${idx + 2}: missing name (skipped)`);
+      return;
+    }
+    const itemNamesRaw = String(row.item_names || row["item names"] || "").trim();
+    const itemNames = itemNamesRaw
+      ? itemNamesRaw.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean)
+      : [];
+    kits.push({
+      id: uid("kit"),
+      name,
+      category: String(row.category || "").trim() || null,
+      _itemNames: itemNames,         // resolved later when caller knows full inventory
+      itemIds: [],                    // populated by caller
+    });
+  });
+
+  return { items, kits, categories, errors };
 }
 
 
@@ -5808,6 +6019,269 @@ function PublishDialog({
   );
 }
 
+/* ============================================================
+   ImportDialog — bulk import items / kits / categories from
+   an XLSX or CSV file. Three-stage flow:
+     1) Pick file (or download template)
+     2) Preview parsed contents + any errors
+     3) Confirm → adds everything to existing inventory
+   ============================================================ */
+function ImportDialog({
+  existingItems, existingKits, existingCategories,
+  setItems, setKits, setCategories,
+  onClose,
+}) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  const [stage, setStage] = useState("pick"); // "pick" | "loading" | "preview" | "saving" | "done"
+  const [parsed, setParsed] = useState(null); // { items, kits, categories, errors }
+  const [error, setError] = useState("");
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setStage("loading");
+    setError("");
+    try {
+      const result = await parseInventoryImport(file);
+      setParsed(result);
+      setStage("preview");
+    } catch (err) {
+      setError(err.message || t("import.parseError"));
+      setStage("pick");
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadImportTemplate();
+    } catch (err) {
+      setError(err.message || t("import.templateError"));
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!parsed) return;
+    setStage("saving");
+
+    // === CATEGORIES ===
+    // Skip ones whose names already exist (case-insensitive)
+    const existingCatNames = new Set(existingCategories.map((c) => c.name.toLowerCase()));
+    const newCategories = parsed.categories.filter((c) => !existingCatNames.has(c.name.toLowerCase()));
+
+    // === ITEMS ===
+    // Skip ones whose names already exist (case-insensitive, exact)
+    const existingItemNames = new Set(existingItems.map((i) => i.name.toLowerCase()));
+    const newItems = parsed.items.filter((i) => !existingItemNames.has(i.name.toLowerCase()));
+
+    // === KITS ===
+    // Resolve item_names → ids. Match against (newly imported items + existing).
+    // Build a map name→id from both sources.
+    const allItemsAfter = [...newItems, ...existingItems];
+    const nameToId = new Map();
+    allItemsAfter.forEach((it) => {
+      const k = it.name.toLowerCase();
+      if (!nameToId.has(k)) nameToId.set(k, it.id);
+    });
+
+    // Skip kits whose names already exist (case-insensitive)
+    const existingKitNames = new Set(existingKits.map((k) => k.name.toLowerCase()));
+    const newKits = parsed.kits
+      .filter((k) => !existingKitNames.has(k.name.toLowerCase()))
+      .map((k) => {
+        const itemIds = (k._itemNames || [])
+          .map((nm) => nameToId.get(nm.toLowerCase()))
+          .filter(Boolean);
+        const { _itemNames, ...rest } = k;
+        return { ...rest, itemIds };
+      });
+
+    // Apply to state — synced setters push to Supabase automatically
+    if (newCategories.length) setCategories([...newCategories, ...existingCategories]);
+    if (newItems.length)      setItems([...newItems, ...existingItems]);
+    if (newKits.length)       setKits([...newKits, ...existingKits]);
+
+    setStage("done");
+    setParsed({
+      ...parsed,
+      summary: {
+        addedItems: newItems.length,
+        addedKits: newKits.length,
+        addedCategories: newCategories.length,
+        skippedItems: parsed.items.length - newItems.length,
+        skippedKits: parsed.kits.length - newKits.length,
+        skippedCategories: parsed.categories.length - newCategories.length,
+      },
+    });
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(26,36,33,0.55)",
+      zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        width: "100%", maxWidth: 640, background: C.paper,
+        border: `1.5px solid ${C.ink}`, padding: isMobile ? 18 : 28,
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+              {t("import.heading")}
+            </div>
+            <h3 style={{ margin: "4px 0 0", fontFamily: F.display, fontSize: isMobile ? 24 : 28, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {t("import.title")}<span style={{ color: C.rust }}>.</span>
+            </h3>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 4 }} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* === PICK FILE === */}
+        {stage === "pick" && (
+          <div>
+            <p style={{ margin: "0 0 18px", fontFamily: F.body, fontSize: 14, color: C.inkSoft, lineHeight: 1.5 }}>
+              {t("import.intro")}
+            </p>
+
+            {/* Step A: download template */}
+            <div style={{ marginBottom: 14, padding: 14, background: C.paperDeep, borderLeft: `3px solid ${C.ochre}` }}>
+              <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("import.stepA")}
+              </div>
+              <div style={{ marginBottom: 10, fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>
+                {t("import.templateHint")}
+              </div>
+              <Btn variant="ghost" icon={Download} onClick={handleDownloadTemplate}>
+                {t("import.downloadTemplate")}
+              </Btn>
+            </div>
+
+            {/* Step B: upload file */}
+            <div style={{ marginBottom: 14, padding: 14, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+              <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("import.stepB")}
+              </div>
+              <div style={{ marginBottom: 10, fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>
+                {t("import.fileHint")}
+              </div>
+              <label style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "10px 16px", background: C.rust, color: C.paper,
+                cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+                letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                border: `1.5px solid ${C.rust}`,
+              }}>
+                <Plus size={14} strokeWidth={2.5} /> {t("import.chooseFile")}
+                <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} style={{ display: "none" }} />
+              </label>
+            </div>
+
+            {error && (
+              <div style={{ marginTop: 14, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+                ⚠ {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* === LOADING === */}
+        {stage === "loading" && (
+          <div style={{ padding: 24, textAlign: "center" }}>
+            <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: 18, color: C.inkSoft }}>
+              {t("import.loading")}
+            </div>
+          </div>
+        )}
+
+        {/* === PREVIEW === */}
+        {stage === "preview" && parsed && (
+          <div>
+            <p style={{ margin: "0 0 14px", fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>
+              {t("import.previewIntro")}
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
+              <PreviewStat label={t("inv.tabItems")}      count={parsed.items.length} />
+              <PreviewStat label={t("inv.tabKits")}       count={parsed.kits.length} />
+              <PreviewStat label={t("inv.tabCategories")} count={parsed.categories.length} />
+            </div>
+
+            {/* Errors / warnings */}
+            {parsed.errors.length > 0 && (
+              <div style={{ marginBottom: 14, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.rust}` }}>
+                <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  {t("import.warnings")} ({parsed.errors.length})
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>
+                  {parsed.errors.slice(0, 8).map((err, i) => (<li key={i}>{err}</li>))}
+                  {parsed.errors.length > 8 && <li style={{ fontStyle: "italic" }}>…{parsed.errors.length - 8} more</li>}
+                </ul>
+              </div>
+            )}
+
+            {/* Sample item names */}
+            {parsed.items.length > 0 && (
+              <div style={{ marginBottom: 12, padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+                <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  {t("import.samplePreview")}
+                </div>
+                <div style={{ fontFamily: F.body, fontSize: 13, color: C.ink, lineHeight: 1.5 }}>
+                  {parsed.items.slice(0, 5).map((it) => it.name).join(", ")}
+                  {parsed.items.length > 5 && ` +${parsed.items.length - 5} more`}
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 18, display: "flex", gap: 8, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
+              <Btn variant="ghost" icon={X} onClick={() => { setStage("pick"); setParsed(null); }} fullWidth={isMobile}>
+                {t("import.startOver")}
+              </Btn>
+              <Btn variant="rust" icon={Check} onClick={handleConfirm} fullWidth={isMobile}>
+                {t("import.confirm")}
+              </Btn>
+            </div>
+          </div>
+        )}
+
+        {/* === DONE === */}
+        {stage === "done" && parsed?.summary && (
+          <div>
+            <div style={{ marginBottom: 14, padding: 14, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+              <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, color: C.forest, marginBottom: 6 }}>
+                ✓ {t("import.successTitle")}
+              </div>
+              <div style={{ fontFamily: F.body, fontSize: 14, color: C.ink, lineHeight: 1.6 }}>
+                {t("import.summaryAdded", { i: parsed.summary.addedItems, k: parsed.summary.addedKits, c: parsed.summary.addedCategories })}
+                {(parsed.summary.skippedItems + parsed.summary.skippedKits + parsed.summary.skippedCategories) > 0 && (
+                  <div style={{ marginTop: 6, fontStyle: "italic", color: C.inkSoft, fontSize: 13 }}>
+                    {t("import.summarySkipped", { i: parsed.summary.skippedItems, k: parsed.summary.skippedKits, c: parsed.summary.skippedCategories })}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <Btn variant="rust" icon={Check} onClick={onClose} fullWidth={isMobile}>{t("common.done")}</Btn>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* Small preview-stat tile shown in the import preview stage */
+function PreviewStat({ label, count }) {
+  return (
+    <div style={{ padding: 12, background: C.paper, border: `1.5px solid ${C.line}`, textAlign: "center" }}>
+      <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+      <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 28, fontWeight: 700, color: C.ink }}>{count}</div>
+    </div>
+  );
+}
+
 function Inventory({ go, items, setItems, categories, setCategories, travelTypes, setTravelTypes, kits, setKits, packlists, setPacklists, cart, setCart, shareService, currentUser, filter, clearFilter }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -5822,6 +6296,8 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   const [editingItemId, setEditingItemId] = useState(null);
   const [editingKitId, setEditingKitId] = useState(null);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
+  // Bulk import dialog (XLSX/CSV)
+  const [importingFile, setImportingFile] = useState(false);
 
   useEffect(() => {
     if (filter === "expiring") setTab("items");
@@ -5913,9 +6389,14 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
             ))}
           </div>
           {!(tab === "categories" && openCategoryId) && (
-            <Btn variant={adding ? "ghost" : "rust"} icon={adding ? X : Plus} onClick={() => setAdding(!adding)} fullWidth={isMobile}>
-              {adding ? t("common.cancel") : addLabel}
-            </Btn>
+            <div style={{ display: "flex", gap: 8, flexDirection: isMobile ? "column" : "row" }}>
+              <Btn variant="ghost" icon={Download} onClick={() => setImportingFile(true)} fullWidth={isMobile}>
+                {t("import.button")}
+              </Btn>
+              <Btn variant={adding ? "ghost" : "rust"} icon={adding ? X : Plus} onClick={() => setAdding(!adding)} fullWidth={isMobile}>
+                {adding ? t("common.cancel") : addLabel}
+              </Btn>
+            </div>
           )}
         </div>
         <div style={{ marginTop: isMobile ? 20 : 32 }}>
@@ -5986,6 +6467,17 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           categories={categories}
           packlists={packlists}
           onClose={() => setPublishing(null)}
+        />
+      )}
+      {importingFile && (
+        <ImportDialog
+          existingItems={items}
+          existingKits={kits}
+          existingCategories={categories}
+          setItems={setItems}
+          setKits={setKits}
+          setCategories={setCategories}
+          onClose={() => setImportingFile(false)}
         />
       )}
 
