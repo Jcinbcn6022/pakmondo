@@ -4573,74 +4573,71 @@ function AddToPacklistMenu({ kind, entityId, entityName, packlists, setPacklists
 }
 
 function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish, onEdit, packlists, setPacklists }) {
-  const { t, lang } = useI18n();
+  const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   if (categories.length === 0) return <EmptyState label={t("inv.emptyCats")} hint={t("inv.emptyCatsHint")} />;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 1, background: C.line }}>
-      {categories.map((c, idx) => {
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      {categories.map((c) => {
         const Icon = iconFor(c.icon);
-        const itemCount = items.filter((it) => it.category === c.name).length;
+        const catItems = items.filter((it) => it.category === c.name);
         const kitCount = kits.filter((k) => k.category === c.name).length;
-        const itemsLabel = itemCount === 1 ? t("catDetail.itemsCount_one") : t("catDetail.itemsCount_many", { n: itemCount });
-        const kitsLabel = kitCount === 1 ? t("catDetail.kitsCount_one") : t("catDetail.kitsCount_many", { n: kitCount });
         return (
-          <div
-            key={c.id}
-            style={{
-              padding: 20,
-              background: idx % 2 === 0 ? C.paper : C.paperDeep,
-              minHeight: 200,
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* Top-right action stack: share + publish + delete */}
-            <div style={{ position: "absolute", top: 12, right: 12, display: "flex", flexDirection: "column", gap: 4, zIndex: 2 }}>
-              {onShare && (
-                <button
-                  onClick={() => onShare(c)}
-                  style={{ width: 34, height: 34, cursor: "pointer", background: C.paperDeep, border: `1px solid ${C.ink}`, color: C.ink, display: "flex", alignItems: "center", justifyContent: "center" }}
-                  aria-label={t("share.btn")}
-                  title={t("share.btn")}>
-                  <ChevronRight size={14} style={{ transform: "rotate(-45deg)" }} />
-                </button>
-              )}
-              {onPublish && (
-                <button
-                  onClick={() => onPublish(c)}
-                  style={{ width: 34, height: 34, cursor: "pointer", background: C.paperDeep, border: `1px solid ${C.forest}`, color: C.forest, display: "flex", alignItems: "center", justifyContent: "center" }}
-                  aria-label={t("lib.publishBtn")}
-                  title={t("lib.publishBtn")}>
-                  <Globe size={14} />
-                </button>
-              )}
+          <div key={c.id}>
+            {/* Header row — name + counts on the left, actions on the right */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              marginBottom: 8, paddingBottom: 8,
+              borderBottom: `1.5px solid ${C.ink}`,
+            }}>
+              <Icon size={20} strokeWidth={1.4} color={C.forest} />
               <button
-                onClick={() => onDelete(c.id)}
-                style={{ width: 34, height: 34, cursor: "pointer", background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, display: "flex", alignItems: "center", justifyContent: "center" }}
-                aria-label="Delete category"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-
-            {/* Icon, name, counts */}
-            <Icon size={26} strokeWidth={1.4} color={C.forest} />
-            <div style={{ marginTop: 24, fontFamily: F.display, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, paddingRight: 40 }}>
-              {onEdit ? (
-                <button onClick={() => onEdit(c.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", lineHeight: "inherit", color: C.ink, textAlign: "left", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 5, textDecorationColor: C.muted }}>
+                onClick={() => onOpen(c)}
+                style={{
+                  flex: 1, minWidth: 0, textAlign: "left",
+                  background: "none", border: "none", padding: 0, cursor: "pointer",
+                }}>
+                <div style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
                   {tOrLiteral(lang, "cat", c.name)}
+                </div>
+                <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  {t("pl.catLabel")} · {catItems.length} {catItems.length === 1 ? "item" : "items"}{kitCount > 0 ? ` · ${kitCount} ${kitCount === 1 ? "kit" : "kits"}` : ""}
+                </div>
+              </button>
+              {/* Action icons — share, publish, edit, delete */}
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {onShare && (
+                  <button onClick={() => onShare(c)}
+                    style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.ink}`, color: C.ink, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title={t("share.btn")} aria-label={t("share.btn")}>
+                    <ChevronRight size={13} style={{ transform: "rotate(-45deg)" }} />
+                  </button>
+                )}
+                {onPublish && (
+                  <button onClick={() => onPublish(c)}
+                    style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.forest}`, color: C.forest, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title={t("lib.publishBtn")} aria-label={t("lib.publishBtn")}>
+                    <Globe size={13} />
+                  </button>
+                )}
+                {onEdit && (
+                  <button onClick={() => onEdit(c.id)}
+                    style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.ink}`, color: C.ink, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title={t("pl.editBtn")} aria-label={t("pl.editBtn")}>
+                    <Pencil size={13} />
+                  </button>
+                )}
+                <button onClick={() => onDelete(c.id)}
+                  style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  title={t("pl.deleteBtn")} aria-label={t("pl.deleteBtn")}>
+                  <Trash2 size={13} />
                 </button>
-              ) : tOrLiteral(lang, "cat", c.name)}
-            </div>
-            <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-              {itemsLabel}{kitCount > 0 ? `  /  ${kitsLabel}` : ""}
+              </div>
             </div>
 
             {/* Add-to-Packlist control */}
             {packlists && setPacklists && (
-              <div style={{ marginTop: 12 }}>
+              <div style={{ marginBottom: 8 }}>
                 <AddToPacklistMenu
                   kind="category" entityId={c.id} entityName={c.name}
                   packlists={packlists} setPacklists={setPacklists}
@@ -4648,18 +4645,32 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, on
               </div>
             )}
 
-            {/* Spacer + explicit OPEN button at the bottom */}
-            <div style={{ flex: 1 }} />
-            <div style={{ marginTop: 16 }}>
-              <Btn
-                variant="rust"
-                icon={ChevronRight}
-                onClick={() => onOpen(c)}
-                fullWidth={true}
-              >
-                {t("catDetail.openCategory")}
-              </Btn>
-            </div>
+            {/* Inline item list */}
+            {catItems.length === 0 ? (
+              <div style={{ paddingLeft: 28, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("kitDetail.empty")}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {catItems.map((it) => (
+                  <div key={it.id}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 12px 8px 28px",
+                      borderBottom: `1px solid ${C.line}`,
+                    }}>
+                    <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                      {it.name}
+                    </span>
+                    {it.weight && (
+                      <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                        {formatWeight(it.weight, units)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -5032,13 +5043,112 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
 }
 
 function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit, onEditKit, packlists, setPacklists }) {
-  const { t } = useI18n();
+  const { t, lang, units } = useI18n();
+  const { isMobile } = useViewport();
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
-      {kits.map((kit) => (
-        <KitCard key={kit.id} kit={kit} items={items} categories={categories} onUpdate={onUpdateKit} onDelete={onDeleteKit} onShare={onShareKit ? () => onShareKit(kit) : null} onPublish={onPublishKit ? () => onPublishKit(kit) : null} packlists={packlists} setPacklists={setPacklists} onEdit={onEditKit ? () => onEditKit(kit.id) : null} />
-      ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      {kits.map((kit) => {
+        const kitItems = (kit.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+        const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+        const kitWeightStr = formatWeightFromKg(kitKg, units);
+        return (
+          <div key={kit.id}>
+            {/* Header row — name + meta on left, action icons on right */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              marginBottom: 8, paddingBottom: 8,
+              borderBottom: `1.5px solid ${C.ink}`,
+            }}>
+              <button
+                onClick={() => onEditKit && onEditKit(kit.id)}
+                style={{
+                  flex: 1, minWidth: 0, textAlign: "left",
+                  background: "none", border: "none", padding: 0, cursor: onEditKit ? "pointer" : "default",
+                }}>
+                <div style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
+                  {kit.name}
+                </div>
+                <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
+                  {kit.category ? ` · ${tOrLiteral(lang, "cat", kit.category)}` : ""}
+                </div>
+              </button>
+              {/* Action icons — share, publish, edit, delete */}
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {onShareKit && (
+                  <button onClick={() => onShareKit(kit)}
+                    style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.ink}`, color: C.ink, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title={t("share.btn")} aria-label={t("share.btn")}>
+                    <ChevronRight size={13} style={{ transform: "rotate(-45deg)" }} />
+                  </button>
+                )}
+                {onPublishKit && (
+                  <button onClick={() => onPublishKit(kit)}
+                    style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.forest}`, color: C.forest, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title={t("lib.publishBtn")} aria-label={t("lib.publishBtn")}>
+                    <Globe size={13} />
+                  </button>
+                )}
+                {onEditKit && (
+                  <button onClick={() => onEditKit(kit.id)}
+                    style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.ink}`, color: C.ink, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    title={t("pl.editBtn")} aria-label={t("pl.editBtn")}>
+                    <Pencil size={13} />
+                  </button>
+                )}
+                <button onClick={() => onDeleteKit(kit.id)}
+                  style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  title={t("pl.deleteBtn")} aria-label={t("pl.deleteBtn")}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Add-to-Packlist control */}
+            {packlists && setPacklists && (
+              <div style={{ marginBottom: 8 }}>
+                <AddToPacklistMenu
+                  kind="kit" entityId={kit.id} entityName={kit.name}
+                  packlists={packlists} setPacklists={setPacklists}
+                />
+              </div>
+            )}
+
+            {/* Inline item list */}
+            {kitItems.length === 0 ? (
+              <div style={{ paddingLeft: 12, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("kitDetail.empty")}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {kitItems.map((it) => (
+                  <div key={it.id}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 12px",
+                      borderBottom: `1px solid ${C.line}`,
+                    }}>
+                    <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                      {it.name}
+                    </span>
+                    {it.category && (
+                      <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}>
+                        {tOrLiteral(lang, "cat", it.category)}
+                      </span>
+                    )}
+                    {it.weight && (
+                      <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                        {formatWeight(it.weight, units)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
