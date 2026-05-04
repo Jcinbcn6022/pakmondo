@@ -2554,10 +2554,11 @@ function Header({ go, active, onBack }) {
               <Logo size={isMobile ? "headerMobile" : "header"} />
             </button>
           )}
-          {/* Slogan — shown only on desktop where there's room. On mobile, the
-              header is too tight; the slogan still appears on the welcome page
-              and on the dashboard hero. */}
-          {!isMobile && !onBack && (
+          {/* Slogan — shown on desktop on every screen EXCEPT the dashboard
+              (where the same slogan appears centered in the hero) and back-pages
+              (where the back button replaces the logo). On mobile the header is
+              too tight, so the slogan still appears on dashboard hero only. */}
+          {!isMobile && !onBack && active !== "dashboard" && (
             <span style={{
               fontFamily: F.display, fontStyle: "italic",
               fontSize: 14, color: C.inkSoft,
@@ -3296,7 +3297,7 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
               {coordLine}
             </div>
             <DashLine />
-            <p style={{ marginTop: 14, marginBottom: 0, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 16 : 19, color: C.inkSoft }}>
+            <p style={{ marginTop: 14, marginBottom: 0, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 16 : 19, color: C.inkSoft, textAlign: "center" }}>
               {t("brand.tagline")}
             </p>
           </div>
