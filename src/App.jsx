@@ -590,6 +590,10 @@ const TRANSLATIONS = {
     "catDetail.itemsInCategory": "Items in this category",
     "catDetail.empty": "No items in this category yet.",
     "catDetail.unlinkItem": "Remove from category",
+    "catDetail.looseItems": "Other items",
+    "catDetail.notInKit": "not in any kit",
+    "kitsView.categoryGroup": "CATEGORY",
+    "kitsView.noCategory": "Uncategorized kits",
     "catDetail.addExisting": "Add existing items",
     "catDetail.tickToAdd": "Tap an item to move it into this category",
     "catDetail.noOthersToAdd": "All your items are already in this category.",
@@ -1331,6 +1335,10 @@ const TRANSLATIONS = {
     "catDetail.itemsInCategory": "Artículos en esta categoría",
     "catDetail.empty": "Aún no hay artículos en esta categoría.",
     "catDetail.unlinkItem": "Quitar de la categoría",
+    "catDetail.looseItems": "Otros artículos",
+    "catDetail.notInKit": "sin kit",
+    "kitsView.categoryGroup": "CATEGORÍA",
+    "kitsView.noCategory": "Kits sin categoría",
     "catDetail.addExisting": "Añadir artículos existentes",
     "catDetail.tickToAdd": "Toca un artículo para moverlo a esta categoría",
     "catDetail.noOthersToAdd": "Todos tus artículos ya están en esta categoría.",
@@ -5306,14 +5314,45 @@ function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKi
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      {kits.map((kit) => {
-        const kitItems = (kit.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
-        const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
-        const kitWeightStr = formatWeightFromKg(kitKg, units);
-        return (
-          <div key={kit.id}>
+
+  // Group kits by their `category` field. Kits with the same category appear
+  // under one heading. Kits without a category go into a "No category" group
+  // shown last. Categories are ordered by the `categories` array (which is
+  // typically the order the user created them) with unknowns at the end.
+  const byCategory = new Map(); // categoryName | "" -> [kits]
+  kits.forEach((k) => {
+    const key = k.category || "";
+    if (!byCategory.has(key)) byCategory.set(key, []);
+    byCategory.get(key).push(k);
+  });
+
+  // Build an ordered list: known categories first (in `categories` order),
+  // then any categories not in the array, then the no-category bucket last.
+  const orderedGroups = [];
+  const seenKeys = new Set();
+  categories.forEach((c) => {
+    if (byCategory.has(c.name)) {
+      orderedGroups.push({ categoryName: c.name, kits: byCategory.get(c.name) });
+      seenKeys.add(c.name);
+    }
+  });
+  byCategory.forEach((arr, key) => {
+    if (key === "" || seenKeys.has(key)) return;
+    orderedGroups.push({ categoryName: key, kits: arr });
+    seenKeys.add(key);
+  });
+  if (byCategory.has("")) {
+    orderedGroups.push({ categoryName: null, kits: byCategory.get("") });
+  }
+
+  // Render one kit (the original card body) — extracted so we can call it
+  // inside each category group.
+  const renderKit = (kit) => {
+    const kitItems = (kit.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+    const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+    const kitWeightStr = formatWeightFromKg(kitKg, units);
+    return (
+      <div key={kit.id}>
             {/* Header row — name + meta on left, action icons on right */}
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
@@ -5407,8 +5446,34 @@ function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKi
               </div>
             )}
           </div>
-        );
-      })}
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
+      {orderedGroups.map((group, gIdx) => (
+        <div key={group.categoryName || `__none__${gIdx}`}>
+          {/* Big category banner header */}
+          <div style={{
+            marginBottom: 14, padding: "12px 16px",
+            background: C.ink, color: C.paper,
+          }}>
+            <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.7, fontWeight: 700 }}>
+              {t("kitsView.categoryGroup")}
+            </div>
+            <div style={{ marginTop: 2, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {group.categoryName ? tOrLiteral(lang, "cat", group.categoryName) : t("kitsView.noCategory")}
+              <span style={{ marginLeft: 10, fontFamily: F.mono, fontSize: 11, opacity: 0.7, letterSpacing: "0.15em", fontWeight: 500 }}>
+                {group.kits.length} {group.kits.length === 1 ? "kit" : "kits"}
+              </span>
+            </div>
+          </div>
+          {/* Kits in this category */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {group.kits.map((kit) => renderKit(kit))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -8606,10 +8671,12 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             <CategoryDetailModal
               category={c}
               items={items}
+              kits={kits}
               categories={categories}
               onUpdateItem={updateItem}
               onAddItem={addItem}
               onEditItem={(id) => setDetailItemId(id)}
+              onEditKit={(id) => setDetailKitId(id)}
               onClose={() => setDetailCategoryId(null)}
             />
           );
@@ -10345,16 +10412,51 @@ function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onA
    Same shape as KitDetailModal but operates on the category
    field of items rather than a kit's itemIds list.
    ============================================================ */
-function CategoryDetailModal({ category, items, categories, onUpdateItem, onAddItem, onClose, onEditItem }) {
-  const { t, units } = useI18n();
+function CategoryDetailModal({ category, items, kits, categories, onUpdateItem, onAddItem, onClose, onEditItem, onEditKit }) {
+  const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [showCreate, setShowCreate] = useState(false);
   const [showAddExisting, setShowAddExisting] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", weight: "" });
 
-  // Items currently in this category — match by name (the live link)
+  // Items currently in this category
   const inCategory = items.filter((i) => i.category === category.name);
   const otherItems = items.filter((i) => i.category !== category.name);
+
+  // Group items by kit. Each item only counts once even if (theoretically)
+  // it ends up in multiple kits — first match wins.
+  // - kitGroups: array of { kit, items[] } — only kits that have at least
+  //   one item belonging to this category
+  // - looseItems: items in this category that aren't in any kit
+  const kitGroups = [];
+  const looseItems = [];
+  if (kits && kits.length > 0) {
+    const itemIdToKit = new Map();
+    kits.forEach((k) => {
+      (k.itemIds || []).forEach((id) => {
+        if (!itemIdToKit.has(id)) itemIdToKit.set(id, k.id);
+      });
+    });
+    const groupByKit = new Map(); // kitId -> [items]
+    inCategory.forEach((it) => {
+      const kid = itemIdToKit.get(it.id);
+      if (kid) {
+        if (!groupByKit.has(kid)) groupByKit.set(kid, []);
+        groupByKit.get(kid).push(it);
+      } else {
+        looseItems.push(it);
+      }
+    });
+    groupByKit.forEach((arr, kid) => {
+      const k = kits.find((x) => x.id === kid);
+      if (k) kitGroups.push({ kit: k, items: arr });
+    });
+    // Sort kits alphabetically for predictable rendering
+    kitGroups.sort((a, b) => a.kit.name.localeCompare(b.kit.name));
+  } else {
+    // No kits at all — everything is loose
+    looseItems.push(...inCategory);
+  }
 
   // Unset an item's category (item still exists, just unlinked from this category)
   const removeFromCategory = (itemId) => {
@@ -10396,32 +10498,99 @@ function CategoryDetailModal({ category, items, categories, onUpdateItem, onAddI
             {t("catDetail.empty")}
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
-            {inCategory.map((it) => (
-              <div key={it.id}
-                onClick={() => onEditItem && onEditItem(it.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-                  background: C.paper, border: `1px solid ${C.line}`,
-                  cursor: onEditItem ? "pointer" : "default",
-                }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
-                  {it.weight && (
-                    <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                      {formatWeight(it.weight, units)}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 18 }}>
+            {/* === KIT GROUPS — items that belong to a kit === */}
+            {kitGroups.map(({ kit, items: kitItems }) => (
+              <div key={kit.id}>
+                {/* Kit header — tap to drill into the kit's own modal */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, paddingBottom: 6, borderBottom: `1.5px solid ${C.ink}` }}>
+                  <button
+                    onClick={() => onEditKit && onEditKit(kit.id)}
+                    style={{
+                      flex: 1, minWidth: 0, textAlign: "left",
+                      background: "none", border: "none", padding: 0, cursor: onEditKit ? "pointer" : "default",
+                    }}>
+                    <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+                      {kit.name}
                     </div>
-                  )}
+                    <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                      KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"}
+                    </div>
+                  </button>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); removeFromCategory(it.id); }}
-                  style={{ width: 28, height: 28, padding: 0, background: "transparent", border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                  title={t("catDetail.unlinkItem")}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.rust; e.currentTarget.style.color = C.rust; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.muted; }}>
-                  <X size={13} strokeWidth={2.5} />
-                </button>
+                {/* Items inside this kit */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {kitItems.map((it) => (
+                    <div key={it.id}
+                      onClick={() => onEditItem && onEditItem(it.id)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+                        borderBottom: `1px solid ${C.line}`,
+                        cursor: onEditItem ? "pointer" : "default",
+                      }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                        {it.weight && (
+                          <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            {formatWeight(it.weight, units)}
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); removeFromCategory(it.id); }}
+                        style={{ width: 28, height: 28, padding: 0, background: "transparent", border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                        title={t("catDetail.unlinkItem")}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.rust; e.currentTarget.style.color = C.rust; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.muted; }}>
+                        <X size={13} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
+
+            {/* === LOOSE ITEMS — in this category but not in any kit === */}
+            {looseItems.length > 0 && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, paddingBottom: 6, borderBottom: `1.5px solid ${C.ink}` }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink, fontStyle: "italic" }}>
+                      {t("catDetail.looseItems")}
+                    </div>
+                    <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                      {looseItems.length} {looseItems.length === 1 ? "item" : "items"} · {t("catDetail.notInKit")}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {looseItems.map((it) => (
+                    <div key={it.id}
+                      onClick={() => onEditItem && onEditItem(it.id)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+                        borderBottom: `1px solid ${C.line}`,
+                        cursor: onEditItem ? "pointer" : "default",
+                      }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                        {it.weight && (
+                          <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            {formatWeight(it.weight, units)}
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); removeFromCategory(it.id); }}
+                        style={{ width: 28, height: 28, padding: 0, background: "transparent", border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                        title={t("catDetail.unlinkItem")}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.rust; e.currentTarget.style.color = C.rust; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.muted; }}>
+                        <X size={13} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
