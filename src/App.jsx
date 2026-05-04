@@ -1038,6 +1038,10 @@ const TRANSLATIONS = {
     "trips.unifiedEmptyInventory": "Your inventory is empty. Add items, kits, or categories below.",
     "trips.unifiedQuickAdd": "Quick add new",
     "trips.quickAddHint": "Don't have what you need? Create a new item, kit, or category right here.",
+    "qadd.pickFromList": "Pick from your existing",
+    "qadd.emptyItems": "You don't have any items yet. Create one below.",
+    "qadd.emptyKits": "You don't have any kits yet. Create one below.",
+    "qadd.emptyCats": "You don't have any categories yet. Create one below.",
     "addTo.button": "Add to...",
     "addTo.heading": "Add to a Trip/Packlist",
     "addTo.empty": "No saved Trip/Packlists yet.",
@@ -1668,6 +1672,10 @@ const TRANSLATIONS = {
     "trips.unifiedEmptyInventory": "Tu inventario está vacío. Añade artículos, kits o categorías abajo.",
     "trips.unifiedQuickAdd": "Añadir nuevo",
     "trips.quickAddHint": "¿No tienes lo que necesitas? Crea un nuevo artículo, kit o categoría aquí mismo.",
+    "qadd.pickFromList": "Elige de los existentes",
+    "qadd.emptyItems": "Aún no tienes artículos. Crea uno abajo.",
+    "qadd.emptyKits": "Aún no tienes kits. Crea uno abajo.",
+    "qadd.emptyCats": "Aún no tienes categorías. Crea una abajo.",
     "addTo.button": "Añadir a...",
     "addTo.heading": "Añadir a un Viaje/Lista",
     "addTo.empty": "Aún no hay Viajes/Listas guardados.",
@@ -7980,10 +7988,10 @@ function TripPacklistForm({
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 8 }}>
           {[
-            ["item", t("trips.addNewItemInline")],
-            ["kit", t("trips.addNewKitInline")],
-            ["cat", t("trips.addNewCatInline")],
-          ].map(([k, label]) => {
+            ["item", t("trips.addNewItemInline"), items.length],
+            ["kit", t("trips.addNewKitInline"), kits.length],
+            ["cat", t("trips.addNewCatInline"), categories.length],
+          ].map(([k, label, count]) => {
             const active = inlineMode === k;
             return (
               <button key={k} onClick={() => setInlineMode(active ? null : k)}
@@ -7999,46 +8007,178 @@ function TripPacklistForm({
                 }}>
                 {active ? <X size={14} strokeWidth={2.5} /> : <Plus size={14} strokeWidth={2.5} />}
                 {label.replace(/^\+\s*/, "")}
+                <span style={{ marginLeft: 4, opacity: 0.7, fontWeight: 500 }}>({count})</span>
               </button>
             );
           })}
         </div>
 
-        {/* Inline create forms */}
+        {/* === ITEM PICKER === */}
         {inlineMode === "item" && (
-          <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
-                <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+          <div style={{ marginTop: 14 }}>
+            {/* Existing items list */}
+            <div style={{ padding: 12, background: C.paper, border: `1.5px solid ${C.ink}`, marginBottom: 10 }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("qadd.pickFromList")} — {items.length}
               </div>
-              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+              {items.length === 0 ? (
+                <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                  {t("qadd.emptyItems")}
+                </div>
+              ) : (
+                <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {items.map((it) => {
+                    const sel = pickedItemIds.includes(it.id);
+                    return (
+                      <button key={it.id}
+                        onClick={() => setPickedItemIds(sel ? pickedItemIds.filter((x) => x !== it.id) : [...pickedItemIds, it.id])}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                          background: sel ? C.paperDeep : "transparent",
+                          border: `1px solid ${sel ? C.forest : C.line}`,
+                          cursor: "pointer", textAlign: "left",
+                        }}>
+                        <span style={{ width: 18, height: 18, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          {sel && <Check size={11} strokeWidth={3} />}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                          <div style={{ marginTop: 1, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            {it.category || t("trips.unifiedNoCategory")}{it.weight ? ` · ${it.weight}` : ""}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Create new item form */}
+            <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                + {t("trips.addNewItemInline").replace(/^\+\s*/, "")}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                  <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+                  <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+                </div>
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <Btn variant="ghost" icon={X} onClick={() => { setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                  <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+                </div>
               </div>
             </div>
           </div>
         )}
+
+        {/* === KIT PICKER === */}
         {inlineMode === "kit" && (
-          <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
-              <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
-              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+          <div style={{ marginTop: 14 }}>
+            <div style={{ padding: 12, background: C.paper, border: `1.5px solid ${C.ink}`, marginBottom: 10 }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("qadd.pickFromList")} — {kits.length}
+              </div>
+              {kits.length === 0 ? (
+                <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                  {t("qadd.emptyKits")}
+                </div>
+              ) : (
+                <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {kits.map((k) => {
+                    const sel = pickedKitIds.includes(k.id);
+                    const itemCount = (k.itemIds || []).length;
+                    return (
+                      <button key={k.id}
+                        onClick={() => setPickedKitIds(sel ? pickedKitIds.filter((x) => x !== k.id) : [...pickedKitIds, k.id])}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                          background: sel ? C.paperDeep : "transparent",
+                          border: `1px solid ${sel ? C.forest : C.line}`,
+                          cursor: "pointer", textAlign: "left",
+                        }}>
+                        <span style={{ width: 18, height: 18, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          {sel && <Check size={11} strokeWidth={3} />}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{k.name}</div>
+                          <div style={{ marginTop: 1, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            {k.category || t("trips.unifiedNoCategory")} · {itemCount} {itemCount === 1 ? "item" : "items"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                + {t("trips.addNewKitInline").replace(/^\+\s*/, "")}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
+                <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <Btn variant="ghost" icon={X} onClick={() => { setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                  <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+                </div>
               </div>
             </div>
           </div>
         )}
+
+        {/* === CATEGORY PICKER === */}
         {inlineMode === "cat" && (
-          <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
-              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+          <div style={{ marginTop: 14 }}>
+            <div style={{ padding: 12, background: C.paper, border: `1.5px solid ${C.ink}`, marginBottom: 10 }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("qadd.pickFromList")} — {categories.length}
+              </div>
+              {categories.length === 0 ? (
+                <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                  {t("qadd.emptyCats")}
+                </div>
+              ) : (
+                <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {categories.map((c) => {
+                    const sel = pickedCategoryIds.includes(c.id);
+                    const itemsInCat = items.filter((i) => i.category === c.name).length;
+                    return (
+                      <button key={c.id}
+                        onClick={() => setPickedCategoryIds(sel ? pickedCategoryIds.filter((x) => x !== c.id) : [...pickedCategoryIds, c.id])}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                          background: sel ? C.paperDeep : "transparent",
+                          border: `1px solid ${sel ? C.forest : C.line}`,
+                          cursor: "pointer", textAlign: "left",
+                        }}>
+                        <span style={{ width: 18, height: 18, flexShrink: 0, border: `1.5px solid ${sel ? C.forest : C.muted}`, background: sel ? C.forest : "transparent", color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          {sel && <Check size={11} strokeWidth={3} />}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{c.name}</div>
+                          <div style={{ marginTop: 1, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            {itemsInCat} {itemsInCat === 1 ? "item" : "items"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                + {t("trips.addNewCatInline").replace(/^\+\s*/, "")}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <Btn variant="ghost" icon={X} onClick={() => { setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                  <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+                </div>
               </div>
             </div>
           </div>
