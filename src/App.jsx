@@ -315,6 +315,165 @@ const supabaseService = {
     if (error) return { error: error.message };
     return { ok: true };
   },
+
+  // ============== PERSONAL DATA SYNC ==============
+  // Each user has their own private inventory/categories/kits/packlists/cart.
+  // RLS in the database ensures user A can never see user B's data.
+  //
+  // The shape of records stored matches the shape of records used in app
+  // state — except database column names use snake_case. The helpers below
+  // translate between camelCase (app) and snake_case (db) automatically.
+
+  // Load every personal data table for the current user. Called on login.
+  // Returns: { items, categories, kits, packlists, cart }
+  loadPersonalData: async (userId) => {
+    if (!userId) return { items: [], categories: [], kits: [], packlists: [], cart: [] };
+    const [itemsRes, catsRes, kitsRes, plRes, cartRes] = await Promise.all([
+      supabase.from("items").select("*").eq("user_id", userId),
+      supabase.from("categories").select("*").eq("user_id", userId),
+      supabase.from("kits").select("*").eq("user_id", userId),
+      supabase.from("packlists").select("*").eq("user_id", userId),
+      supabase.from("cart").select("*").eq("user_id", userId),
+    ]);
+
+    // Translate snake_case columns back to camelCase + spread payload
+    const fromRow = (row) => {
+      if (!row) return null;
+      const { user_id, created_at, updated_at, remind_days, item_ids, kit_ids, category_ids, linked_from, payload, ...rest } = row;
+      const out = {
+        ...rest,
+        ...(remind_days != null ? { remindDays: remind_days } : {}),
+        ...(item_ids != null ? { itemIds: item_ids } : {}),
+        ...(kit_ids != null ? { kitIds: kit_ids } : {}),
+        ...(category_ids != null ? { categoryIds: category_ids } : {}),
+        ...(linked_from != null ? { linkedFrom: linked_from } : {}),
+      };
+      // Merge any fields the payload column was holding for forward-compat
+      if (payload && typeof payload === "object") Object.assign(out, payload);
+      return out;
+    };
+
+    return {
+      items: (itemsRes.data || []).map(fromRow),
+      categories: (catsRes.data || []).map(fromRow),
+      kits: (kitsRes.data || []).map(fromRow),
+      packlists: (plRes.data || []).map(fromRow),
+      cart: (cartRes.data || []).map(fromRow),
+    };
+  },
+
+  // Helpers — convert app-shape entity into DB-shape row (with user_id)
+  _itemToRow: (item, userId) => {
+    const { id, name, category, weight, quantity, size, packed, consumable, expiry, remindDays, region, linkedFrom, ...rest } = item;
+    return {
+      id, user_id: userId,
+      name: name || "",
+      category: category || null,
+      weight: weight || null,
+      quantity: typeof quantity === "number" ? quantity : 1,
+      size: size || null,
+      packed: !!packed,
+      consumable: !!consumable,
+      expiry: expiry || null,
+      remind_days: remindDays != null ? remindDays : null,
+      region: region || null,
+      linked_from: linkedFrom || null,
+      payload: Object.keys(rest).length ? rest : null,
+      updated_at: new Date().toISOString(),
+    };
+  },
+
+  _categoryToRow: (cat, userId) => {
+    const { id, name, icon, region, linkedFrom, ...rest } = cat;
+    return {
+      id, user_id: userId,
+      name: name || "",
+      icon: icon || "tag",
+      region: region || null,
+      linked_from: linkedFrom || null,
+      payload: Object.keys(rest).length ? rest : null,
+      updated_at: new Date().toISOString(),
+    };
+  },
+
+  _kitToRow: (kit, userId) => {
+    const { id, name, category, itemIds, region, linkedFrom, ...rest } = kit;
+    return {
+      id, user_id: userId,
+      name: name || "",
+      category: category || null,
+      item_ids: itemIds || [],
+      region: region || null,
+      linked_from: linkedFrom || null,
+      payload: Object.keys(rest).length ? rest : null,
+      updated_at: new Date().toISOString(),
+    };
+  },
+
+  _packlistToRow: (pl, userId) => {
+    const { id, name, notes, kitIds, itemIds, categoryIds, dest, date, type, region, linkedFrom, ...rest } = pl;
+    return {
+      id, user_id: userId,
+      name: name || "",
+      notes: notes || null,
+      kit_ids: kitIds || [],
+      item_ids: itemIds || [],
+      category_ids: categoryIds || [],
+      dest: dest || null,
+      date: date || null,
+      type: type || null,
+      region: region || null,
+      linked_from: linkedFrom || null,
+      payload: Object.keys(rest).length ? rest : null,
+      updated_at: new Date().toISOString(),
+    };
+  },
+
+  _cartToRow: (line, userId) => {
+    const { id, name, qty, ...rest } = line;
+    return {
+      id, user_id: userId,
+      name: name || "",
+      qty: typeof qty === "number" ? qty : 1,
+      payload: Object.keys(rest).length ? rest : null,
+      updated_at: new Date().toISOString(),
+    };
+  },
+
+  // Generic upsert — inserts or updates a single row in any table.
+  // Returns { ok: true } on success, { error } on failure.
+  upsertItem: async (item, userId) => {
+    const row = supabaseService._itemToRow(item, userId);
+    const { error } = await supabase.from("items").upsert(row);
+    return error ? { error: error.message } : { ok: true };
+  },
+  upsertCategory: async (cat, userId) => {
+    const row = supabaseService._categoryToRow(cat, userId);
+    const { error } = await supabase.from("categories").upsert(row);
+    return error ? { error: error.message } : { ok: true };
+  },
+  upsertKit: async (kit, userId) => {
+    const row = supabaseService._kitToRow(kit, userId);
+    const { error } = await supabase.from("kits").upsert(row);
+    return error ? { error: error.message } : { ok: true };
+  },
+  upsertPacklist: async (pl, userId) => {
+    const row = supabaseService._packlistToRow(pl, userId);
+    const { error } = await supabase.from("packlists").upsert(row);
+    return error ? { error: error.message } : { ok: true };
+  },
+  upsertCartLine: async (line, userId) => {
+    const row = supabaseService._cartToRow(line, userId);
+    const { error } = await supabase.from("cart").upsert(row);
+    return error ? { error: error.message } : { ok: true };
+  },
+
+  // Delete helpers
+  deleteItem:     async (id) => { const { error } = await supabase.from("items").delete().eq("id", id);      return error ? { error: error.message } : { ok: true }; },
+  deleteCategory: async (id) => { const { error } = await supabase.from("categories").delete().eq("id", id); return error ? { error: error.message } : { ok: true }; },
+  deleteKit:      async (id) => { const { error } = await supabase.from("kits").delete().eq("id", id);       return error ? { error: error.message } : { ok: true }; },
+  deletePacklist: async (id) => { const { error } = await supabase.from("packlists").delete().eq("id", id);  return error ? { error: error.message } : { ok: true }; },
+  deleteCartLine: async (id) => { const { error } = await supabase.from("cart").delete().eq("id", id);       return error ? { error: error.message } : { ok: true }; },
 };
 
 const C = {
@@ -9553,20 +9712,27 @@ export default function App() {
   // Local registry of usernames already in use. Populated on every signup.
   // Lower-cased for case-insensitive uniqueness.
   const [takenUsernames, setTakenUsernames] = useState([]);
-  const [items, setItems] = useState(SEED_ITEMS);
-  const [categories, setCategories] = useState(SEED_CATEGORIES);
+  // Personal data — starts empty; populated from Supabase on login.
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [travelTypes, setTravelTypes] = useState(SEED_TRAVEL_TYPES);
-  const [cart, setCart] = useState(SEED_CART);
-  const [trips, setTrips] = useState(SEED_TRIPS);
-  const [kits, setKits] = useState(SEED_KITS);
-  const [packlists, setPacklists] = useState(SEED_PACKLISTS);
-  const [inbox, setInbox] = useState(SEED_INBOX);
+  const [cart, setCart] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [kits, setKits] = useState([]);
+  const [packlists, setPacklists] = useState([]);
+  const [inbox, setInbox] = useState([]);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [inventoryFilter, setInventoryFilter] = useState(null);
   const [language, setLanguage] = useState("en");
   const [units, setUnits] = useState("metric"); // "metric" | "imperial"
   const [loaded, setLoaded] = useState(false);
   const [storageStatus, setStorageStatus] = useState("init");
+  // Tracks whether we've completed the initial Supabase fetch for the
+  // signed-in user. Until true, no save-back happens (otherwise we'd
+  // overwrite the server data with empty arrays on first paint).
+  const [personalDataLoaded, setPersonalDataLoaded] = useState(false);
+  // Sync error banner — shown at top of app when a save to Supabase fails
+  const [syncError, setSyncError] = useState(null);
 
   // Load from local store on mount
   useEffect(() => {
@@ -9583,75 +9749,22 @@ export default function App() {
         if (raw) {
           try {
             const data = JSON.parse(raw);
+            // ONLY non-personal-data state is restored from localStorage.
+            // Personal data (items, categories, kits, packlists, cart) lives
+            // in Supabase and is loaded separately when the user signs in.
             if (data.user) setUser({ name: "", email: "", username: "", region: "", ...data.user });
             if (Array.isArray(data.takenUsernames)) setTakenUsernames(data.takenUsernames);
-            if (Array.isArray(data.items)) setItems(data.items);
-            if (Array.isArray(data.categories)) setCategories(data.categories);
             if (Array.isArray(data.travelTypes)) setTravelTypes(data.travelTypes);
-            if (Array.isArray(data.cart)) setCart(data.cart);
-            if (Array.isArray(data.kits)) setKits(data.kits);
-
-            // === Migration (one-time) ===
-            // Trips and packlists used to be separate; they're now unified as
-            // packlists with optional trip metadata. We:
-            //   1) Start from any existing packlists (they're already the right shape).
-            //   2) Match each old trip to a packlist by name; if matched, copy trip
-            //      metadata onto it. If unmatched, create a new packlist for the trip.
-            // Already-migrated data has data._merged === true so we skip on subsequent loads.
-            const oldPacklists = Array.isArray(data.packlists) ? data.packlists : [];
-            const oldTrips = Array.isArray(data.trips) ? data.trips : [];
-            if (data._merged) {
-              setPacklists(oldPacklists);
-              setTrips([]);
-            } else {
-              const usedTripIds = new Set();
-              const merged = oldPacklists.map((p) => {
-                const matchedTrip = oldTrips.find((tr) =>
-                  !usedTripIds.has(tr.id) && tr.name && p.name &&
-                  tr.name.toLowerCase() === p.name.toLowerCase()
-                );
-                if (matchedTrip) {
-                  usedTripIds.add(matchedTrip.id);
-                  return {
-                    ...p,
-                    dest: matchedTrip.dest || p.dest || "",
-                    date: matchedTrip.date || p.date || "",
-                    type: matchedTrip.type || p.type || "",
-                    categoryIds: p.categoryIds || [],
-                  };
-                }
-                return { ...p, categoryIds: p.categoryIds || [] };
-              });
-              // Trips with no matching packlist become new packlists
-              oldTrips.forEach((tr) => {
-                if (!usedTripIds.has(tr.id)) {
-                  merged.unshift({
-                    id: uid("pl"),
-                    name: tr.name,
-                    notes: "",
-                    dest: tr.dest || "",
-                    date: tr.date || "",
-                    type: tr.type || "",
-                    kitIds: [],
-                    itemIds: [],
-                    categoryIds: [],
-                  });
-                }
-              });
-              setPacklists(merged);
-              setTrips([]);  // trips array is now empty — packlists is the source of truth
-            }
             if (Array.isArray(data.inbox)) setInbox(data.inbox);
             if (typeof data.locationEnabled === "boolean") setLocationEnabled(data.locationEnabled);
             if (data.language === "en" || data.language === "es") setLanguage(data.language);
             if (data.units === "metric" || data.units === "imperial") setUnits(data.units);
           } catch (e) {
-            // corrupted JSON — fall back to seeds
+            // corrupted JSON — ignore
           }
         }
         if (!cancelled) { setStorageStatus("ready"); setLoaded(true); }
       } catch (e) {
-        // key doesn't exist (first run) — keep seeds, will be saved on next change
         if (!cancelled) { setStorageStatus("ready"); setLoaded(true); }
       }
     })();
@@ -9728,33 +9841,71 @@ export default function App() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  // Persist whenever any tracked piece of state changes (after initial load)
+  // === SUPABASE: load personal data (items/cats/kits/packlists/cart) on login ===
+  // Runs whenever the user changes (e.g. after login). Until this finishes,
+  // personalDataLoaded is false — so the auto-sync effect below doesn't fire.
+  useEffect(() => {
+    if (!user?.id) {
+      // No user signed in — clear personal data and mark as loaded
+      setItems([]);
+      setCategories([]);
+      setKits([]);
+      setPacklists([]);
+      setCart([]);
+      setPersonalDataLoaded(false);
+      return;
+    }
+    let cancelled = false;
+    setPersonalDataLoaded(false);
+    (async () => {
+      try {
+        const data = await supabaseService.loadPersonalData(user.id);
+        if (cancelled) return;
+        setItems(data.items || []);
+        setCategories(data.categories || []);
+        setKits(data.kits || []);
+        setPacklists(data.packlists || []);
+        setCart(data.cart || []);
+        setPersonalDataLoaded(true);
+      } catch (e) {
+        if (!cancelled) {
+          setSyncError("Failed to load your data. Some changes may not be visible.");
+          setPersonalDataLoaded(true); // unblock UI even on error
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Persist non-personal preferences to localStorage. Personal data
+  // (items/categories/kits/packlists/cart) is synced to Supabase instead.
   useEffect(() => {
     if (!loaded) return;
     if (typeof window === "undefined" || !window.localStorage) return;
     setStorageStatus("saving");
-    const payload = JSON.stringify({ user, takenUsernames, items, categories, travelTypes, cart, trips, kits, packlists, inbox, locationEnabled, language, units, _merged: true });
+    const payload = JSON.stringify({ user, takenUsernames, travelTypes, inbox, locationEnabled, language, units });
     try {
       window.localStorage.setItem(STORAGE_KEY, payload);
       setStorageStatus("ready");
     } catch (e) {
       setStorageStatus("error");
     }
-  }, [loaded, user, takenUsernames, items, categories, travelTypes, cart, trips, kits, packlists, inbox, locationEnabled, language, units]);
+  }, [loaded, user, takenUsernames, travelTypes, inbox, locationEnabled, language, units]);
 
   const resetData = async () => {
     // Sign out from Supabase if we're authenticated
     try { await supabaseService.signOut(); } catch (e) { /* ignore */ }
     setUser({ name: "", email: "", username: "", region: "" });
     setTakenUsernames([]);
-    setItems(SEED_ITEMS);
-    setCategories(SEED_CATEGORIES);
+    setItems([]);
+    setCategories([]);
     setTravelTypes(SEED_TRAVEL_TYPES);
-    setCart(SEED_CART);
-    setTrips(SEED_TRIPS);
-    setKits(SEED_KITS);
-    setPacklists(SEED_PACKLISTS);
-    setInbox(SEED_INBOX);
+    setCart([]);
+    setTrips([]);
+    setKits([]);
+    setPacklists([]);
+    setInbox([]);
+    setPersonalDataLoaded(false);
     setLocationEnabled(false);
     setLanguage("en");
     setUnits("metric");
@@ -9771,6 +9922,73 @@ export default function App() {
     setScreen(next);
   };
   const clearInventoryFilter = () => setInventoryFilter(null);
+
+  // ============== SUPABASE SYNC WRAPPERS ==============
+  // These wrap the raw setItems/setCategories/setKits/setPacklists/setCart
+  // setters. When a child component calls one of these, we:
+  //   1) Update local state immediately (optimistic — UI feels instant)
+  //   2) Diff the old and new arrays to detect adds/updates/deletes
+  //   3) Push each change to Supabase in the background
+  //   4) If a Supabase call fails, show a banner but keep the local change
+  //
+  // This way existing code that does `setItems([...items, newItem])` or
+  // `setItems(items.filter(...))` keeps working — we infer the diff.
+
+  // Diff helper: given old[] and new[] arrays of {id, ...}, returns
+  // { added, updated, removed } lists. Used to decide what to push to db.
+  const diffById = (oldArr, newArr) => {
+    const oldMap = new Map((oldArr || []).map((x) => [x.id, x]));
+    const newMap = new Map((newArr || []).map((x) => [x.id, x]));
+    const added = [];
+    const updated = [];
+    const removed = [];
+    for (const [id, n] of newMap) {
+      const o = oldMap.get(id);
+      if (!o) added.push(n);
+      else if (JSON.stringify(o) !== JSON.stringify(n)) updated.push(n);
+    }
+    for (const [id, o] of oldMap) {
+      if (!newMap.has(id)) removed.push(o);
+    }
+    return { added, updated, removed };
+  };
+
+  // Build a synced setter for any of the personal-data tables. Takes:
+  //   - rawSetter: the raw useState setter
+  //   - currentArr: the current array (closure captures it)
+  //   - upsertFn(entity, userId): supabase upsert
+  //   - deleteFn(id): supabase delete
+  // Returns a wrapped setter that accepts either a new array or a function.
+  const makeSyncedSetter = (rawSetter, currentArr, upsertFn, deleteFn) => {
+    return (next) => {
+      // Compute the new array (handle both array and updater function forms)
+      const newArr = typeof next === "function" ? next(currentArr) : next;
+      // Update local state immediately
+      rawSetter(newArr);
+      // If no user is signed in, don't sync (this happens during signup before auth completes)
+      if (!user?.id || !personalDataLoaded) return;
+      // Diff and push changes in the background
+      const { added, updated, removed } = diffById(currentArr, newArr);
+      [...added, ...updated].forEach((entity) => {
+        upsertFn(entity, user.id).then((res) => {
+          if (res?.error) setSyncError("Save failed: " + res.error);
+        });
+      });
+      removed.forEach((entity) => {
+        deleteFn(entity.id).then((res) => {
+          if (res?.error) setSyncError("Delete failed: " + res.error);
+        });
+      });
+    };
+  };
+
+  // Wrapped setters — these are what gets passed down to all child components
+  const setItemsSynced     = makeSyncedSetter(setItems,     items,      supabaseService.upsertItem,     supabaseService.deleteItem);
+  const setCategoriesSynced= makeSyncedSetter(setCategories,categories, supabaseService.upsertCategory, supabaseService.deleteCategory);
+  const setKitsSynced      = makeSyncedSetter(setKits,      kits,       supabaseService.upsertKit,      supabaseService.deleteKit);
+  const setPacklistsSynced = makeSyncedSetter(setPacklists, packlists,  supabaseService.upsertPacklist, supabaseService.deletePacklist);
+  const setCartSynced      = makeSyncedSetter(setCart,      cart,       supabaseService.upsertCartLine, supabaseService.deleteCartLine);
+
 
   if (!loaded) {
     return (
@@ -9802,12 +10020,12 @@ export default function App() {
     screen === "forgot" ? <ForgotPassword go={go} /> :
     screen === "reset" ? <ResetPassword go={go} /> :
     screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} /> :
-    screen === "inventory" ? <Inventory go={go} items={items} setItems={setItems} categories={categories} setCategories={setCategories} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKits} packlists={packlists} setPacklists={setPacklists} cart={cart} setCart={setCart} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
-    screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} packlists={packlists} setPacklists={setPacklists} /> :
-    screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklists} kits={kits} setKits={setKits} items={items} setItems={setItems} categories={categories} setCategories={setCategories} travelTypes={travelTypes} setTravelTypes={setTravelTypes} /> :
-    screen === "cart" ? <Cart go={go} cart={cart} setCart={setCart} /> :
-    screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} shareService={shareService} /> :
-    screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItems} kits={kits} setKits={setKits} categories={categories} setCategories={setCategories} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklists} /> :
+    screen === "inventory" ? <Inventory go={go} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKitsSynced} packlists={packlists} setPacklists={setPacklistsSynced} cart={cart} setCart={setCartSynced} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
+    screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} packlists={packlists} setPacklists={setPacklistsSynced} /> :
+    screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} /> :
+    screen === "cart" ? <Cart go={go} cart={cart} setCart={setCartSynced} /> :
+    screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} shareService={shareService} /> :
+    screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} /> :
     screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} /> :
     <Welcome go={go} />;
 
@@ -9828,6 +10046,20 @@ export default function App() {
         ::-webkit-scrollbar { height: 0; width: 0; }
       `}</style>
       <div style={{ minHeight: "100vh", width: "100%", position: "relative", background: C.paper, color: C.ink, fontFamily: F.body, overflowX: "hidden" }}>
+        {syncError && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, zIndex: 2000,
+            padding: "10px 16px",
+            background: C.rust, color: C.paper,
+            fontFamily: F.mono, fontSize: 12, letterSpacing: "0.06em",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <span>⚠ {syncError}</span>
+            <button onClick={() => setSyncError(null)} style={{ background: "transparent", border: `1px solid ${C.paper}`, color: C.paper, padding: "4px 10px", cursor: "pointer", fontFamily: F.mono, fontSize: 11 }}>
+              Dismiss
+            </button>
+          </div>
+        )}
         {inner}
       </div>
     </I18nContext.Provider>
