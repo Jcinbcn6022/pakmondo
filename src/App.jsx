@@ -5825,6 +5825,14 @@ function CreateTrip({
             <Field label={t("trips.startDate")} type="date" icon={Calendar} value={form.start} onChange={set("start")} />
             <Field label={t("trips.endDate")} type="date" icon={Calendar} value={form.end} onChange={set("end")} />
           </div>
+
+          {/* Trip type — custom dropdown (icon + name) */}
+          <div>
+            <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("trips.tripType")}
+            </div>
+            <TripTypeSelect value={form.type} onChange={(v) => setForm({ ...form, type: v })} />
+          </div>
         </div>
         <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row" }}>
           <Btn variant="ghost" icon={X} onClick={onCancel} fullWidth={isMobile}>{t("common.cancel")}</Btn>
