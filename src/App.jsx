@@ -612,7 +612,7 @@ const TRANSLATIONS = {
     "nav.camp": "Home",
     "nav.inventory": "Inventory",
     "nav.trips": "Trips",
-    "nav.packlists": "Trip/Packlist",
+    "nav.packlists": "Packlists",
     "nav.cart": "Cart",
     "nav.inbox": "Inbox",
     "nav.library": "Library",
@@ -816,6 +816,8 @@ const TRANSLATIONS = {
     "dash.navInventoryTag": "Items, categories, ADV styles",
     "dash.navTrips": "Trips",
     "dash.navTripsTag": "Plan a new route or revisit the saved",
+    "dash.navPacklists": "Packlists",
+    "dash.navPacklistsTag": "Plan a trip or revisit a saved packlist",
     "dash.navCart": "Shopping Cart",
     "dash.navCartTag": "Outfit any gaps in your kit",
     "dash.nextDeparture": "Next departure.",
@@ -1253,7 +1255,7 @@ const TRANSLATIONS = {
     "nav.camp": "Inicio",
     "nav.inventory": "Inventario",
     "nav.trips": "Viajes",
-    "nav.packlists": "Viaje/Lista",
+    "nav.packlists": "Listas",
     "nav.cart": "Carrito",
     "nav.inbox": "Bandeja",
     "nav.library": "Biblioteca",
@@ -1449,6 +1451,8 @@ const TRANSLATIONS = {
     "dash.navInventoryTag": "Artículos, categorías, estilos ADV",
     "dash.navTrips": "Viajes",
     "dash.navTripsTag": "Planifica una nueva ruta o revisa las guardadas",
+    "dash.navPacklists": "Listas",
+    "dash.navPacklistsTag": "Planifica un viaje o revisa una lista guardada",
     "dash.navCart": "Carrito de Compra",
     "dash.navCartTag": "Cubre cualquier vacío en tu equipo",
     "dash.nextDeparture": "Próxima salida.",
@@ -3397,7 +3401,7 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
           <h2 style={{ marginTop: isMobile ? 48 : 80, marginBottom: isMobile ? 20 : 32, fontFamily: F.display, fontSize: isMobile ? 26 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("dash.kitTitle")}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 1, background: C.line }}>
             <NavCard num="01" title={t("dash.navInventory")} tagline={t("dash.navInventoryTag")} icon={Backpack} onClick={() => go("inventory")} dark badge={alerts.length} />
-            <NavCard num="02" title={t("dash.navTrips")} tagline={t("dash.navTripsTag")} icon={MapIcon} onClick={() => go("trips")} />
+            <NavCard num="02" title={t("dash.navPacklists")} tagline={t("dash.navPacklistsTag")} icon={MapIcon} onClick={() => go("packlists")} />
             <NavCard num="03" title={t("dash.navCart")} tagline={t("dash.navCartTag")} icon={ShoppingCart} onClick={() => go("cart")} accent />
           </div>
           <h2 style={{ marginTop: isMobile ? 48 : 80, marginBottom: isMobile ? 20 : 32, fontFamily: F.display, fontSize: isMobile ? 26 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("dash.savedPacklists")}</h2>
