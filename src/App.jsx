@@ -552,7 +552,7 @@ const TRANSLATIONS = {
     "import.button": "Import",
     "import.heading": "Bulk Import",
     "import.title": "Import from spreadsheet",
-    "import.intro": "Add items, kits, and categories in bulk from an Excel (.xlsx) or CSV file. Existing entries with the same name will be skipped — your inventory is never overwritten.",
+    "import.intro": "Add items and categories in bulk from an Excel (.xlsx) or CSV file. The Items sheet has a Kit column — items sharing the same Kit name are grouped into a kit automatically. Existing entries are never overwritten.",
     "import.stepA": "Step 1 — get the template",
     "import.stepB": "Step 2 — upload your file",
     "import.templateHint": "Download a starter spreadsheet with example rows. Fill it in with your gear, save, then upload it back here.",
@@ -1239,7 +1239,7 @@ const TRANSLATIONS = {
     "import.button": "Importar",
     "import.heading": "Importación masiva",
     "import.title": "Importar desde hoja de cálculo",
-    "import.intro": "Añade artículos, kits y categorías en masa desde un archivo Excel (.xlsx) o CSV. Las entradas existentes con el mismo nombre se omitirán — tu inventario nunca se sobrescribe.",
+    "import.intro": "Añade artículos y categorías en masa desde un archivo Excel (.xlsx) o CSV. La hoja Items tiene una columna Kit — los artículos con el mismo nombre de kit se agrupan automáticamente. Las entradas existentes nunca se sobrescriben.",
     "import.stepA": "Paso 1 — descargar la plantilla",
     "import.stepB": "Paso 2 — subir tu archivo",
     "import.templateHint": "Descarga una hoja de cálculo inicial con filas de ejemplo. Rellénala con tu equipo, guárdala y súbela aquí.",
@@ -1994,40 +1994,42 @@ function loadXLSX() {
   return _xlsxPromise;
 }
 
-/* Build and download a blank template workbook with three sheets:
-   Items, Kits, Categories. Each sheet has headers + 2-3 example rows
-   the user can replace. Used as a starting point for bulk import. */
+/* Build and download a blank template workbook with two sheets:
+   Items (with optional Kit column to group), and Categories.
+   Headers are human-readable Title Case. Kits are derived from
+   whatever kit names appear in the Items sheet's "Kit" column. */
 async function downloadImportTemplate() {
   const XLSX = await loadXLSX();
   const wb = XLSX.utils.book_new();
 
-  // === Items sheet ===
+  // === ITEMS SHEET ===
+  // Headers in plain English. The Kit column is optional — items with
+  // the same kit name get grouped into a kit (auto-created on import).
   const itemsData = [
-    ["name", "category", "weight", "quantity", "size", "consumable", "expiry", "notes"],
-    ["Down Sleeping Bag", "Shelter", "1.2 kg", 1, "Regular", false, "", "0°C rated"],
-    ["Merino Base Layer", "Apparel", "0.18 kg", 2, "Medium", false, "", ""],
-    ["Trauma Kit", "First Aid", "0.45 kg", 1, "", true, "2027-06-30", "Check expiry annually"],
+    ["Item Name", "Kit", "Weight", "Quantity", "Size", "Consumable", "Expiry", "Notes"],
+    ["Down Sleeping Bag",   "Cold Camp Essentials", "1.2 kg",  1, "Regular", "No",  "",           "0°C rated"],
+    ["Merino Base Layer",   "Cold Camp Essentials", "0.18 kg", 2, "Medium",  "No",  "",           ""],
+    ["Compression Sack",    "Cold Camp Essentials", "0.08 kg", 1, "",        "No",  "",           ""],
+    ["Trauma Kit",          "Day Hike Light",       "0.45 kg", 1, "",        "Yes", "2027-06-30", "Check annually"],
+    ["Headlamp",            "Day Hike Light",       "0.09 kg", 1, "",        "No",  "",           "Spare batteries"],
+    ["Spare Battery",       "",                     "0.10 kg", 3, "",        "No",  "",           "Standalone — no kit"],
   ];
   const itemsSheet = XLSX.utils.aoa_to_sheet(itemsData);
-  // Auto-fit column widths a bit
-  itemsSheet["!cols"] = [{ wch: 24 }, { wch: 14 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 30 }];
+  itemsSheet["!cols"] = [
+    { wch: 24 }, // Item Name
+    { wch: 24 }, // Kit
+    { wch: 10 }, // Weight
+    { wch: 10 }, // Quantity
+    { wch: 10 }, // Size
+    { wch: 12 }, // Consumable
+    { wch: 12 }, // Expiry
+    { wch: 30 }, // Notes
+  ];
   XLSX.utils.book_append_sheet(wb, itemsSheet, "Items");
 
-  // === Kits sheet ===
-  // item_names is a comma-separated list — must match item names from the
-  // Items sheet (or items already in your inventory).
-  const kitsData = [
-    ["name", "category", "item_names"],
-    ["Cold Camp Essentials", "Shelter", "Down Sleeping Bag, Merino Base Layer"],
-    ["Day Hike Light", "Navigation", "Trauma Kit"],
-  ];
-  const kitsSheet = XLSX.utils.aoa_to_sheet(kitsData);
-  kitsSheet["!cols"] = [{ wch: 26 }, { wch: 14 }, { wch: 50 }];
-  XLSX.utils.book_append_sheet(wb, kitsSheet, "Kits");
-
-  // === Categories sheet ===
+  // === CATEGORIES SHEET ===
   const categoriesData = [
-    ["name", "icon"],
+    ["Category Name", "Icon"],
     ["Shelter", "tent"],
     ["Apparel", "tag"],
     ["Navigation", "map"],
@@ -2035,7 +2037,7 @@ async function downloadImportTemplate() {
     ["Cooking", "flame"],
   ];
   const categoriesSheet = XLSX.utils.aoa_to_sheet(categoriesData);
-  categoriesSheet["!cols"] = [{ wch: 20 }, { wch: 14 }];
+  categoriesSheet["!cols"] = [{ wch: 22 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, categoriesSheet, "Categories");
 
   // Trigger download
@@ -2043,8 +2045,14 @@ async function downloadImportTemplate() {
 }
 
 /* Parse an uploaded XLSX/CSV file into structured objects.
-   Returns { items, kits, categories, errors } where errors is an
-   array of strings to surface in the preview UI. */
+   Returns { items, kits, categories, errors } where:
+     - items[] each have { id, name, weight, quantity, ... } (no category)
+     - kits[] are auto-derived from unique values in the "Kit" column
+       on the Items sheet, with itemIds populated
+     - categories[] come from the Categories sheet
+     - errors[] are warnings to surface in the UI
+   Headers are matched case-insensitively. Both "Item Name" and "name"
+   are accepted for backwards compatibility with older templates. */
 async function parseInventoryImport(file) {
   const XLSX = await loadXLSX();
   const data = await file.arrayBuffer();
@@ -2070,69 +2078,84 @@ async function parseInventoryImport(file) {
     });
   };
 
+  // Helper: pick the first non-empty value from a row by trying multiple
+  // possible header names (case-insensitive). e.g. pickField(row, "item name", "name")
+  // returns whichever the row actually has.
+  const pickField = (row, ...candidates) => {
+    for (const c of candidates) {
+      const v = row[c.toLowerCase()];
+      if (v !== undefined && String(v).trim() !== "") return v;
+    }
+    return "";
+  };
+
   // === ITEMS ===
   const itemRows = readSheet("Items");
+  // We track which Kit-column value belongs to each parsed item so we can
+  // group them into kits in the next pass.
+  const itemKitMap = []; // parallel array of kit-name strings (or "")
   itemRows.forEach((row, idx) => {
-    const name = String(row.name || "").trim();
+    const name = String(pickField(row, "item name", "name") || "").trim();
     if (!name) {
       // Skip blank rows silently. Only flag rows that have other data but no name.
       const hasOther = Object.values(row).some((v) => String(v).trim());
-      if (hasOther) errors.push(`Items row ${idx + 2}: missing name (skipped)`);
+      if (hasOther) errors.push(`Items row ${idx + 2}: missing Item Name (skipped)`);
       return;
     }
-    const consumable = ["true", "yes", "y", "1"].includes(String(row.consumable).toLowerCase().trim());
-    const quantity = parseInt(row.quantity, 10);
-    items.push({
+    const consumableRaw = String(pickField(row, "consumable")).toLowerCase().trim();
+    const consumable = ["true", "yes", "y", "1", "sí", "si"].includes(consumableRaw);
+    const quantity = parseInt(pickField(row, "quantity"), 10);
+    const item = {
       id: uid("it"),
       name,
-      category: String(row.category || "").trim() || null,
-      weight: String(row.weight || "").trim() || null,
+      category: null, // no category column anymore — assigned later in the app
+      weight: String(pickField(row, "weight") || "").trim() || null,
       quantity: isNaN(quantity) ? 1 : quantity,
-      size: String(row.size || "").trim() || null,
+      size: String(pickField(row, "size") || "").trim() || null,
       consumable,
-      expiry: String(row.expiry || "").trim() || null,
-      notes: String(row.notes || "").trim() || null,
+      expiry: String(pickField(row, "expiry") || "").trim() || null,
+      notes: String(pickField(row, "notes") || "").trim() || null,
       packed: false,
+    };
+    items.push(item);
+    itemKitMap.push(String(pickField(row, "kit") || "").trim());
+  });
+
+  // === KITS — derived from the Kit column on the Items sheet ===
+  // Group all items that share the same Kit name into a single kit. Kit
+  // names are case-insensitive (so "Cold Camp" and "cold camp" merge).
+  const kitMap = new Map(); // lowercased kit name -> { name, itemIds[] }
+  items.forEach((it, i) => {
+    const kitName = itemKitMap[i];
+    if (!kitName) return; // standalone item, no kit
+    const key = kitName.toLowerCase();
+    if (!kitMap.has(key)) {
+      kitMap.set(key, { id: uid("kit"), name: kitName, itemIds: [] });
+    }
+    kitMap.get(key).itemIds.push(it.id);
+  });
+  kitMap.forEach((kit) => {
+    kits.push({
+      id: kit.id,
+      name: kit.name,
+      category: null,
+      itemIds: kit.itemIds,
     });
   });
 
   // === CATEGORIES ===
   const catRows = readSheet("Categories");
   catRows.forEach((row, idx) => {
-    const name = String(row.name || "").trim();
+    const name = String(pickField(row, "category name", "name") || "").trim();
     if (!name) {
       const hasOther = Object.values(row).some((v) => String(v).trim());
-      if (hasOther) errors.push(`Categories row ${idx + 2}: missing name (skipped)`);
+      if (hasOther) errors.push(`Categories row ${idx + 2}: missing Category Name (skipped)`);
       return;
     }
     categories.push({
       id: uid("cat"),
       name,
-      icon: String(row.icon || "tag").trim() || "tag",
-    });
-  });
-
-  // === KITS ===
-  // Kits reference items by NAME. We resolve the names to ids of items
-  // we just imported (or that already exist — caller handles existing).
-  const kitRows = readSheet("Kits");
-  kitRows.forEach((row, idx) => {
-    const name = String(row.name || "").trim();
-    if (!name) {
-      const hasOther = Object.values(row).some((v) => String(v).trim());
-      if (hasOther) errors.push(`Kits row ${idx + 2}: missing name (skipped)`);
-      return;
-    }
-    const itemNamesRaw = String(row.item_names || row["item names"] || "").trim();
-    const itemNames = itemNamesRaw
-      ? itemNamesRaw.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean)
-      : [];
-    kits.push({
-      id: uid("kit"),
-      name,
-      category: String(row.category || "").trim() || null,
-      _itemNames: itemNames,         // resolved later when caller knows full inventory
-      itemIds: [],                    // populated by caller
+      icon: String(pickField(row, "icon") || "tag").trim() || "tag",
     });
   });
 
@@ -6075,13 +6098,16 @@ function ImportDialog({
     const newItems = parsed.items.filter((i) => !existingItemNames.has(i.name.toLowerCase()));
 
     // === KITS ===
-    // Resolve item_names → ids. Match against (newly imported items + existing).
-    // Build a map name→id from both sources.
-    const allItemsAfter = [...newItems, ...existingItems];
-    const nameToId = new Map();
-    allItemsAfter.forEach((it) => {
+    // Each parsed kit already has itemIds pointing to ids inside parsed.items.
+    // BUT if any of those parsed items got skipped as duplicates, we need to
+    // re-point the kit to the existing item with that name. So we build a
+    // name→id map across (newly-imported + existing) items.
+    const parsedItemIdToName = new Map(parsed.items.map((it) => [it.id, it.name]));
+    const finalNameToId = new Map();
+    newItems.forEach((it) => { finalNameToId.set(it.name.toLowerCase(), it.id); });
+    existingItems.forEach((it) => {
       const k = it.name.toLowerCase();
-      if (!nameToId.has(k)) nameToId.set(k, it.id);
+      if (!finalNameToId.has(k)) finalNameToId.set(k, it.id);
     });
 
     // Skip kits whose names already exist (case-insensitive)
@@ -6089,11 +6115,14 @@ function ImportDialog({
     const newKits = parsed.kits
       .filter((k) => !existingKitNames.has(k.name.toLowerCase()))
       .map((k) => {
-        const itemIds = (k._itemNames || [])
-          .map((nm) => nameToId.get(nm.toLowerCase()))
+        const resolvedItemIds = (k.itemIds || [])
+          .map((parsedId) => {
+            const name = parsedItemIdToName.get(parsedId);
+            if (!name) return null;
+            return finalNameToId.get(name.toLowerCase()) || null;
+          })
           .filter(Boolean);
-        const { _itemNames, ...rest } = k;
-        return { ...rest, itemIds };
+        return { ...k, itemIds: resolvedItemIds };
       });
 
     // Apply to state — synced setters push to Supabase automatically
