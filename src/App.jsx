@@ -912,9 +912,12 @@ const TRANSLATIONS = {
     "inv.emptyTypesHint": "Define one to template your packing lists",
     "inv.colNum": "No.",
     "inv.colItem": "Item",
+    "inv.colKit": "Kit",
     "inv.colCategory": "Category",
     "inv.colWeight": "Weight",
+    "inv.colExpiry": "Expiry",
     "inv.colPacked": "Pkd",
+    "inv.kitsLabel": "kits",
     "inv.badgeConsumable": "Consumable",
     "inv.badgeExpired": "Expired",
     "inv.metaQty": "qty",
@@ -1614,9 +1617,12 @@ const TRANSLATIONS = {
     "inv.emptyTypesHint": "Define uno para preparar listas de equipaje",
     "inv.colNum": "Nº",
     "inv.colItem": "Artículo",
+    "inv.colKit": "Kit",
     "inv.colCategory": "Categoría",
     "inv.colWeight": "Peso",
+    "inv.colExpiry": "Caducidad",
     "inv.colPacked": "Emp",
+    "inv.kitsLabel": "kits",
     "inv.badgeConsumable": "Consumible",
     "inv.badgeExpired": "Caducado",
     "inv.metaQty": "cant",
@@ -4160,7 +4166,7 @@ function AddTravelTypeForm({ onAdd, onCancel }) {
   );
 }
 
-function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, packlists, setPacklists, categories }) {
+function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, packlists, setPacklists, categories, kits }) {
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
   if (items.length === 0) return <EmptyState label={emptyLabel || t("inv.emptyItems")} hint={emptyHint || t("inv.emptyItemsHint")} />;
@@ -4177,6 +4183,31 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
     if (isNaN(d.getTime())) return false;
     return d.getTime() < Date.now();
   };
+  // True when expiry is within `days` days of now (default 30) but not yet expired.
+  // Items with their own remindDays setting use that; otherwise fall back to 30.
+  const isExpiringSoon = (item) => {
+    if (!item.expiry) return false;
+    const d = new Date(item.expiry);
+    if (isNaN(d.getTime())) return false;
+    const now = Date.now();
+    if (d.getTime() < now) return false; // already expired
+    const days = (item.remindDays != null && item.remindDays > 0) ? item.remindDays : 30;
+    const cutoff = now + days * 24 * 60 * 60 * 1000;
+    return d.getTime() <= cutoff;
+  };
+  // Find which kits an item belongs to. Returns array of kit objects.
+  const kitsForItem = (itemId) => {
+    if (!kits) return [];
+    return kits.filter((k) => (k.itemIds || []).includes(itemId));
+  };
+  // Pretty-print the Kit column. If 1 kit → kit name. If 2+ → "N kits".
+  // If 0 → em dash.
+  const kitColumnLabel = (itemId) => {
+    const list = kitsForItem(itemId);
+    if (list.length === 0) return "—";
+    if (list.length === 1) return list[0].name;
+    return `${list.length} ${t("inv.kitsLabel")}`;
+  };
 
   // ---------- MOBILE: stacked card layout ----------
   if (isMobile) {
@@ -4184,29 +4215,14 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((it, idx) => {
           const expired = it.expiry && isExpired(it.expiry);
+          const expSoon = it.expiry && !expired && isExpiringSoon(it);
+          const expiryColor = expired ? C.rust : (expSoon ? C.rust : C.inkSoft);
           const meta = [];
           if (it.quantity && it.quantity > 1) meta.push(`${t("inv.metaQty")} ${it.quantity}`);
           if (it.size) meta.push(`${t("inv.metaSize")} ${it.size}`);
-          if (it.expiry) meta.push(`${t("inv.metaExp")} ${fmtExpiry(it.expiry)}`);
+          const kitLabel = kitColumnLabel(it.id);
           return (
             <div key={it.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 14, display: "flex", gap: 12, alignItems: "stretch" }}>
-              {/* Pack toggle on the left */}
-              <button
-                onClick={() => onToggle(it.id)}
-                style={{
-                  width: 44, minWidth: 44,
-                  cursor: "pointer",
-                  background: it.packed ? C.forest : "transparent",
-                  border: `1.5px solid ${it.packed ? C.forest : C.ink}`,
-                  color: C.paper,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  alignSelf: "stretch",
-                }}
-                aria-label="Pack toggle"
-              >
-                {it.packed && <Check size={20} strokeWidth={3} />}
-              </button>
-
               {/* Center: name + meta + chips */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em" }}>
@@ -4220,10 +4236,16 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
                   ) : it.name}
                 </div>
                 <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                  <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}`, fontWeight: 700 }}>
-                    {tOrLiteral(lang, "cat", it.category)}
-                  </span>
-                  <span style={{ fontFamily: F.mono, fontSize: 11, color: C.inkSoft, fontWeight: 700 }}>{formatWeight(it.weight, units)}</span>
+                  {it.category && (
+                    <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}`, fontWeight: 700 }}>
+                      {tOrLiteral(lang, "cat", it.category)}
+                    </span>
+                  )}
+                  {kitLabel !== "—" && (
+                    <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.forest}`, color: C.forest, fontWeight: 700 }}>
+                      {kitLabel}
+                    </span>
+                  )}
                   {it.consumable && (
                     <span style={{ padding: "2px 6px", fontFamily: F.mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ochre}`, color: C.ochre, fontWeight: 700 }}>
                       {t("inv.badgeConsumable")}
@@ -4235,6 +4257,11 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
                     </span>
                   )}
                 </div>
+                {it.expiry && (
+                  <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.1em", color: expiryColor, fontWeight: (expired || expSoon) ? 700 : 500, textTransform: "uppercase" }}>
+                    {t("inv.metaExp")} {fmtExpiry(it.expiry)}
+                  </div>
+                )}
                 {meta.length > 0 && (
                   <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.05em" }}>
                     {meta.join("  /  ")}
@@ -4277,17 +4304,19 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
   // ---------- DESKTOP: original tabular layout ----------
   return (
     <div style={{ border: `1.5px solid ${C.ink}` }}>
-      <div style={{ display: "grid", gridTemplateColumns: "60px 2fr 1fr 1fr 60px 60px", padding: "12px 24px", background: C.ink, color: C.paper, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-        <div>{t("inv.colNum")}</div><div>{t("inv.colItem")}</div><div>{t("inv.colCategory")}</div><div>{t("inv.colWeight")}</div><div style={{ textAlign: "right" }}>{t("inv.colPacked")}</div><div></div>
+      <div style={{ display: "grid", gridTemplateColumns: "60px 2fr 1.4fr 1fr 1fr 60px", padding: "12px 24px", background: C.ink, color: C.paper, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+        <div>{t("inv.colNum")}</div><div>{t("inv.colItem")}</div><div>{t("inv.colKit")}</div><div>{t("inv.colCategory")}</div><div>{t("inv.colExpiry")}</div><div></div>
       </div>
       {items.map((it, idx) => {
         const expired = it.expiry && isExpired(it.expiry);
+        const expSoon = it.expiry && !expired && isExpiringSoon(it);
+        const expiryColor = expired ? C.rust : (expSoon ? C.rust : C.ink);
+        const expiryWeight = (expired || expSoon) ? 700 : 400;
         const meta = [];
         if (it.quantity && it.quantity > 1) meta.push(`${t("inv.metaQty")} ${it.quantity}`);
         if (it.size) meta.push(`${t("inv.metaSize")} ${it.size}`);
-        if (it.expiry) meta.push(`${t("inv.metaExp")} ${fmtExpiry(it.expiry)}`);
         return (
-          <div key={it.id} style={{ display: "grid", gridTemplateColumns: "60px 2fr 1fr 1fr 60px 60px", padding: "16px 24px", alignItems: "center", borderTop: idx === 0 ? "none" : `1px dashed ${C.line}` }}>
+          <div key={it.id} style={{ display: "grid", gridTemplateColumns: "60px 2fr 1.4fr 1fr 1fr 60px", padding: "16px 24px", alignItems: "center", borderTop: idx === 0 ? "none" : `1px dashed ${C.line}` }}>
             <div style={{ fontFamily: F.mono, fontSize: 12, color: C.muted }}>{String(idx + 1).padStart(3, "0")}</div>
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
@@ -4323,14 +4352,21 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
                 </div>
               )}
             </div>
-            <div><span style={{ padding: "4px 8px", fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}` }}>{tOrLiteral(lang, "cat", it.category)}</span></div>
-            <div style={{ fontFamily: F.mono, fontSize: 13 }}>{formatWeight(it.weight, units)}</div>
-            <div style={{ textAlign: "right" }}>
-              <button onClick={() => onToggle(it.id)}
-                style={{ width: 28, height: 28, cursor: "pointer", background: it.packed ? C.forest : "transparent", border: `1.5px solid ${it.packed ? C.forest : C.ink}`, color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                aria-label="Pack toggle">
-                {it.packed && <Check size={14} strokeWidth={3} />}
-              </button>
+            {/* Kit column — single name, count, or em dash */}
+            <div style={{ fontFamily: F.body, fontSize: 14, color: kitsForItem(it.id).length === 0 ? C.muted : C.ink }}>
+              {kitColumnLabel(it.id)}
+            </div>
+            {/* Category */}
+            <div>
+              {it.category ? (
+                <span style={{ padding: "4px 8px", fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", border: `1px solid ${C.ink}` }}>{tOrLiteral(lang, "cat", it.category)}</span>
+              ) : (
+                <span style={{ fontFamily: F.body, fontSize: 14, color: C.muted }}>—</span>
+              )}
+            </div>
+            {/* Expiry — red when within reminder window or already past */}
+            <div style={{ fontFamily: F.mono, fontSize: 12, color: expiryColor, fontWeight: expiryWeight, letterSpacing: "0.05em" }}>
+              {it.expiry ? fmtExpiry(it.expiry) : <span style={{ color: C.muted }}>—</span>}
             </div>
             <div style={{ textAlign: "right" }}>
               <button onClick={() => onDelete(it.id)} style={{ width: 28, height: 28, cursor: "pointer", background: "transparent", border: "none", color: C.rust, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label="Delete">
@@ -6733,7 +6769,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           )}
         </div>
         <div style={{ marginTop: isMobile ? 20 : 32 }}>
-          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} onEdit={(id) => setEditingItemId(id)} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} categories={categories} /></>}
+          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} onEdit={(id) => setEditingItemId(id)} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} categories={categories} kits={kits} /></>}
           {tab === "categories" && (() => {
             const openCategory = openCategoryId ? categories.find((c) => c.id === openCategoryId) : null;
             if (openCategory) {
