@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext, useRef } from "r
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
   ArrowLeft, Plus, Check, X, ChevronRight, ChevronDown, User, Lock, Mail, CreditCard,
-  Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil,
+  Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil, Download,
   Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
@@ -935,6 +935,7 @@ const TRANSLATIONS = {
     "pl.openBtn": "Open packlist",
     "pl.editBtn": "Edit",
     "pl.deleteBtn": "Delete",
+    "pl.downloadPDF": "Download PDF",
     "pl.confirmDelete": "Delete this packlist? Kits and items in it remain in your inventory.",
     "pl.confirmYes": "Yes, delete",
     "pl.detailKits": "Kits in this packlist",
@@ -1042,6 +1043,14 @@ const TRANSLATIONS = {
     "qadd.emptyItems": "You don't have any items yet. Create one below.",
     "qadd.emptyKits": "You don't have any kits yet. Create one below.",
     "qadd.emptyCats": "You don't have any categories yet. Create one below.",
+    "picked.heading": "Currently in this packlist",
+    "picked.items": "Items",
+    "picked.kits": "Kits",
+    "picked.categories": "Categories",
+    "picked.emptyItems": "No items added yet. Use the Quick Add buttons above.",
+    "picked.emptyKits": "No kits added yet. Use the Quick Add buttons above.",
+    "picked.emptyCats": "No categories added yet. Use the Quick Add buttons above.",
+    "picked.removeFromPacklist": "Remove from this packlist",
     "addTo.button": "Add to...",
     "addTo.heading": "Add to a Trip/Packlist",
     "addTo.empty": "No saved Trip/Packlists yet.",
@@ -1572,6 +1581,7 @@ const TRANSLATIONS = {
     "pl.openBtn": "Abrir lista",
     "pl.editBtn": "Editar",
     "pl.deleteBtn": "Borrar",
+    "pl.downloadPDF": "Descargar PDF",
     "pl.confirmDelete": "¿Borrar esta lista? Los kits y artículos permanecen en tu inventario.",
     "pl.confirmYes": "Sí, borrar",
     "pl.detailKits": "Kits en esta lista",
@@ -1676,6 +1686,14 @@ const TRANSLATIONS = {
     "qadd.emptyItems": "Aún no tienes artículos. Crea uno abajo.",
     "qadd.emptyKits": "Aún no tienes kits. Crea uno abajo.",
     "qadd.emptyCats": "Aún no tienes categorías. Crea una abajo.",
+    "picked.heading": "Actualmente en esta lista",
+    "picked.items": "Artículos",
+    "picked.kits": "Kits",
+    "picked.categories": "Categorías",
+    "picked.emptyItems": "Aún no hay artículos. Usa los botones de Añadir Nuevo arriba.",
+    "picked.emptyKits": "Aún no hay kits. Usa los botones de Añadir Nuevo arriba.",
+    "picked.emptyCats": "Aún no hay categorías. Usa los botones de Añadir Nuevo arriba.",
+    "picked.removeFromPacklist": "Quitar de esta lista",
     "addTo.button": "Añadir a...",
     "addTo.heading": "Añadir a un Viaje/Lista",
     "addTo.empty": "Aún no hay Viajes/Listas guardados.",
@@ -6570,6 +6588,169 @@ function PackPickerSection({ title, hint, count, emptyLabel, items, searchValue,
 }
 
 /* ============================================================
+   PacklistPickedSummary — compact summary of what's currently
+   picked for this packlist. Three collapse-by-default sections:
+   Items, Kits, Categories. Each row has an X to remove the
+   pick from THIS packlist only (does not delete from inventory).
+   ============================================================ */
+function PacklistPickedSummary({
+  categories,
+  kits,
+  items,
+  pickedCategoryIds, setPickedCategoryIds,
+  pickedKitIds, setPickedKitIds,
+  pickedItemIds, setPickedItemIds,
+}) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  // All collapsed by default — user opens what they want to review.
+  const [openSection, setOpenSection] = useState(null); // "items" | "kits" | "cats" | null
+
+  // Resolve picked ids to entities
+  const pickedItems      = items.filter((i) => pickedItemIds.includes(i.id));
+  const pickedKits       = kits.filter((k) => pickedKitIds.includes(k.id));
+  const pickedCategories = categories.filter((c) => pickedCategoryIds.includes(c.id));
+
+  // Removers — only remove from this packlist, NOT from inventory
+  const removeItem = (id) => setPickedItemIds(pickedItemIds.filter((x) => x !== id));
+  const removeKit  = (id) => setPickedKitIds(pickedKitIds.filter((x) => x !== id));
+  const removeCat  = (id) => setPickedCategoryIds(pickedCategoryIds.filter((x) => x !== id));
+
+  // A reusable section header — click to expand/collapse
+  const SectionHeader = ({ keyId, label, count }) => {
+    const open = openSection === keyId;
+    return (
+      <button
+        onClick={() => setOpenSection(open ? null : keyId)}
+        style={{
+          width: "100%", padding: "12px 14px",
+          background: open ? C.ink : C.paper,
+          color: open ? C.paper : C.ink,
+          border: `1.5px solid ${C.ink}`,
+          cursor: "pointer", textAlign: "left",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+          fontFamily: F.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700,
+        }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18 }}>
+            {open ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronRight size={14} strokeWidth={2.5} />}
+          </span>
+          {label}
+        </span>
+        <span style={{ opacity: 0.7 }}>{count}</span>
+      </button>
+    );
+  };
+
+  // A row inside a section — shows the entity name + X-to-remove button
+  const Row = ({ name, sub, onRemove }) => (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+      borderBottom: `1px solid ${C.line}`,
+      background: C.paper,
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+        {sub && (
+          <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>{sub}</div>
+        )}
+      </div>
+      <button onClick={onRemove}
+        style={{
+          flexShrink: 0, width: 28, height: 28, padding: 0,
+          background: "transparent", border: `1px solid ${C.muted}`,
+          color: C.muted, cursor: "pointer",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.rust; e.currentTarget.style.color = C.rust; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.muted; }}
+        aria-label={t("picked.removeFromPacklist")}
+        title={t("picked.removeFromPacklist")}
+      >
+        <X size={14} strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ marginBottom: 14, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+        {t("picked.heading")}
+      </div>
+
+      {/* === ITEMS === */}
+      <div style={{ marginBottom: 10 }}>
+        <SectionHeader keyId="items" label={t("picked.items")} count={pickedItems.length} />
+        {openSection === "items" && (
+          <div style={{ borderLeft: `1.5px solid ${C.ink}`, borderRight: `1.5px solid ${C.ink}`, borderBottom: `1.5px solid ${C.ink}` }}>
+            {pickedItems.length === 0 ? (
+              <div style={{ padding: "12px 14px", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("picked.emptyItems")}
+              </div>
+            ) : (
+              pickedItems.map((it) => (
+                <Row key={it.id}
+                  name={it.name}
+                  sub={`${it.category || t("trips.unifiedNoCategory")}${it.weight ? ` · ${it.weight}` : ""}`}
+                  onRemove={() => removeItem(it.id)} />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* === KITS === */}
+      <div style={{ marginBottom: 10 }}>
+        <SectionHeader keyId="kits" label={t("picked.kits")} count={pickedKits.length} />
+        {openSection === "kits" && (
+          <div style={{ borderLeft: `1.5px solid ${C.ink}`, borderRight: `1.5px solid ${C.ink}`, borderBottom: `1.5px solid ${C.ink}` }}>
+            {pickedKits.length === 0 ? (
+              <div style={{ padding: "12px 14px", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("picked.emptyKits")}
+              </div>
+            ) : (
+              pickedKits.map((k) => {
+                const itemCount = (k.itemIds || []).length;
+                return (
+                  <Row key={k.id}
+                    name={k.name}
+                    sub={`${k.category || t("trips.unifiedNoCategory")} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
+                    onRemove={() => removeKit(k.id)} />
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* === CATEGORIES === */}
+      <div style={{ marginBottom: 10 }}>
+        <SectionHeader keyId="cats" label={t("picked.categories")} count={pickedCategories.length} />
+        {openSection === "cats" && (
+          <div style={{ borderLeft: `1.5px solid ${C.ink}`, borderRight: `1.5px solid ${C.ink}`, borderBottom: `1.5px solid ${C.ink}` }}>
+            {pickedCategories.length === 0 ? (
+              <div style={{ padding: "12px 14px", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("picked.emptyCats")}
+              </div>
+            ) : (
+              pickedCategories.map((c) => {
+                const itemsInCat = items.filter((i) => i.category === c.name).length;
+                return (
+                  <Row key={c.id}
+                    name={c.name}
+                    sub={`${itemsInCat} ${itemsInCat === 1 ? "item" : "items"}`}
+                    onRemove={() => removeCat(c.id)} />
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    UnifiedInventoryBrowser — single picker showing the entire
    inventory organized by category. Each category section has:
      • An "Add this whole category" tickable row at the top
@@ -8185,8 +8366,8 @@ function TripPacklistForm({
         )}
       </div>
 
-      {/* === UNIFIED INVENTORY BROWSER === */}
-      <UnifiedInventoryBrowser
+      {/* === PICKED ITEMS / KITS / CATEGORIES SUMMARY === */}
+      <PacklistPickedSummary
         categories={categories}
         kits={kits}
         items={items}
@@ -8526,7 +8707,7 @@ function PacklistEditorDialog({
               )}
             </div>
 
-            <UnifiedInventoryBrowser
+            <PacklistPickedSummary
               categories={categories}
               kits={kits}
               items={items}
@@ -8554,6 +8735,292 @@ function PacklistEditorDialog({
       </div>
     </div>
   );
+}
+
+/* ============================================================
+   Generate a printable HTML document for a packlist + open the
+   browser's print dialog. The user picks "Save as PDF".
+   This avoids any external PDF library.
+   ============================================================ */
+function generatePacklistPDF({ packlist, kits, items, categories, units, lang }) {
+  // Hydrate references
+  const includedKits       = (packlist.kitIds || []).map((id) => kits.find((k) => k.id === id)).filter(Boolean);
+  const includedItems      = (packlist.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  const includedCategories = (packlist.categoryIds || []).map((id) => categories.find((c) => c.id === id)).filter(Boolean);
+
+  // Compute total weight (unique items only, dedup across kits/items/cats)
+  const idsSet = new Set();
+  includedKits.forEach((k) => (k.itemIds || []).forEach((iid) => idsSet.add(iid)));
+  includedItems.forEach((it) => idsSet.add(it.id));
+  includedCategories.forEach((c) => {
+    items.forEach((it) => { if (it.category === c.name) idsSet.add(it.id); });
+  });
+  const allUnique = Array.from(idsSet).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  const totalKg = allUnique.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+  const totalWeightStr = formatWeightFromKg(totalKg, units);
+
+  // Tiny HTML escape (user-supplied strings are notes, names, etc.)
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[c]);
+
+  const isSpanish = lang === "es";
+
+  // Item-row helper: renders the same way for items inside kits and standalone items
+  const itemRow = (it) => {
+    if (!it) return "";
+    return `
+      <tr>
+        <td class="cell-name">${esc(it.name)}</td>
+        <td class="cell-cat">${esc(it.category || "—")}</td>
+        <td class="cell-w">${esc(it.weight || "—")}</td>
+      </tr>`;
+  };
+
+  // Build the kits section
+  const kitsHTML = includedKits.length === 0 ? "" : `
+    <h2 class="section-title">${isSpanish ? "Kits" : "Kits"} <span class="count">${includedKits.length}</span></h2>
+    ${includedKits.map((k) => {
+      const kitItems = (k.itemIds || []).map((iid) => items.find((i) => i.id === iid)).filter(Boolean);
+      const kitWeightKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+      const kitWeightStr = formatWeightFromKg(kitWeightKg, units);
+      return `
+        <div class="kit-block">
+          <div class="kit-header">
+            <span class="kit-name">${esc(k.name)}</span>
+            <span class="kit-meta">${esc(k.category || "")} · ${kitItems.length} ${isSpanish ? (kitItems.length === 1 ? "artículo" : "artículos") : (kitItems.length === 1 ? "item" : "items")} · ${esc(kitWeightStr)}</span>
+          </div>
+          ${kitItems.length === 0 ? `<div class="empty">${isSpanish ? "Sin artículos." : "No items."}</div>` : `
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>${isSpanish ? "Artículo" : "Item"}</th>
+                  <th>${isSpanish ? "Categoría" : "Category"}</th>
+                  <th>${isSpanish ? "Peso" : "Weight"}</th>
+                </tr>
+              </thead>
+              <tbody>${kitItems.map(itemRow).join("")}</tbody>
+            </table>
+          `}
+        </div>`;
+    }).join("")}`;
+
+  // Build the standalone-items section
+  const itemsHTML = includedItems.length === 0 ? "" : `
+    <h2 class="section-title">${isSpanish ? "Artículos individuales" : "Individual items"} <span class="count">${includedItems.length}</span></h2>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>${isSpanish ? "Artículo" : "Item"}</th>
+          <th>${isSpanish ? "Categoría" : "Category"}</th>
+          <th>${isSpanish ? "Peso" : "Weight"}</th>
+        </tr>
+      </thead>
+      <tbody>${includedItems.map(itemRow).join("")}</tbody>
+    </table>`;
+
+  // Build the categories section (live-linked)
+  const catsHTML = includedCategories.length === 0 ? "" : `
+    <h2 class="section-title">${isSpanish ? "Categorías" : "Categories"} <span class="count">${includedCategories.length}</span></h2>
+    ${includedCategories.map((c) => {
+      const catItems = items.filter((i) => i.category === c.name);
+      return `
+        <div class="kit-block">
+          <div class="kit-header">
+            <span class="kit-name">${esc(c.name)}</span>
+            <span class="kit-meta">${catItems.length} ${isSpanish ? (catItems.length === 1 ? "artículo" : "artículos") : (catItems.length === 1 ? "item" : "items")}</span>
+          </div>
+          ${catItems.length === 0 ? `<div class="empty">${isSpanish ? "Sin artículos en esta categoría." : "No items in this category."}</div>` : `
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>${isSpanish ? "Artículo" : "Item"}</th>
+                  <th>${isSpanish ? "Categoría" : "Category"}</th>
+                  <th>${isSpanish ? "Peso" : "Weight"}</th>
+                </tr>
+              </thead>
+              <tbody>${catItems.map(itemRow).join("")}</tbody>
+            </table>
+          `}
+        </div>`;
+    }).join("")}`;
+
+  // Field journal styled HTML
+  const html = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+<meta charset="UTF-8">
+<title>${esc(packlist.name || "Packlist")} — PakMondo</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    color: #1A2421;
+    background: #EFE7D6;
+    margin: 0; padding: 24px 28px;
+    line-height: 1.5;
+  }
+  .header {
+    border-bottom: 2px solid #1A2421;
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+  }
+  .brand-strip {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 10px; color: #8B7E6B;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 32px; font-weight: 700;
+    letter-spacing: -0.02em; line-height: 1.05;
+    margin: 0 0 4px 0;
+  }
+  h1 .dot { color: #B8451F; }
+  .meta {
+    margin-top: 10px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 11px; color: #8B7E6B;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    line-height: 1.6;
+  }
+  .meta-row { margin-bottom: 2px; }
+  .notes {
+    margin-top: 12px;
+    font-style: italic; color: #4A5550;
+    font-size: 14px;
+  }
+  .totals {
+    margin-top: 16px; padding: 10px 14px;
+    background: #1A2421; color: #EFE7D6;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 700;
+  }
+  h2.section-title {
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 28px 0 12px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #C9BBA0;
+  }
+  h2 .count {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 11px; color: #8B7E6B;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 500; margin-left: 10px;
+  }
+  .kit-block {
+    margin-bottom: 16px;
+    border: 1.5px solid #1A2421;
+    background: #FFFFFF;
+    page-break-inside: avoid;
+  }
+  .kit-header {
+    padding: 8px 14px;
+    background: #2D4A3E; color: #EFE7D6;
+    display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .kit-name { font-size: 16px; font-weight: 700; }
+  .kit-meta {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .empty {
+    padding: 12px 14px;
+    font-style: italic; color: #8B7E6B;
+    font-size: 13px;
+  }
+  table.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #FFFFFF;
+  }
+  table.items-table th, table.items-table td {
+    text-align: left;
+    padding: 8px 14px;
+    border-bottom: 1px solid #E5DAC2;
+    font-size: 13px;
+  }
+  table.items-table th {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 10px; color: #8B7E6B;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    font-weight: 700;
+    background: #F5EEE0;
+  }
+  .cell-name { font-weight: 500; color: #1A2421; }
+  .cell-cat { color: #4A5550; font-style: italic; }
+  .cell-w { color: #4A5550; white-space: nowrap; }
+  .footer {
+    margin-top: 36px; padding-top: 14px;
+    border-top: 1px dashed #C9BBA0;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 10px; color: #8B7E6B;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    display: flex; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .footer em {
+    font-family: Georgia, serif; font-style: italic;
+    text-transform: none; letter-spacing: normal;
+  }
+  @media print {
+    body { background: #FFFFFF; padding: 0; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand-strip">PAKMONDO · ${isSpanish ? "LISTA DE EQUIPAJE" : "FIELD PACKLIST"}</div>
+    <h1>${esc(packlist.name || (isSpanish ? "Lista" : "Packlist"))}<span class="dot">.</span></h1>
+    <div class="meta">
+      ${packlist.dest ? `<div class="meta-row">📍 ${esc(packlist.dest)}</div>` : ""}
+      ${packlist.date ? `<div class="meta-row">📅 ${esc(packlist.date)}</div>` : ""}
+      ${packlist.type ? `<div class="meta-row">⚑ ${esc(packlist.type)}</div>` : ""}
+    </div>
+    ${packlist.notes ? `<div class="notes">"${esc(packlist.notes)}"</div>` : ""}
+    <div class="totals">${isSpanish ? "Total" : "Total"}: ${allUnique.length} ${isSpanish ? (allUnique.length === 1 ? "artículo" : "artículos") : (allUnique.length === 1 ? "item" : "items")}${totalKg > 0 ? ` · ${esc(totalWeightStr)}` : ""}</div>
+  </div>
+
+  ${kitsHTML}
+  ${itemsHTML}
+  ${catsHTML}
+
+  ${(includedKits.length === 0 && includedItems.length === 0 && includedCategories.length === 0) ?
+    `<div class="empty" style="text-align:center; padding: 40px;">${isSpanish ? "Esta lista está vacía." : "This packlist is empty."}</div>` : ""}
+
+  <div class="footer">
+    <span><em>Be Prepared, Be Anywhere.</em> · pakmondo.com</span>
+    <span>${new Date().toLocaleDateString(lang === "es" ? "es-ES" : "en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+  </div>
+
+  <script>
+    // Auto-trigger the print dialog once the page loads.
+    window.addEventListener("load", () => {
+      // Tiny delay so styles paint first
+      setTimeout(() => { window.print(); }, 250);
+    });
+  </script>
+</body>
+</html>`;
+
+  // Open the document in a new window. Browser blocks popups unless this
+  // is called from a user-initiated event (which it is — button click).
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert(isSpanish
+      ? "Tu navegador bloqueó la ventana emergente. Permítela e inténtalo de nuevo."
+      : "Your browser blocked the popup. Allow it and try again.");
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
@@ -8626,6 +9093,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
 
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn variant="rust" icon={Pencil} onClick={onEdit}>{t("pl.editBtn")}</Btn>
+          <Btn variant="ghost" icon={Download} onClick={() => generatePacklistPDF({ packlist, kits, items, categories, units, lang })}>{t("pl.downloadPDF")}</Btn>
           <Btn variant="ghost" icon={Trash2} onClick={() => setConfirming(true)}>{t("pl.deleteBtn")}</Btn>
         </div>
 
@@ -10645,3 +11113,4 @@ export default function App() {
     </I18nContext.Provider>
   );
 }
+
