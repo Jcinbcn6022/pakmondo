@@ -4704,7 +4704,7 @@ function TravelTypesView({ types, onDelete }) {
   );
 }
 
-function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initial }) {
+function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initial, onAddItem }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const editMode = !!initial;
@@ -4715,11 +4715,30 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
   // the item id from this set.
   const [itemIds, setItemIds] = useState(initial?.itemIds || []);
   const [showAddItems, setShowAddItems] = useState(false);
+  // Create-new-item form state — only used when onAddItem prop is supplied
+  const [showCreateItem, setShowCreateItem] = useState(false);
+  const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
 
   const inKit       = (items || []).filter((it) => itemIds.includes(it.id));
   const notInKit    = (items || []).filter((it) => !itemIds.includes(it.id));
   const removeItem  = (id) => setItemIds(itemIds.filter((x) => x !== id));
   const addItem     = (id) => setItemIds([...itemIds, id]);
+
+  // Create a new item in inventory and add it to this kit's selection
+  const saveNewItem = () => {
+    if (!newItem.name.trim() || !onAddItem) return;
+    const created = {
+      id: uid("it"),
+      name: newItem.name.trim(),
+      weight: newItem.weight.trim() || null,
+      category: newItem.category || null,
+      packed: false,
+    };
+    onAddItem(created);
+    setItemIds([...itemIds, created.id]);
+    setNewItem({ name: "", weight: "", category: "" });
+    setShowCreateItem(false);
+  };
 
   const save = () => {
     if (!name.trim()) return;
@@ -4845,6 +4864,41 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
                       </div>
                     </button>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Create-new-item button (only when caller wired onAddItem) */}
+          {onAddItem && (
+            <div style={{ marginTop: 8 }}>
+              {!showCreateItem ? (
+                <button type="button" onClick={() => setShowCreateItem(true)}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
+                    cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+                    letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}>
+                  <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
+                </button>
+              ) : (
+                <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+                  <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                    + {t("kitDetail.createNew")}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                      <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+                      <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+                    </div>
+                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <Btn variant="ghost" icon={X} onClick={() => { setShowCreateItem(false); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                      <Btn variant="rust" icon={Check} onClick={saveNewItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -5414,6 +5468,7 @@ function CategoryDetail({
             items={items}
             defaultCategory={category.name}
             onAdd={handleAddKit}
+            onAddItem={onAddItem}
             onCancel={() => setAdding(null)}
           />
         )}
@@ -6734,7 +6789,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
               </>
             );
           })()}
-          {tab === "kits" && <>{adding && <AddKitForm categories={categories} items={items} onAdd={addKit} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} onEditKit={(id) => setEditingKitId(id)} packlists={packlists} setPacklists={setPacklists} /></>}
+          {tab === "kits" && <>{adding && <AddKitForm categories={categories} items={items} onAdd={addKit} onAddItem={addItem} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} onEditKit={(id) => setEditingKitId(id)} packlists={packlists} setPacklists={setPacklists} /></>}
           {tab === "cart" && <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />}
         </div>
       </div>
@@ -6803,6 +6858,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
               items={items}
               initial={k}
               onAdd={(data) => { updateKit({ ...k, ...data }); setEditingKitId(null); }}
+              onAddItem={addItem}
               onCancel={() => setEditingKitId(null)}
             />
           </Modal>
