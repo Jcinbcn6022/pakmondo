@@ -989,6 +989,7 @@ const TRANSLATIONS = {
     "pl.confirmDelete": "Delete this packlist? Kits and items in it remain in your inventory.",
     "pl.confirmYes": "Yes, delete",
     "pl.detailKits": "Kits in this packlist",
+    "pl.catLabel": "CATEGORY",
     "pl.detailItems": "Standalone items",
     "pl.detailEmpty": "This packlist is empty — edit it to add kits and items",
 
@@ -1688,6 +1689,7 @@ const TRANSLATIONS = {
     "pl.confirmDelete": "¿Borrar esta lista? Los kits y artículos permanecen en tu inventario.",
     "pl.confirmYes": "Sí, borrar",
     "pl.detailKits": "Kits en esta lista",
+    "pl.catLabel": "CATEGORÍA",
     "pl.detailItems": "Artículos sueltos",
     "pl.detailEmpty": "Esta lista está vacía — edítala para añadir kits y artículos",
 
@@ -10283,7 +10285,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         <EmptyState label={t("pl.detailEmpty")} hint={t("pl.empty")} />
       )}
 
-      {/* CATEGORIES section (new) — live-linked */}
+      {/* CATEGORIES section — each category as a header with its items listed inline */}
       {includedCategories.length > 0 && (
         <div style={{ marginTop: 16, marginBottom: 32 }}>
           <div style={{ marginBottom: 14, paddingBottom: 6, borderBottom: `1px dashed ${C.line}` }}>
@@ -10294,33 +10296,63 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
               {includedCategories.length}
             </span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {includedCategories.map((c) => {
               const Icon = iconFor(c.icon);
-              const itemCount = items.filter((i) => i.category === c.name).length;
+              const catItems = items.filter((i) => i.category === c.name);
               return (
-                <div key={c.id}
-                  onClick={() => onEditCategory && onEditCategory(c.id)}
-                  style={{
-                    background: C.paper, border: `1.5px solid ${C.line}`, padding: 14,
-                    display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
-                    cursor: onEditCategory ? "pointer" : "default",
-                  }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                <div key={c.id}>
+                  {/* Header row — tap to open category modal; X to remove */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${C.line}` }}>
                     <Icon size={18} strokeWidth={1.4} color={C.forest} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 600 }}>{tOrLiteral(lang, "cat", c.name)}</div>
-                      <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                        {itemCount} {itemCount === 1 ? "item" : "items"}
+                    <button
+                      onClick={() => onEditCategory && onEditCategory(c.id)}
+                      style={{
+                        flex: 1, minWidth: 0, textAlign: "left",
+                        background: "none", border: "none", padding: 0, cursor: onEditCategory ? "pointer" : "default",
+                      }}>
+                      <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+                        {tOrLiteral(lang, "cat", c.name)}
                       </div>
-                    </div>
-                  </div>
-                  {onRemoveCategory && (
-                    <button onClick={(e) => { e.stopPropagation(); onRemoveCategory(c.id); }}
-                      style={{ width: 32, height: 32, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                      title="Remove from this list" aria-label="Remove">
-                      <X size={14} />
+                      <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                        {t("pl.catLabel")} · {catItems.length} {catItems.length === 1 ? "item" : "items"}
+                      </div>
                     </button>
+                    {onRemoveCategory && (
+                      <button onClick={(e) => { e.stopPropagation(); onRemoveCategory(c.id); }}
+                        style={{ width: 30, height: 30, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                        title="Remove from this list" aria-label="Remove">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  {/* Inline item list */}
+                  {catItems.length === 0 ? (
+                    <div style={{ paddingLeft: 28, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                      {t("kitDetail.empty")}
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      {catItems.map((it) => (
+                        <button key={it.id}
+                          onClick={() => onEditItem && onEditItem(it.id)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "8px 12px 8px 28px",
+                            background: "transparent", border: "none", borderBottom: `1px solid ${C.line}`,
+                            cursor: onEditItem ? "pointer" : "default", textAlign: "left",
+                          }}>
+                          <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                            {it.name}
+                          </span>
+                          {it.weight && (
+                            <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                              {formatWeight(it.weight, units)}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               );
@@ -10339,54 +10371,67 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
               {includedKits.length}
             </span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {includedKits.map((k) => {
-              const itemNames = k.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean);
-              const kitKg = itemNames.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+              const kitItems = (k.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+              const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
               const kitWeightStr = formatWeightFromKg(kitKg, units);
               return (
-                <div key={k.id}
-                  onClick={() => onEditKit && onEditKit(k.id)}
-                  style={{
-                    background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16, position: "relative",
-                    cursor: onEditKit ? "pointer" : "default",
-                  }}>
-                  {onRemoveKit && (
-                    <button onClick={(e) => { e.stopPropagation(); onRemoveKit(k.id); }}
-                      style={{ position: "absolute", top: 10, right: 10, width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                      title="Remove from this list" aria-label="Remove">
-                      <X size={13} />
-                    </button>
-                  )}
-                  <Coord>KIT</Coord>
-                  <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 36 }}>
-                    {k.name}
-                  </div>
-                  <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                    {itemNames.length} {itemNames.length === 1 ? "item" : "items"}  /  {kitWeightStr}
-                  </div>
-                  {k.category && (
-                    <div style={{ marginTop: 8 }}>
-                      <span style={{
-                        padding: "3px 8px",
-                        fontFamily: F.mono,
-                        fontSize: 9,
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                        border: `1.5px solid ${C.forest}`,
-                        color: C.forest,
-                        fontWeight: 700,
+                <div key={k.id}>
+                  {/* Header row — tap to open kit modal; X to remove */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${C.line}` }}>
+                    <button
+                      onClick={() => onEditKit && onEditKit(k.id)}
+                      style={{
+                        flex: 1, minWidth: 0, textAlign: "left",
+                        background: "none", border: "none", padding: 0, cursor: onEditKit ? "pointer" : "default",
                       }}>
-                        {tOrLiteral(lang, "cat", k.category)}
-                      </span>
+                      <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+                        {k.name}
+                      </div>
+                      <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                        KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
+                        {k.category ? `  ·  ${tOrLiteral(lang, "cat", k.category)}` : ""}
+                      </div>
+                    </button>
+                    {onRemoveKit && (
+                      <button onClick={(e) => { e.stopPropagation(); onRemoveKit(k.id); }}
+                        style={{ width: 30, height: 30, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                        title="Remove from this list" aria-label="Remove">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  {/* Inline item list */}
+                  {kitItems.length === 0 ? (
+                    <div style={{ paddingLeft: 12, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                      {t("kitDetail.empty")}
                     </div>
-                  )}
-                  {itemNames.length > 0 && (
-                    <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 5 }}>
-                      {itemNames.map((it) => (
-                        <span key={it.id} style={{ padding: "3px 8px", fontFamily: F.mono, fontSize: 10, letterSpacing: "0.05em", border: `1px solid ${C.ink}`, background: C.paperDeep }}>
-                          {it.name}
-                        </span>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      {kitItems.map((it) => (
+                        <button key={it.id}
+                          onClick={() => onEditItem && onEditItem(it.id)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "8px 12px 8px 12px",
+                            background: "transparent", border: "none", borderBottom: `1px solid ${C.line}`,
+                            cursor: onEditItem ? "pointer" : "default", textAlign: "left",
+                          }}>
+                          <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                            {it.name}
+                          </span>
+                          {it.category && (
+                            <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}>
+                              {tOrLiteral(lang, "cat", it.category)}
+                            </span>
+                          )}
+                          {it.weight && (
+                            <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                              {formatWeight(it.weight, units)}
+                            </span>
+                          )}
+                        </button>
                       ))}
                     </div>
                   )}
