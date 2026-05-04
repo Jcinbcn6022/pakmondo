@@ -8043,6 +8043,10 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
   const [editingId, setEditingId] = useState(null);  // when tab === "edit"
   const [openId, setOpenId] = useState(null);        // detail view
   const [editorOpenId, setEditorOpenId] = useState(null);  // modal editor — independent of tab/detail
+  // Edit modals reachable from PacklistDetail — tap any card/row to open
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editingKitId, setEditingKitId] = useState(null);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
 
   const addPacklist = (data) => {
     setPacklists([{ id: uid("pl"), ...data }, ...packlists]);
@@ -8057,6 +8061,16 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
     setPacklists(packlists.filter((p) => p.id !== id));
     if (openId === id) setOpenId(null);
   };
+
+  // Inventory-level updaters — used by edit modals on the detail view.
+  // Same shape as Inventory's own updaters; changes flow back to the
+  // shared state so the packlist re-renders with new data.
+  const updateItem = (id, data) =>
+    setItems(items.map((i) => (i.id === id ? { ...i, ...data } : i)));
+  const updateKit = (kit) =>
+    setKits(kits.map((k) => (k.id === kit.id ? { ...k, ...kit } : k)));
+  const updateCategory = (id, data) =>
+    setCategories(categories.map((c) => (c.id === id ? { ...c, ...data } : c)));
 
   // Remove a single item or kit from an existing packlist (used by detail view)
   const removeItemFromPacklist = (plId, itemId) => {
@@ -8097,6 +8111,9 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onRemoveItem={(itemId) => removeItemFromPacklist(openPacklist.id, itemId)}
             onRemoveKit={(kitId) => removeKitFromPacklist(openPacklist.id, kitId)}
             onRemoveCategory={(catId) => removeCategoryFromPacklist(openPacklist.id, catId)}
+            onEditItem={(id) => setEditingItemId(id)}
+            onEditKit={(id) => setEditingKitId(id)}
+            onEditCategory={(id) => setEditingCategoryId(id)}
           />
         </div>
         <Footer />
@@ -8111,6 +8128,49 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onClose={() => setEditorOpenId(null)}
           />
         )}
+
+        {/* Inline edit modals — reachable by tapping any item / kit / category card on the detail view */}
+        {editingItemId && (() => {
+          const it = items.find((x) => x.id === editingItemId);
+          if (!it) return null;
+          return (
+            <Modal title={t("form.editItemTitle")} onClose={() => setEditingItemId(null)}>
+              <AddItemForm
+                categories={categories}
+                initial={it}
+                onAdd={(data) => { updateItem(editingItemId, data); setEditingItemId(null); }}
+                onCancel={() => setEditingItemId(null)}
+              />
+            </Modal>
+          );
+        })()}
+        {editingKitId && (() => {
+          const k = kits.find((x) => x.id === editingKitId);
+          if (!k) return null;
+          return (
+            <Modal title={t("kit.editFormTitle")} onClose={() => setEditingKitId(null)}>
+              <AddKitForm
+                categories={categories}
+                initial={k}
+                onAdd={(data) => { updateKit({ ...k, ...data }); setEditingKitId(null); }}
+                onCancel={() => setEditingKitId(null)}
+              />
+            </Modal>
+          );
+        })()}
+        {editingCategoryId && (() => {
+          const c = categories.find((x) => x.id === editingCategoryId);
+          if (!c) return null;
+          return (
+            <Modal title={t("form.editCatTitle")} onClose={() => setEditingCategoryId(null)}>
+              <AddCategoryForm
+                initial={c}
+                onAdd={(data) => { updateCategory(editingCategoryId, data); setEditingCategoryId(null); }}
+                onCancel={() => setEditingCategoryId(null)}
+              />
+            </Modal>
+          );
+        })()}
       </div>
     );
   }
@@ -9616,7 +9676,7 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
@@ -9722,7 +9782,13 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
               const Icon = iconFor(c.icon);
               const itemCount = items.filter((i) => i.category === c.name).length;
               return (
-                <div key={c.id} style={{ background: C.paper, border: `1.5px solid ${C.line}`, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div key={c.id}
+                  onClick={() => onEditCategory && onEditCategory(c.id)}
+                  style={{
+                    background: C.paper, border: `1.5px solid ${C.line}`, padding: 14,
+                    display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                    cursor: onEditCategory ? "pointer" : "default",
+                  }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                     <Icon size={18} strokeWidth={1.4} color={C.forest} />
                     <div style={{ minWidth: 0 }}>
@@ -9733,7 +9799,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                     </div>
                   </div>
                   {onRemoveCategory && (
-                    <button onClick={() => onRemoveCategory(c.id)}
+                    <button onClick={(e) => { e.stopPropagation(); onRemoveCategory(c.id); }}
                       style={{ width: 32, height: 32, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                       title="Remove from this list" aria-label="Remove">
                       <X size={14} />
@@ -9762,9 +9828,14 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
               const kitKg = itemNames.reduce((s, i) => s + parseKg(i.weight || ""), 0);
               const kitWeightStr = formatWeightFromKg(kitKg, units);
               return (
-                <div key={k.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16, position: "relative" }}>
+                <div key={k.id}
+                  onClick={() => onEditKit && onEditKit(k.id)}
+                  style={{
+                    background: C.paper, border: `1.5px solid ${C.ink}`, padding: 16, position: "relative",
+                    cursor: onEditKit ? "pointer" : "default",
+                  }}>
                   {onRemoveKit && (
-                    <button onClick={() => onRemoveKit(k.id)}
+                    <button onClick={(e) => { e.stopPropagation(); onRemoveKit(k.id); }}
                       style={{ position: "absolute", top: 10, right: 10, width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                       title="Remove from this list" aria-label="Remove">
                       <X size={13} />
@@ -9821,7 +9892,13 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {includedItems.map((it, idx) => (
-              <div key={it.id} style={{ background: C.paper, border: `1px solid ${C.line}`, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div key={it.id}
+                onClick={() => onEditItem && onEditItem(it.id)}
+                style={{
+                  background: C.paper, border: `1px solid ${C.line}`, padding: 12,
+                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+                  cursor: onEditItem ? "pointer" : "default",
+                }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em" }}>
                     {String(idx + 1).padStart(3, "0")}
@@ -9838,7 +9915,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                     <span style={{ fontFamily: F.mono, fontSize: 11, color: C.inkSoft, fontWeight: 700 }}>{formatWeight(it.weight, units)}</span>
                   </div>
                   {onRemoveItem && (
-                    <button onClick={() => onRemoveItem(it.id)}
+                    <button onClick={(e) => { e.stopPropagation(); onRemoveItem(it.id); }}
                       style={{ width: 30, height: 30, background: "transparent", border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                       title="Remove from this list" aria-label="Remove">
                       <X size={13} />
