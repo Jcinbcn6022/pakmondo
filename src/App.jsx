@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
@@ -1017,7 +1018,7 @@ const TRANSLATIONS = {
     "trips.newType": "New style",
     "trips.defineType": "Define a new ADV Style",
     "trips.addType": "Add style",
-    "trips.fileTrip": "File the trip",
+    "trips.fileTrip": "Save Packlist",
     "trips.step1": "Step 1 of 2",
     "trips.step2": "Step 2 of 2",
     "trips.stepDetailsTitle": "Itinerary",
@@ -1663,7 +1664,7 @@ const TRANSLATIONS = {
     "trips.newType": "Nuevo estilo",
     "trips.defineType": "Define un nuevo Estilo ADV",
     "trips.addType": "Añadir estilo",
-    "trips.fileTrip": "Archivar el viaje",
+    "trips.fileTrip": "Guardar lista",
     "trips.step1": "Paso 1 de 2",
     "trips.step2": "Paso 2 de 2",
     "trips.stepDetailsTitle": "Itinerario",
@@ -8431,11 +8432,29 @@ function TripPacklistForm({
         setPickedItemIds={setPickedItemIds}
       />
 
-      {/* Action row */}
-      <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "space-between", flexWrap: "wrap" }}>
+      {/* Action row — sticky at the bottom of the viewport so it's always
+          visible while the user picks items. Padding-bottom on the parent
+          div ensures the sticky bar doesn't cover content. */}
+      <div style={{ height: isMobile ? 80 : 96 }} />
+      <div style={{
+        position: "sticky", bottom: 0, left: 0, right: 0,
+        marginTop: 0, padding: isMobile ? "12px 16px" : "16px 0",
+        background: C.paper,
+        borderTop: `1.5px solid ${C.ink}`,
+        boxShadow: `0 -4px 12px rgba(26,36,33,0.06)`,
+        display: "flex", gap: 10,
+        flexDirection: isMobile ? "column-reverse" : "row",
+        justifyContent: "space-between", alignItems: "center", flexWrap: "wrap",
+        zIndex: 50,
+      }}>
         <Btn variant="ghost" icon={ArrowLeft} onClick={() => setStep(1)} fullWidth={isMobile}>{t("trips.back")}</Btn>
         <Btn onClick={submit} variant="rust" icon={Check} fullWidth={isMobile}>
           {editMode ? t("pl.saveBtn") : t("trips.fileTrip")}
+          {(pickedItemIds.length + pickedKitIds.length + pickedCategoryIds.length) > 0 && (
+            <span style={{ marginLeft: 8, opacity: 0.85, fontWeight: 500 }}>
+              ({pickedItemIds.length + pickedKitIds.length + pickedCategoryIds.length})
+            </span>
+          )}
         </Btn>
       </div>
     </div>
