@@ -2467,6 +2467,20 @@ function Header({ go, active, onBack }) {
               <Logo size={isMobile ? "headerMobile" : "header"} />
             </button>
           )}
+          {/* Slogan — shown only on desktop where there's room. On mobile, the
+              header is too tight; the slogan still appears on the welcome page
+              and on the dashboard hero. */}
+          {!isMobile && !onBack && (
+            <span style={{
+              fontFamily: F.display, fontStyle: "italic",
+              fontSize: 14, color: C.inkSoft,
+              borderLeft: `1px solid ${C.line}`,
+              paddingLeft: 14, marginLeft: 4,
+              whiteSpace: "nowrap",
+            }}>
+              {t("brand.tagline")}
+            </span>
+          )}
         </div>
 
         {!isMobile && (
@@ -3180,6 +3194,9 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
               {coordLine}
             </div>
             <DashLine />
+            <p style={{ marginTop: 14, marginBottom: 0, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 16 : 19, color: C.inkSoft }}>
+              {t("brand.tagline")}
+            </p>
           </div>
 
           {alerts.length > 0 && (
