@@ -3302,21 +3302,21 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
           </div>
 
           {/* === LOCATION CARD === */}
-          <div style={{ marginTop: isMobile ? 24 : 32, padding: isMobile ? 18 : 24, background: C.paper, border: `1.5px solid ${C.ink}`, position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
-              <div style={{ width: 44, height: 44, flexShrink: 0, background: C.forest, color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                <MapPin size={22} strokeWidth={1.6} />
+          <div style={{ marginTop: isMobile ? 14 : 18, padding: isMobile ? 10 : 12, background: C.paper, border: `1.5px solid ${C.ink}`, position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ width: 28, height: 28, flexShrink: 0, background: C.forest, color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <MapPin size={14} strokeWidth={1.6} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
                   {t("loc.cardTitle")}
                 </div>
                 {coordsState === "ok" && coords ? (
                   <>
-                    <div style={{ marginTop: 6, fontFamily: F.display, fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: C.ink, wordBreak: "break-word" }}>
+                    <div style={{ marginTop: 2, fontFamily: F.display, fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: C.ink, wordBreak: "break-word" }}>
                       {formatCoords(coords.lat, coords.lon)}
                     </div>
-                    <div style={{ marginTop: 4, fontFamily: F.body, fontSize: isMobile ? 13 : 15, fontStyle: "italic", color: C.inkSoft, minHeight: 20 }}>
+                    <div style={{ marginTop: 2, fontFamily: F.body, fontSize: isMobile ? 11 : 12, fontStyle: "italic", color: C.inkSoft, minHeight: 16 }}>
                       {placeState === "loading" ? t("loc.placeLoading")
                        : placeState === "ok" && place?.full ? place.full
                        : placeState === "error" ? t("loc.placeUnknown")
@@ -3324,7 +3324,7 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
                     </div>
                   </>
                 ) : (
-                  <div style={{ marginTop: 6, fontFamily: F.body, fontSize: 14, color: C.inkSoft, fontStyle: "italic" }}>
+                  <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 12, color: C.inkSoft, fontStyle: "italic" }}>
                     {coordLine}
                   </div>
                 )}
@@ -3332,14 +3332,14 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
             </div>
 
             {/* Action buttons — refresh + open in Google Maps only */}
-            <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
               <button onClick={() => fetchLocation(true)}
-                style={{ padding: "8px 14px", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                style={{ padding: "5px 9px", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, cursor: "pointer", fontFamily: F.mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 ↻ {t("loc.refresh")}
               </button>
               {coordsState === "ok" && coords && (
                 <a href={googleMapsUrl(coords.lat, coords.lon)} target="_blank" rel="noopener noreferrer"
-                  style={{ padding: "8px 14px", background: C.rust, border: `1.5px solid ${C.rust}`, color: C.paper, textDecoration: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  style={{ padding: "5px 9px", background: C.rust, border: `1.5px solid ${C.rust}`, color: C.paper, textDecoration: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
                   🗺 {t("loc.openMaps")}
                 </a>
               )}
