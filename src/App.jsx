@@ -4715,30 +4715,13 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
   // the item id from this set.
   const [itemIds, setItemIds] = useState(initial?.itemIds || []);
   const [showAddItems, setShowAddItems] = useState(false);
-  // Create-new-item form state — only used when onAddItem prop is supplied
+  // Toggle for the full "Create new item" modal (uses AddItemForm — same as Items page)
   const [showCreateItem, setShowCreateItem] = useState(false);
-  const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
 
   const inKit       = (items || []).filter((it) => itemIds.includes(it.id));
   const notInKit    = (items || []).filter((it) => !itemIds.includes(it.id));
   const removeItem  = (id) => setItemIds(itemIds.filter((x) => x !== id));
   const addItem     = (id) => setItemIds([...itemIds, id]);
-
-  // Create a new item in inventory and add it to this kit's selection
-  const saveNewItem = () => {
-    if (!newItem.name.trim() || !onAddItem) return;
-    const created = {
-      id: uid("it"),
-      name: newItem.name.trim(),
-      weight: newItem.weight.trim() || null,
-      category: newItem.category || null,
-      packed: false,
-    };
-    onAddItem(created);
-    setItemIds([...itemIds, created.id]);
-    setNewItem({ name: "", weight: "", category: "" });
-    setShowCreateItem(false);
-  };
 
   const save = () => {
     if (!name.trim()) return;
@@ -4872,38 +4855,38 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
           {/* Create-new-item button (only when caller wired onAddItem) */}
           {onAddItem && (
             <div style={{ marginTop: 8 }}>
-              {!showCreateItem ? (
-                <button type="button" onClick={() => setShowCreateItem(true)}
-                  style={{
-                    width: "100%", padding: "10px 14px",
-                    background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
-                    cursor: "pointer", fontFamily: F.mono, fontSize: 11,
-                    letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
-                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  }}>
-                  <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
-                </button>
-              ) : (
-                <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
-                  <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-                    + {t("kitDetail.createNew")}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                      <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
-                      <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
-                    </div>
-                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                      <Btn variant="ghost" icon={X} onClick={() => { setShowCreateItem(false); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                      <Btn variant="rust" icon={Check} onClick={saveNewItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <button type="button" onClick={() => setShowCreateItem(true)}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
+                  cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+                  letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}>
+                <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
+              </button>
             </div>
           )}
         </div>
+      )}
+
+      {/* Full create-new-item modal — opens on top of this form. Uses the
+          same AddItemForm as the Items page so all fields are available
+          (name, weight, category, quantity, size, consumable, expiry, notes). */}
+      {onAddItem && showCreateItem && (
+        <Modal title={t("form.addItemTitle")} onClose={() => setShowCreateItem(false)}>
+          <AddItemForm
+            categories={categories}
+            defaultCategory={category || ""}
+            onAdd={(data) => {
+              const created = { id: uid("it"), packed: false, ...data };
+              onAddItem(created);
+              setItemIds([...itemIds, created.id]);
+              setShowCreateItem(false);
+            }}
+            onCancel={() => setShowCreateItem(false)}
+          />
+        </Modal>
       )}
     </AddPanel>
   );
