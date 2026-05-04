@@ -3112,8 +3112,11 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
                       }}
                     >
                       <Coord>PACKLIST</Coord>
-                      <div style={{ marginTop: 4, fontFamily: F.display, fontSize: isMobile ? 18 : 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-                        {p.name}
+                      <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 10 }}>
+                        {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} size={isMobile ? 32 : 36} />}
+                        <div style={{ flex: 1, minWidth: 0, fontFamily: F.display, fontSize: isMobile ? 18 : 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+                          {p.name}
+                        </div>
                       </div>
                       <div style={{ marginTop: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                         {kCount === 1 ? t("pl.kitsCount_one") : t("pl.kitsCount_many", { n: kCount })}
@@ -7031,8 +7034,11 @@ function PacklistsList({ packlists, kits, items, onOpen, onEdit, onDelete, onCre
         return (
           <div key={p.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 16 : 20, position: "relative", display: "flex", flexDirection: "column" }}>
             <Coord>PACKLIST</Coord>
-            <div style={{ marginTop: 4, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 4 }}>
-              {p.name}
+            <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
+              {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} size={isMobile ? 36 : 44} />}
+              <div style={{ flex: 1, minWidth: 0, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 4 }}>
+                {p.name}
+              </div>
             </div>
             <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
               {kitsLabel}{itemCount > 0 ? `  /  ${itemsLabel}` : ""}{totalUnique > 0 ? `  /  ${t("pl.totalUnique", { n: totalUnique })}` : ""}
