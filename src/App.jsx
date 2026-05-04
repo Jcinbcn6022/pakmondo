@@ -2132,30 +2132,25 @@ function loadXLSX() {
   return _xlsxPromise;
 }
 
-/* Build and download a blank template workbook with two sheets:
-   Items (with optional Kit column to group), and Categories.
-   Headers are human-readable Title Case. Kits are derived from
-   whatever kit names appear in the Items sheet's "Kit" column. */
+/* Build and download a blank template workbook for bulk import.
+   Single Items sheet with 9 columns. Headers only — no example rows.
+   Columns: Category | Kit | Item Name | Weight | Quantity | Size |
+            Consumable | Expiry | Notes
+   Items sharing the same Kit name get auto-grouped into a kit on import.
+   Categories listed in the Category column get auto-created if new. */
 async function downloadImportTemplate() {
   const XLSX = await loadXLSX();
   const wb = XLSX.utils.book_new();
 
-  // === ITEMS SHEET ===
-  // Headers in plain English. The Kit column is optional — items with
-  // the same kit name get grouped into a kit (auto-created on import).
+  // Header row only — user fills the rest with their own gear.
   const itemsData = [
-    ["Item Name", "Kit", "Weight", "Quantity", "Size", "Consumable", "Expiry", "Notes"],
-    ["Down Sleeping Bag",   "Cold Camp Essentials", "1.2 kg",  1, "Regular", "No",  "",           "0°C rated"],
-    ["Merino Base Layer",   "Cold Camp Essentials", "0.18 kg", 2, "Medium",  "No",  "",           ""],
-    ["Compression Sack",    "Cold Camp Essentials", "0.08 kg", 1, "",        "No",  "",           ""],
-    ["Trauma Kit",          "Day Hike Light",       "0.45 kg", 1, "",        "Yes", "2027-06-30", "Check annually"],
-    ["Headlamp",            "Day Hike Light",       "0.09 kg", 1, "",        "No",  "",           "Spare batteries"],
-    ["Spare Battery",       "",                     "0.10 kg", 3, "",        "No",  "",           "Standalone — no kit"],
+    ["Category", "Kit", "Item Name", "Weight", "Quantity", "Size", "Consumable", "Expiry", "Notes"],
   ];
   const itemsSheet = XLSX.utils.aoa_to_sheet(itemsData);
   itemsSheet["!cols"] = [
+    { wch: 18 }, // Category
+    { wch: 22 }, // Kit
     { wch: 24 }, // Item Name
-    { wch: 24 }, // Kit
     { wch: 10 }, // Weight
     { wch: 10 }, // Quantity
     { wch: 10 }, // Size
@@ -2165,20 +2160,6 @@ async function downloadImportTemplate() {
   ];
   XLSX.utils.book_append_sheet(wb, itemsSheet, "Items");
 
-  // === CATEGORIES SHEET ===
-  const categoriesData = [
-    ["Category Name", "Icon"],
-    ["Shelter", "tent"],
-    ["Apparel", "tag"],
-    ["Navigation", "map"],
-    ["First Aid", "alert"],
-    ["Cooking", "flame"],
-  ];
-  const categoriesSheet = XLSX.utils.aoa_to_sheet(categoriesData);
-  categoriesSheet["!cols"] = [{ wch: 22 }, { wch: 14 }];
-  XLSX.utils.book_append_sheet(wb, categoriesSheet, "Categories");
-
-  // Trigger download
   XLSX.writeFile(wb, "PakMondo_Import_Template.xlsx");
 }
 
@@ -2229,8 +2210,8 @@ async function parseInventoryImport(file) {
 
   // === ITEMS ===
   const itemRows = readSheet("Items");
-  // We track which Kit-column value belongs to each parsed item so we can
-  // group them into kits in the next pass.
+  // We track which Kit-column value and Category-column value belong to
+  // each parsed item so we can derive kits + auto-create categories below.
   const itemKitMap = []; // parallel array of kit-name strings (or "")
   itemRows.forEach((row, idx) => {
     const name = String(pickField(row, "item name", "name") || "").trim();
@@ -2243,10 +2224,11 @@ async function parseInventoryImport(file) {
     const consumableRaw = String(pickField(row, "consumable")).toLowerCase().trim();
     const consumable = ["true", "yes", "y", "1", "sí", "si"].includes(consumableRaw);
     const quantity = parseInt(pickField(row, "quantity"), 10);
+    const itemCategory = String(pickField(row, "category") || "").trim() || null;
     const item = {
       id: uid("it"),
       name,
-      category: null, // no category column anymore — assigned later in the app
+      category: itemCategory, // read from the Category column on the Items sheet
       weight: String(pickField(row, "weight") || "").trim() || null,
       quantity: isNaN(quantity) ? 1 : quantity,
       size: String(pickField(row, "size") || "").trim() || null,
@@ -2262,34 +2244,63 @@ async function parseInventoryImport(file) {
   // === KITS — derived from the Kit column on the Items sheet ===
   // Group all items that share the same Kit name into a single kit. Kit
   // names are case-insensitive (so "Cold Camp" and "cold camp" merge).
-  const kitMap = new Map(); // lowercased kit name -> { name, itemIds[] }
+  // The kit's category is set to the most common category among its items.
+  const kitMap = new Map(); // lowercased kit name -> { name, itemIds[], categoryCounts: Map }
   items.forEach((it, i) => {
     const kitName = itemKitMap[i];
     if (!kitName) return; // standalone item, no kit
     const key = kitName.toLowerCase();
     if (!kitMap.has(key)) {
-      kitMap.set(key, { id: uid("kit"), name: kitName, itemIds: [] });
+      kitMap.set(key, { id: uid("kit"), name: kitName, itemIds: [], categoryCounts: new Map() });
     }
-    kitMap.get(key).itemIds.push(it.id);
+    const k = kitMap.get(key);
+    k.itemIds.push(it.id);
+    if (it.category) {
+      k.categoryCounts.set(it.category, (k.categoryCounts.get(it.category) || 0) + 1);
+    }
   });
   kitMap.forEach((kit) => {
+    // Pick the most-frequent category among items in this kit, if any
+    let bestCat = null;
+    let bestCount = 0;
+    kit.categoryCounts.forEach((count, cat) => {
+      if (count > bestCount) { bestCat = cat; bestCount = count; }
+    });
     kits.push({
       id: kit.id,
       name: kit.name,
-      category: null,
+      category: bestCat,
       itemIds: kit.itemIds,
     });
   });
 
-  // === CATEGORIES ===
+  // === CATEGORIES — auto-derived from the Category column on Items ===
+  // Any unique Category value seen on items becomes a new category.
+  // Case-insensitive dedup.
+  const catSet = new Map(); // lowercased -> original casing
+  items.forEach((it) => {
+    if (it.category) {
+      const k = it.category.toLowerCase();
+      if (!catSet.has(k)) catSet.set(k, it.category);
+    }
+  });
+  catSet.forEach((displayName) => {
+    categories.push({
+      id: uid("cat"),
+      name: displayName,
+      icon: "tag",
+    });
+  });
+
+  // === CATEGORIES SHEET (legacy / optional) ===
+  // If the user has a "Categories" sheet from an old template, still read it
+  // and merge any names that aren't already derived from items.
   const catRows = readSheet("Categories");
   catRows.forEach((row, idx) => {
     const name = String(pickField(row, "category name", "name") || "").trim();
-    if (!name) {
-      const hasOther = Object.values(row).some((v) => String(v).trim());
-      if (hasOther) errors.push(`Categories row ${idx + 2}: missing Category Name (skipped)`);
-      return;
-    }
+    if (!name) return; // silent on blank rows for legacy sheet
+    if (catSet.has(name.toLowerCase())) return; // already added from items
+    catSet.set(name.toLowerCase(), name);
     categories.push({
       id: uid("cat"),
       name,
