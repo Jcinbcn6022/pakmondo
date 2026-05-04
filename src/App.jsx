@@ -4707,6 +4707,9 @@ function AddToPacklistMenu({ kind, entityId, entityName, packlists, setPacklists
 function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish, onEdit, packlists, setPacklists }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
+  // Collapse-by-default state. expanded[id] = true means show items beneath.
+  const [expanded, setExpanded] = useState({});
+  const toggleExpanded = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   if (categories.length === 0) return <EmptyState label={t("inv.emptyCats")} hint={t("inv.emptyCatsHint")} />;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
@@ -4714,6 +4717,7 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, on
         const Icon = iconFor(c.icon);
         const catItems = items.filter((it) => it.category === c.name);
         const kitCount = kits.filter((k) => k.category === c.name).length;
+        const isOpen = !!expanded[c.id];
         return (
           <div key={c.id}>
             {/* Header row — name + counts on the left, actions on the right */}
@@ -4724,16 +4728,26 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, on
             }}>
               <Icon size={20} strokeWidth={1.4} color={C.forest} />
               <button
-                onClick={() => onOpen(c)}
+                onClick={() => toggleExpanded(c.id)}
                 style={{
                   flex: 1, minWidth: 0, textAlign: "left",
                   background: "none", border: "none", padding: 0, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 8,
                 }}>
-                <div style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
-                  {tOrLiteral(lang, "cat", c.name)}
-                </div>
-                <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                  {t("pl.catLabel")} · {catItems.length} {catItems.length === 1 ? "item" : "items"}{kitCount > 0 ? ` · ${kitCount} ${kitCount === 1 ? "kit" : "kits"}` : ""}
+                {/* Chevron rotates to indicate collapse state */}
+                <ChevronRight
+                  size={16}
+                  strokeWidth={2}
+                  color={C.muted}
+                  style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
+                    {tOrLiteral(lang, "cat", c.name)}
+                  </div>
+                  <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    {t("pl.catLabel")} · {catItems.length} {catItems.length === 1 ? "item" : "items"}{kitCount > 0 ? ` · ${kitCount} ${kitCount === 1 ? "kit" : "kits"}` : ""}
+                  </div>
                 </div>
               </button>
               {/* Action icons — share, publish, edit, delete */}
@@ -4767,41 +4781,44 @@ function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, on
               </div>
             </div>
 
-            {/* Add-to-Packlist control */}
-            {packlists && setPacklists && (
-              <div style={{ marginBottom: 8 }}>
-                <AddToPacklistMenu
-                  kind="category" entityId={c.id} entityName={c.name}
-                  packlists={packlists} setPacklists={setPacklists}
-                />
-              </div>
-            )}
-
-            {/* Inline item list */}
-            {catItems.length === 0 ? (
-              <div style={{ paddingLeft: 28, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
-                {t("kitDetail.empty")}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {catItems.map((it) => (
-                  <div key={it.id}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "8px 12px 8px 28px",
-                      borderBottom: `1px solid ${C.line}`,
-                    }}>
-                    <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
-                      {it.name}
-                    </span>
-                    {it.weight && (
-                      <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
-                        {formatWeight(it.weight, units)}
-                      </span>
-                    )}
+            {/* Add-to-Packlist + items list — both hidden when collapsed */}
+            {isOpen && (
+              <>
+                {packlists && setPacklists && (
+                  <div style={{ marginBottom: 8 }}>
+                    <AddToPacklistMenu
+                      kind="category" entityId={c.id} entityName={c.name}
+                      packlists={packlists} setPacklists={setPacklists}
+                    />
                   </div>
-                ))}
-              </div>
+                )}
+
+                {catItems.length === 0 ? (
+                  <div style={{ paddingLeft: 28, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                    {t("kitDetail.empty")}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    {catItems.map((it) => (
+                      <div key={it.id}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "8px 12px 8px 28px",
+                          borderBottom: `1px solid ${C.line}`,
+                        }}>
+                        <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                          {it.name}
+                        </span>
+                        {it.weight && (
+                          <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                            {formatWeight(it.weight, units)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
@@ -5313,6 +5330,9 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
 function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit, onEditKit, packlists, setPacklists }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
+  // Collapse-by-default state per kit. expanded[kitId] = true means show items.
+  const [expanded, setExpanded] = useState({});
+  const toggleExpanded = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
 
   // Group kits by their `category` field. Kits with the same category appear
@@ -5353,24 +5373,34 @@ function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKi
     const kitWeightStr = formatWeightFromKg(kitKg, units);
     return (
       <div key={kit.id}>
-            {/* Header row — name + meta on left, action icons on right */}
+            {/* Header row — name + meta on left, action icons on right.
+                Tapping the name area toggles the items list below. */}
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
               marginBottom: 8, paddingBottom: 8,
               borderBottom: `1.5px solid ${C.ink}`,
             }}>
               <button
-                onClick={() => onEditKit && onEditKit(kit.id)}
+                onClick={() => toggleExpanded(kit.id)}
                 style={{
                   flex: 1, minWidth: 0, textAlign: "left",
-                  background: "none", border: "none", padding: 0, cursor: onEditKit ? "pointer" : "default",
+                  background: "none", border: "none", padding: 0, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 8,
                 }}>
-                <div style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
-                  {kit.name}
-                </div>
-                <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                  KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
-                  {kit.category ? ` · ${tOrLiteral(lang, "cat", kit.category)}` : ""}
+                <ChevronRight
+                  size={16}
+                  strokeWidth={2}
+                  color={C.muted}
+                  style={{ flexShrink: 0, transform: expanded[kit.id] ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
+                    {kit.name}
+                  </div>
+                  <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
+                    {kit.category ? ` · ${tOrLiteral(lang, "cat", kit.category)}` : ""}
+                  </div>
                 </div>
               </button>
               {/* Action icons — share, publish, edit, delete */}
@@ -5404,46 +5434,49 @@ function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKi
               </div>
             </div>
 
-            {/* Add-to-Packlist control */}
-            {packlists && setPacklists && (
-              <div style={{ marginBottom: 8 }}>
-                <AddToPacklistMenu
-                  kind="kit" entityId={kit.id} entityName={kit.name}
-                  packlists={packlists} setPacklists={setPacklists}
-                />
-              </div>
-            )}
-
-            {/* Inline item list */}
-            {kitItems.length === 0 ? (
-              <div style={{ paddingLeft: 12, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
-                {t("kitDetail.empty")}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {kitItems.map((it) => (
-                  <div key={it.id}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "8px 12px",
-                      borderBottom: `1px solid ${C.line}`,
-                    }}>
-                    <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
-                      {it.name}
-                    </span>
-                    {it.category && (
-                      <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}>
-                        {tOrLiteral(lang, "cat", it.category)}
-                      </span>
-                    )}
-                    {it.weight && (
-                      <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
-                        {formatWeight(it.weight, units)}
-                      </span>
-                    )}
+            {/* Add-to-Packlist + items list — both hidden when kit is collapsed */}
+            {expanded[kit.id] && (
+              <>
+                {packlists && setPacklists && (
+                  <div style={{ marginBottom: 8 }}>
+                    <AddToPacklistMenu
+                      kind="kit" entityId={kit.id} entityName={kit.name}
+                      packlists={packlists} setPacklists={setPacklists}
+                    />
                   </div>
-                ))}
-              </div>
+                )}
+
+                {kitItems.length === 0 ? (
+                  <div style={{ paddingLeft: 12, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                    {t("kitDetail.empty")}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    {kitItems.map((it) => (
+                      <div key={it.id}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "8px 12px",
+                          borderBottom: `1px solid ${C.line}`,
+                        }}>
+                        <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                          {it.name}
+                        </span>
+                        {it.category && (
+                          <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}>
+                            {tOrLiteral(lang, "cat", it.category)}
+                          </span>
+                        )}
+                        {it.weight && (
+                          <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                            {formatWeight(it.weight, units)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
     );
