@@ -781,6 +781,28 @@ const TRANSLATIONS = {
     "dash.locDenied": "Location access denied by browser",
     "dash.locUnsupported": "Location unavailable",
     "dash.locUnknown": "Position unknown",
+    "loc.cardTitle": "Current Position",
+    "loc.refresh": "Refresh",
+    "loc.copy": "Copy",
+    "loc.copied": "Copied!",
+    "loc.send": "Send",
+    "loc.lastUpdated": "Last updated",
+    "loc.placeUnknown": "Place name unavailable",
+    "loc.placeLoading": "Looking up place name...",
+    "loc.openMaps": "Open in Google Maps",
+    "loc.dialogTitle": "Send my location",
+    "loc.sendToMember": "To a PakMondo member",
+    "loc.sendToEmail": "To an email address",
+    "loc.recipientUsername": "Recipient username",
+    "loc.recipientEmail": "Recipient email",
+    "loc.optionalMessage": "Add a note (optional)",
+    "loc.sendBtn": "Send location",
+    "loc.sendingBtn": "Sending...",
+    "loc.sentMember": "Location sent to {name}.",
+    "loc.sentEmail": "Email sent to {email}.",
+    "loc.sendFailed": "Failed to send. Please try again.",
+    "loc.noCoordsYet": "Enable location first, then refresh.",
+    "loc.fromShare": "shared their location with you",
     "dash.statTrips": "Active Trips",
     "dash.statTripsSub": "Planned",
     "dash.statInventory": "In Inventory",
@@ -1389,6 +1411,28 @@ const TRANSLATIONS = {
     "dash.wayfarer": "Caminante",
     "dash.locOff": "Ubicación desactivada  /  actívala en ajustes",
     "dash.locPending": "Adquiriendo posición...",
+    "loc.cardTitle": "Posición actual",
+    "loc.refresh": "Actualizar",
+    "loc.copy": "Copiar",
+    "loc.copied": "¡Copiado!",
+    "loc.send": "Enviar",
+    "loc.lastUpdated": "Última actualización",
+    "loc.placeUnknown": "Nombre de lugar no disponible",
+    "loc.placeLoading": "Buscando nombre del lugar...",
+    "loc.openMaps": "Abrir en Google Maps",
+    "loc.dialogTitle": "Enviar mi ubicación",
+    "loc.sendToMember": "A un miembro de PakMondo",
+    "loc.sendToEmail": "A una dirección de correo",
+    "loc.recipientUsername": "Usuario destinatario",
+    "loc.recipientEmail": "Correo del destinatario",
+    "loc.optionalMessage": "Añade una nota (opcional)",
+    "loc.sendBtn": "Enviar ubicación",
+    "loc.sendingBtn": "Enviando...",
+    "loc.sentMember": "Ubicación enviada a {name}.",
+    "loc.sentEmail": "Correo enviado a {email}.",
+    "loc.sendFailed": "Error al enviar. Inténtalo de nuevo.",
+    "loc.noCoordsYet": "Activa la ubicación primero y luego actualiza.",
+    "loc.fromShare": "ha compartido su ubicación contigo",
     "dash.locDenied": "Acceso a ubicación denegado por el navegador",
     "dash.locUnsupported": "Ubicación no disponible",
     "dash.locUnknown": "Posición desconocida",
@@ -1802,6 +1846,49 @@ const useViewport = () => {
 const padX = (isMobile) => (isMobile ? "0 16px 56px" : "0 32px 80px");
 
 const uid = (p) => `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4).toString(36)}`;
+
+/* ============================================================
+   Reverse geocoding via OpenStreetMap Nominatim (free, no key).
+   Rate limit: ~1 req/sec per app. We cache results in-memory
+   so refreshing the same coords doesn't re-hit the API.
+   Returns: { city, region, country, full } or null on failure.
+   ============================================================ */
+const _geocodeCache = new Map();
+async function reverseGeocode(lat, lon, lang = "en") {
+  const key = `${lat.toFixed(4)},${lon.toFixed(4)},${lang}`;
+  if (_geocodeCache.has(key)) return _geocodeCache.get(key);
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=${lang}`;
+    const res = await fetch(url, {
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) throw new Error("geocode failed");
+    const data = await res.json();
+    const a = data.address || {};
+    const city = a.city || a.town || a.village || a.hamlet || a.county || "";
+    const region = a.state || a.region || "";
+    const country = a.country || "";
+    const parts = [city, country].filter(Boolean);
+    const full = parts.join(", ") || data.display_name || "";
+    const result = { city, region, country, full };
+    _geocodeCache.set(key, result);
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Format coordinates for display: "41.3902°N 2.1602°E" */
+function formatCoords(lat, lon, decimals = 4) {
+  const fmt = (val, pos, neg) => `${Math.abs(val).toFixed(decimals)}°${val >= 0 ? pos : neg}`;
+  return `${fmt(lat, "N", "S")} ${fmt(lon, "E", "W")}`;
+}
+
+/* Build a Google Maps URL pointing at a coordinate. Works on web + mobile. */
+function googleMapsUrl(lat, lon) {
+  return `https://www.google.com/maps?q=${lat},${lon}`;
+}
+
 
 // === Unit conversion helpers ===
 // Items always store weight as a string like "2.10 kg" (the value is canonical metric).
@@ -2372,7 +2459,7 @@ const buildShareService = ({ inbox, setInbox, currentUser, items, kits, categori
     try {
       const data = JSON.parse(text);
       if (!data || data.pakmondoExport !== 1) return null;
-      if (!["kit", "category", "trip"].includes(data.kind)) return null;
+      if (!["kit", "category", "trip", "location"].includes(data.kind)) return null;
       return {
         id: uid("in"),
         fromUsername: data.fromUsername || "unknown",
@@ -3107,7 +3194,7 @@ function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, badge
   );
 }
 
-function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], locationEnabled }) {
+function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], locationEnabled, shareService }) {
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const totalKgRaw = items.filter((i) => i.packed).reduce((s, i) => s + parseKg(i.weight || ""), 0);
@@ -3115,33 +3202,48 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
 
   const [coords, setCoords] = useState(null);
   const [coordsState, setCoordsState] = useState("idle");
+  const [place, setPlace] = useState(null);                 // reverse-geocoded result
+  const [placeState, setPlaceState] = useState("idle");     // "idle" | "loading" | "ok" | "error"
 
-  useEffect(() => {
+  // Fetch the device's current location. Called automatically when
+  // locationEnabled flips on, AND on demand via the Refresh button.
+  const fetchLocation = (manual = false) => {
     if (!locationEnabled) {
-      setCoords(null);
-      setCoordsState("idle");
-      return;
+      setCoords(null); setCoordsState("idle"); return;
     }
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setCoordsState("unsupported");
-      return;
+      setCoordsState("unsupported"); return;
     }
     setCoordsState("pending");
-    let cancelled = false;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        if (cancelled) return;
         setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         setCoordsState("ok");
       },
       (err) => {
-        if (cancelled) return;
         setCoordsState(err && err.code === 1 ? "denied" : "unavailable");
       },
-      { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
+      { timeout: 8000, maximumAge: manual ? 0 : 60000, enableHighAccuracy: false }
     );
-    return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    fetchLocation(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationEnabled]);
+
+  // Whenever coords change, kick off a reverse-geocode lookup.
+  useEffect(() => {
+    if (!coords) { setPlace(null); setPlaceState("idle"); return; }
+    let cancelled = false;
+    setPlaceState("loading");
+    reverseGeocode(coords.lat, coords.lon, lang).then((res) => {
+      if (cancelled) return;
+      if (res) { setPlace(res); setPlaceState("ok"); }
+      else     { setPlace(null); setPlaceState("error"); }
+    });
+    return () => { cancelled = true; };
+  }, [coords?.lat, coords?.lon, lang]);
 
   const fmtCoord = (val, posLetter, negLetter) => {
     const abs = Math.abs(val).toFixed(4);
@@ -3197,6 +3299,51 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
             <p style={{ marginTop: 14, marginBottom: 0, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 16 : 19, color: C.inkSoft }}>
               {t("brand.tagline")}
             </p>
+          </div>
+
+          {/* === LOCATION CARD === */}
+          <div style={{ marginTop: isMobile ? 24 : 32, padding: isMobile ? 18 : 24, background: C.paper, border: `1.5px solid ${C.ink}`, position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ width: 44, height: 44, flexShrink: 0, background: C.forest, color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <MapPin size={22} strokeWidth={1.6} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
+                  {t("loc.cardTitle")}
+                </div>
+                {coordsState === "ok" && coords ? (
+                  <>
+                    <div style={{ marginTop: 6, fontFamily: F.display, fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: C.ink, wordBreak: "break-word" }}>
+                      {formatCoords(coords.lat, coords.lon)}
+                    </div>
+                    <div style={{ marginTop: 4, fontFamily: F.body, fontSize: isMobile ? 13 : 15, fontStyle: "italic", color: C.inkSoft, minHeight: 20 }}>
+                      {placeState === "loading" ? t("loc.placeLoading")
+                       : placeState === "ok" && place?.full ? place.full
+                       : placeState === "error" ? t("loc.placeUnknown")
+                       : ""}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ marginTop: 6, fontFamily: F.body, fontSize: 14, color: C.inkSoft, fontStyle: "italic" }}>
+                    {coordLine}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action buttons — refresh + open in Google Maps only */}
+            <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button onClick={() => fetchLocation(true)}
+                style={{ padding: "8px 14px", background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                ↻ {t("loc.refresh")}
+              </button>
+              {coordsState === "ok" && coords && (
+                <a href={googleMapsUrl(coords.lat, coords.lon)} target="_blank" rel="noopener noreferrer"
+                  style={{ padding: "8px 14px", background: C.rust, border: `1.5px solid ${C.rust}`, color: C.paper, textDecoration: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  🗺 {t("loc.openMaps")}
+                </a>
+              )}
+            </div>
           </div>
 
           {alerts.length > 0 && (
@@ -4856,6 +5003,161 @@ function CategoryItemRow({ item, index, onToggle, onEdit, onDelete }) {
         >
           <Trash2 size={14} />
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   SendLocationDialog — modal for sending current location either
+   to a PakMondo member (via existing share system) or to any
+   email address (via Resend serverless function).
+   ============================================================ */
+function SendLocationDialog({ coords, place, fromUser, shareService, onClose }) {
+  const { t, lang } = useI18n();
+  const { isMobile } = useViewport();
+  const [mode, setMode] = useState("member");      // "member" | "email"
+  const [recipient, setRecipient] = useState("");
+  const [note, setNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const send = async () => {
+    if (sending || !recipient.trim()) return;
+    setSending(true); setError(""); setSuccess("");
+
+    const payload = {
+      lat: coords.lat,
+      lon: coords.lon,
+      placeName: place?.full || "",
+      capturedAt: new Date().toISOString(),
+      mapsUrl: googleMapsUrl(coords.lat, coords.lon),
+      note: note.trim(),
+    };
+
+    if (mode === "member") {
+      // Send via existing share system
+      if (!shareService) { setError(t("loc.sendFailed")); setSending(false); return; }
+      const result = await shareService.sendShare({
+        kind: "location",
+        payload,
+        recipientUsername: recipient.trim(),
+        mode: "copy",
+      });
+      setSending(false);
+      if (result.error) {
+        setError(result.error || t("loc.sendFailed"));
+        return;
+      }
+      setSuccess(t("loc.sentMember", { name: recipient.trim() }));
+      setTimeout(onClose, 1500);
+    } else {
+      // Send via Vercel serverless function -> Resend
+      try {
+        const res = await fetch("/api/send-location-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: recipient.trim(),
+            fromName: fromUser.username || fromUser.name || "A PakMondo user",
+            lat: coords.lat,
+            lon: coords.lon,
+            placeName: place?.full || "",
+            note: note.trim(),
+            lang: lang,
+          }),
+        });
+        setSending(false);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setError(errData.error || t("loc.sendFailed"));
+          return;
+        }
+        setSuccess(t("loc.sentEmail", { email: recipient.trim() }));
+        setTimeout(onClose, 1800);
+      } catch (e) {
+        setSending(false);
+        setError(t("loc.sendFailed"));
+      }
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(26,36,33,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: "100%", maxWidth: 520, background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 20 : 28, maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+            {t("loc.dialogTitle")}
+          </h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 4 }} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Coords preview */}
+        <div style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.forest}`, marginBottom: 18 }}>
+          <div style={{ fontFamily: F.mono, fontSize: 14, fontWeight: 700, color: C.ink }}>
+            📍 {formatCoords(coords.lat, coords.lon)}
+          </div>
+          {place?.full && (
+            <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+              {place.full}
+            </div>
+          )}
+        </div>
+
+        {/* Mode toggle */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <button onClick={() => setMode("member")}
+            style={{ flex: 1, padding: "10px 12px", border: `1.5px solid ${mode === "member" ? C.forest : C.line}`, background: mode === "member" ? C.forest : "transparent", color: mode === "member" ? C.paper : C.ink, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>
+            👥 {t("loc.sendToMember")}
+          </button>
+          <button onClick={() => setMode("email")}
+            style={{ flex: 1, padding: "10px 12px", border: `1.5px solid ${mode === "email" ? C.forest : C.line}`, background: mode === "email" ? C.forest : "transparent", color: mode === "email" ? C.paper : C.ink, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>
+            ✉ {t("loc.sendToEmail")}
+          </button>
+        </div>
+
+        {/* Recipient input */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+            {mode === "member" ? t("loc.recipientUsername") : t("loc.recipientEmail")}
+          </div>
+          <input value={recipient} onChange={(e) => setRecipient(e.target.value)}
+            placeholder={mode === "member" ? "username" : "name@example.com"}
+            type={mode === "email" ? "email" : "text"}
+            style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
+        </div>
+
+        {/* Note input */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+            {t("loc.optionalMessage")}
+          </div>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+            placeholder=""
+            style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 15, color: C.ink, resize: "vertical" }} />
+        </div>
+
+        {error && (
+          <div style={{ marginBottom: 14, padding: 10, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+        {success && (
+          <div style={{ marginBottom: 14, padding: 10, background: C.paperDeep, borderLeft: `3px solid ${C.forest}`, color: C.forest, fontFamily: F.body, fontSize: 13 }}>
+            ✓ {success}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
+          <Btn variant="ghost" icon={X} onClick={onClose} fullWidth={isMobile}>{t("common.cancel")}</Btn>
+          <Btn variant="rust" icon={ChevronRight} onClick={send} fullWidth={isMobile} disabled={sending || !recipient.trim()}>
+            {sending ? t("loc.sendingBtn") : t("loc.sendBtn")}
+          </Btn>
+        </div>
       </div>
     </div>
   );
@@ -8447,7 +8749,6 @@ function Inbox({
       const newTrip = { ...trip, id: uid("trip") };
       if (share.mode === "live") newTrip.linkedFrom = { username: share.fromUsername, name: share.fromName, sharedAt: share.sentAt };
       setTrips([newTrip, ...trips]);
-
       // Optionally bring kits + items + packlist
       const incomingItems = (p.items || []).filter((i) => selectedItemIds.has(i.id));
       const itemRemap = {};
@@ -8493,13 +8794,21 @@ function Inbox({
       <div>
         <Header go={go} active="inbox" />
         <div style={{ padding: padX(isMobile) }}>
-          <SharePreview
-            share={reviewing}
-            existingItems={items}
-            existingKits={kits}
-            onCancel={() => setReviewingId(null)}
-            onAccept={(opts) => importShare(reviewing, opts)}
-          />
+          {reviewing.kind === "location" ? (
+            <LocationSharePreview
+              share={reviewing}
+              onClose={() => setReviewingId(null)}
+              onMarkSeen={() => importShare(reviewing, { selectedItemIds: new Set(), selectedKitIds: new Set() })}
+            />
+          ) : (
+            <SharePreview
+              share={reviewing}
+              existingItems={items}
+              existingKits={kits}
+              onCancel={() => setReviewingId(null)}
+              onAccept={(opts) => importShare(reviewing, opts)}
+            />
+          )}
         </div>
         <Footer />
       </div>
@@ -8631,11 +8940,106 @@ function Inbox({
   );
 }
 
+/* ============================================================
+   LocationSharePreview — view-only preview for location shares.
+   Unlike kit/category/trip shares, there's nothing to import here.
+   The user just sees the coordinates, place name, and a Maps link.
+   "Mark as seen" moves it to the Imported tab.
+   ============================================================ */
+function LocationSharePreview({ share, onClose, onMarkSeen }) {
+  const { t, locale } = useI18n();
+  const { isMobile } = useViewport();
+  const p = share.payload || {};
+  const lat = p.lat;
+  const lon = p.lon;
+  const fmtCaptured = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(locale, { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <div style={{ marginTop: isMobile ? 24 : 40, maxWidth: 720 }}>
+      <button onClick={onClose}
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 11, color: C.ink, letterSpacing: "0.18em", textTransform: "uppercase", padding: 0, marginBottom: 18 }}>
+        <ArrowLeft size={14} /> {t("common.back")}
+      </button>
+
+      <Coord>LOCATION SHARE</Coord>
+      <h2 style={{ margin: "8px 0 16px", fontFamily: F.display, fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+        @{share.fromUsername} {t("loc.fromShare")}<span style={{ color: C.rust }}>.</span>
+      </h2>
+
+      {/* Coordinates card */}
+      <div style={{ padding: isMobile ? 18 : 24, background: C.paper, border: `1.5px solid ${C.ink}`, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ width: 44, height: 44, flexShrink: 0, background: C.forest, color: C.paper, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <MapPin size={22} strokeWidth={1.6} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {lat != null && lon != null ? (
+              <>
+                <div style={{ fontFamily: F.display, fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: C.ink, wordBreak: "break-word" }}>
+                  {formatCoords(lat, lon)}
+                </div>
+                {p.placeName && (
+                  <div style={{ marginTop: 4, fontFamily: F.body, fontSize: isMobile ? 14 : 16, fontStyle: "italic", color: C.inkSoft }}>
+                    {p.placeName}
+                  </div>
+                )}
+                {p.capturedAt && (
+                  <div style={{ marginTop: 8, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", color: C.muted, textTransform: "uppercase" }}>
+                    {t("loc.lastUpdated")}: {fmtCaptured(p.capturedAt)}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontFamily: F.body, fontSize: 14, color: C.inkSoft, fontStyle: "italic" }}>
+                Location data missing.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {p.note && (
+          <div style={{ marginTop: 16, padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.ochre}` }}>
+            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>
+              Note from @{share.fromUsername}
+            </div>
+            <div style={{ fontFamily: F.body, fontSize: 14, fontStyle: "italic", color: C.ink, lineHeight: 1.4 }}>
+              {p.note}
+            </div>
+          </div>
+        )}
+
+        {lat != null && lon != null && (
+          <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <a href={p.mapsUrl || googleMapsUrl(lat, lon)} target="_blank" rel="noopener noreferrer"
+              style={{ padding: "10px 16px", background: C.rust, border: `1.5px solid ${C.rust}`, color: C.paper, textDecoration: "none", cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              🗺 {t("loc.openMaps")}
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
+        <Btn variant="ghost" icon={X} onClick={onClose} fullWidth={isMobile}>{t("common.cancel")}</Btn>
+        <Btn variant="rust" icon={Check} onClick={onMarkSeen} fullWidth={isMobile}>
+          {t("common.done") || "Done"}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
 // Inbox card for a pending share
 function InboxCard({ share, fmtDate, onReview, onDecline, declining, confirmDecline, cancelDecline }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
-  const entityName = share.payload?.kit?.name || share.payload?.category?.name || share.payload?.trip?.name || share.kind;
+  const entityName =
+    share.kind === "location" ? (share.payload?.placeName || (share.payload?.lat && share.payload?.lon ? formatCoords(share.payload.lat, share.payload.lon) : t("loc.cardTitle")))
+    : (share.payload?.kit?.name || share.payload?.category?.name || share.payload?.trip?.name || share.kind);
   const modeLabel = share.mode === "live" ? t("inbox.modeBadgeLive") : t("inbox.modeBadgeCopy");
   const modeColor = share.mode === "live" ? C.rust : C.forest;
 
@@ -10036,7 +10440,7 @@ export default function App() {
     screen === "signup" ? <Signup go={go} setUser={setUser} takenUsernames={takenUsernames} setTakenUsernames={setTakenUsernames} /> :
     screen === "forgot" ? <ForgotPassword go={go} /> :
     screen === "reset" ? <ResetPassword go={go} /> :
-    screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} /> :
+    screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} shareService={shareService} /> :
     screen === "inventory" ? <Inventory go={go} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKitsSynced} packlists={packlists} setPacklists={setPacklistsSynced} cart={cart} setCart={setCartSynced} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
     screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} packlists={packlists} setPacklists={setPacklistsSynced} /> :
     screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} /> :
