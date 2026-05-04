@@ -264,6 +264,36 @@ const supabaseService = {
     return data || [];
   },
 
+  // === ADMIN ONLY ===
+  // Fetch ALL submissions across all users, regardless of status. Used by
+  // the admin review screen. Backend RLS must allow profiles.is_admin=true
+  // to read non-approved rows for this to actually return non-approved.
+  fetchAllSubmissions: async (statusFilter = null) => {
+    let q = supabase
+      .from("library_items")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (statusFilter) q = q.eq("status", statusFilter);
+    const { data, error } = await q;
+    if (error) return { error: error.message, items: [] };
+    return { items: data || [] };
+  },
+
+  // === ADMIN ONLY ===
+  // Set a submission's status. Used to approve / reject pending submissions.
+  // RLS must allow admins to update library_items rows.
+  setSubmissionStatus: async (id, status, reason = null) => {
+    const updates = { status };
+    if (status === "rejected" && reason) updates.rejection_reason = reason;
+    if (status === "approved") updates.rejection_reason = null;
+    const { error } = await supabase
+      .from("library_items")
+      .update(updates)
+      .eq("id", id);
+    if (error) return { error: error.message };
+    return { ok: true };
+  },
+
   // Delete a submission (publisher's own)
   deleteSubmission: async (id) => {
     const { error } = await supabase.from("library_items").delete().eq("id", id);
@@ -678,6 +708,7 @@ const TRANSLATIONS = {
     "lib.dialogTitle": "Publish to the community library",
     "lib.dialogSub": "Curated submissions appear in the public Library where any explorer can browse and import them.",
     "lib.fieldTitle": "Title",
+    "lib.optionalSuffix": "(optional)",
     "lib.fieldTitleHint": "How should this appear in the library?",
     "lib.fieldActivity": "Activity",
     "lib.fieldActivityHint": "Pick the closest match, or type a new one.",
@@ -696,6 +727,28 @@ const TRANSLATIONS = {
 
     // === My submissions (in Settings) ===
     "lib.mySubsTitle": "My library submissions",
+    "admin.reviewBtn": "Review all submissions",
+    "admin.reviewHeading": "ADMIN",
+    "admin.reviewTitle": "Submission Review",
+    "admin.reviewSub": "Review every submission across the community. Approve to publish, reject with a reason if it doesn't meet the bar.",
+    "admin.empty": "No submissions in this status.",
+    "admin.filter.pending": "Pending",
+    "admin.filter.approved": "Approved",
+    "admin.filter.rejected": "Rejected",
+    "admin.filter.all": "All",
+    "admin.currentStatus": "Status",
+    "admin.rejectionReason": "Reason",
+    "admin.itemsInKit": "Items in this kit",
+    "admin.itemsInCategory": "Items in this category",
+    "admin.kitsInTrip": "Kits in this trip",
+    "admin.standaloneItems": "Standalone items",
+    "admin.btnApprove": "Approve",
+    "admin.btnReject": "Reject",
+    "admin.confirmReject": "Confirm rejection",
+    "admin.rejectingTitle": "Rejecting submission",
+    "admin.rejectingHint": "Optional: tell the publisher what was wrong. They'll see this on their My Submissions page.",
+    "admin.rejectReasonPh": "e.g. duplicate of existing item, missing details, off-topic...",
+    "admin.noActivity": "no activity",
     "lib.mySubsEmpty": "You haven't published anything yet.",
     "lib.mySubsEmptyHint": "Publish a kit, category, or trip from its share menu.",
     "lib.subStatusPending": "PENDING REVIEW",
@@ -1390,6 +1443,7 @@ const TRANSLATIONS = {
     "lib.dialogTitle": "Publicar en la biblioteca comunitaria",
     "lib.dialogSub": "Las publicaciones curadas aparecen en la Biblioteca pública para que cualquier explorador pueda navegarlas e importarlas.",
     "lib.fieldTitle": "Título",
+    "lib.optionalSuffix": "(opcional)",
     "lib.fieldTitleHint": "¿Cómo debería aparecer en la biblioteca?",
     "lib.fieldActivity": "Actividad",
     "lib.fieldActivityHint": "Elige la mejor opción, o escribe una nueva.",
@@ -1407,6 +1461,28 @@ const TRANSLATIONS = {
     "lib.descriptionRequired": "Se requiere una breve descripción",
 
     "lib.mySubsTitle": "Mis publicaciones",
+    "admin.reviewBtn": "Revisar todas las publicaciones",
+    "admin.reviewHeading": "ADMIN",
+    "admin.reviewTitle": "Revisión de publicaciones",
+    "admin.reviewSub": "Revisa cada publicación de la comunidad. Aprueba para publicar, rechaza con una razón si no cumple.",
+    "admin.empty": "No hay publicaciones en este estado.",
+    "admin.filter.pending": "Pendientes",
+    "admin.filter.approved": "Aprobadas",
+    "admin.filter.rejected": "Rechazadas",
+    "admin.filter.all": "Todas",
+    "admin.currentStatus": "Estado",
+    "admin.rejectionReason": "Razón",
+    "admin.itemsInKit": "Artículos en este kit",
+    "admin.itemsInCategory": "Artículos en esta categoría",
+    "admin.kitsInTrip": "Kits en este viaje",
+    "admin.standaloneItems": "Artículos individuales",
+    "admin.btnApprove": "Aprobar",
+    "admin.btnReject": "Rechazar",
+    "admin.confirmReject": "Confirmar rechazo",
+    "admin.rejectingTitle": "Rechazando publicación",
+    "admin.rejectingHint": "Opcional: dile al autor qué estuvo mal. Lo verá en su página Mis Publicaciones.",
+    "admin.rejectReasonPh": "p.ej. duplicado de otro elemento, faltan detalles, fuera de tema...",
+    "admin.noActivity": "sin actividad",
     "lib.mySubsEmpty": "Aún no has publicado nada.",
     "lib.mySubsEmptyHint": "Publica un kit, categoría o viaje desde su menú de compartir.",
     "lib.subStatusPending": "EN REVISIÓN",
@@ -3110,6 +3186,7 @@ function Login({ go, setUser }) {
       email: result.user.email,
       username: result.profile?.username || "",
       region: result.profile?.region || "",
+      is_admin: !!result.profile?.is_admin,
     });
     go("dashboard");
   };
@@ -6206,8 +6283,7 @@ function PublishDialog({
 
   const validate = () => {
     if (!title.trim()) return t("lib.titleRequired");
-    if (!activity.trim()) return t("lib.activityRequired");
-    if (!description.trim()) return t("lib.descriptionRequired");
+    // activity + description are now optional
     return null;
   };
 
@@ -6218,12 +6294,17 @@ function PublishDialog({
     setSubmitting(true);
     setError("");
 
-    // Ensure the activity exists in library_activities
-    const activityResult = await supabaseService.ensureActivity(activity, currentUser.id);
-    if (activityResult.error) {
-      setError(activityResult.error);
-      setSubmitting(false);
-      return;
+    // Activity is optional. If left blank we skip ensureActivity (which would
+    // otherwise fail on empty input) and submit with an empty activity tag.
+    let activityName = "";
+    if (activity.trim()) {
+      const activityResult = await supabaseService.ensureActivity(activity, currentUser.id);
+      if (activityResult.error) {
+        setError(activityResult.error);
+        setSubmitting(false);
+        return;
+      }
+      activityName = activityResult.name;
     }
 
     // Build the snapshot payload with referenced data baked in
@@ -6242,7 +6323,7 @@ function PublishDialog({
       kind,
       title,
       description,
-      activity: activityResult.name,
+      activity: activityName,
       payload,
       publisher: {
         id: currentUser.id,
@@ -6295,7 +6376,7 @@ function PublishDialog({
 
               {/* Activity with autocomplete */}
               <div style={{ position: "relative" }}>
-                <Field label={t("lib.fieldActivity")} icon={Mountain} value={activity}
+                <Field label={`${t("lib.fieldActivity")} ${t("lib.optionalSuffix")}`} icon={Mountain} value={activity}
                   onChange={(e) => setActivity(e.target.value)}
                   onFocus={() => setActivityFocused(true)}
                   onBlur={() => setTimeout(() => setActivityFocused(false), 200)}
@@ -6342,7 +6423,7 @@ function PublishDialog({
               {/* Description */}
               <label style={{ display: "block" }}>
                 <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                  {t("lib.fieldDescription")}
+                  {t("lib.fieldDescription")} {t("lib.optionalSuffix")}
                 </div>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                   placeholder={t("lib.descriptionPh")} rows={4}
@@ -11397,6 +11478,378 @@ function SharePreview({ share, existingItems, existingKits, onCancel, onAccept }
 }
 
 /* ============================================================
+   AdminSubmissionsReview — full-screen overlay, admin-only.
+   Lists every submission across all users with status filters
+   (Pending / Approved / Rejected / All). Tap a row to see the
+   full detail modal where the admin can Approve or Reject.
+   ============================================================ */
+function AdminSubmissionsReview({ onClose }) {
+  const { t, locale } = useI18n();
+  const { isMobile } = useViewport();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [openId, setOpenId] = useState(null);
+  const [error, setError] = useState("");
+
+  const refresh = async () => {
+    setLoading(true);
+    setError("");
+    const result = await supabaseService.fetchAllSubmissions(statusFilter === "all" ? null : statusFilter);
+    if (result.error) setError(result.error);
+    setItems(result.items || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, [statusFilter]);
+
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(locale, { month: "short", day: "2-digit", year: "numeric" });
+  };
+
+  const statusInfo = (s) => {
+    if (s === "approved") return { label: t("lib.subStatusApproved"), color: C.forest };
+    if (s === "rejected") return { label: t("lib.subStatusRejected"), color: C.rust };
+    return { label: t("lib.subStatusPending"), color: C.muted };
+  };
+
+  const openItem = openId ? items.find((i) => i.id === openId) : null;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: C.paper, zIndex: 950,
+      overflowY: "auto", padding: isMobile ? 16 : 32,
+    }}>
+      <div style={{ maxWidth: 920, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <button onClick={onClose}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: F.mono, fontSize: 11, color: C.muted,
+              letterSpacing: "0.18em", textTransform: "uppercase",
+              padding: "8px 0",
+            }}>
+            <ArrowLeft size={14} /> {t("common.back")}
+          </button>
+          <Coord>{t("admin.reviewHeading")}</Coord>
+        </div>
+
+        <h2 style={{ margin: "0 0 6px", fontFamily: F.display, fontSize: isMobile ? 28 : 38, fontWeight: 700, letterSpacing: "-0.02em" }}>
+          {t("admin.reviewTitle")}<span style={{ color: C.rust }}>.</span>
+        </h2>
+        <div style={{ marginBottom: 22, fontFamily: F.body, fontStyle: "italic", color: C.inkSoft }}>
+          {t("admin.reviewSub")}
+        </div>
+
+        <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
+          {["pending", "approved", "rejected", "all"].map((s) => {
+            const active = statusFilter === s;
+            return (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                style={{
+                  padding: "8px 14px",
+                  background: active ? C.ink : "transparent",
+                  color: active ? C.paper : C.ink,
+                  border: `1.5px solid ${C.ink}`,
+                  cursor: "pointer",
+                  fontFamily: F.mono, fontSize: 11,
+                  letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                }}>
+                {t(`admin.filter.${s}`)}
+              </button>
+            );
+          })}
+        </div>
+
+        {error && (
+          <div style={{ padding: 12, marginBottom: 14, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ padding: 24, textAlign: "center", fontFamily: F.display, fontStyle: "italic", color: C.inkSoft }}>
+            {t("common.loading")}
+          </div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 24, background: C.paperDeep, border: `1px dashed ${C.line}`, textAlign: "center" }}>
+            <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: 16, color: C.inkSoft }}>{t("admin.empty")}</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {items.map((s) => {
+              const status = statusInfo(s.status);
+              return (
+                <button key={s.id} onClick={() => setOpenId(s.id)}
+                  style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12,
+                    padding: 14, background: C.paper,
+                    border: `1.5px solid ${C.line}`,
+                    cursor: "pointer", textAlign: "left",
+                  }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Coord>{s.kind.toUpperCase()}{s.activity ? `  ·  ${s.activity}` : ""}</Coord>
+                    <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{s.title}</div>
+                    <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                      @{s.publisher_username}{s.publisher_region ? ` · ${s.publisher_region}` : ""} · {fmtDate(s.created_at)}
+                    </div>
+                  </div>
+                  <span style={{
+                    padding: "3px 8px", flexShrink: 0,
+                    fontFamily: F.mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase",
+                    border: `1.5px solid ${status.color}`, color: status.color, fontWeight: 700,
+                  }}>
+                    {status.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {openItem && (
+        <SubmissionDetailModal
+          submission={openItem}
+          onClose={() => setOpenId(null)}
+          onAfterAction={() => { setOpenId(null); refresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   SubmissionDetailModal — admin view of a single submission with
+   the full payload contents + Approve / Reject actions.
+   ============================================================ */
+function SubmissionDetailModal({ submission, onClose, onAfterAction }) {
+  const { t, locale } = useI18n();
+  const { isMobile } = useViewport();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [confirmingReject, setConfirmingReject] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(locale, { month: "short", day: "2-digit", year: "numeric" });
+  };
+
+  const payload = submission.payload || {};
+
+  const renderItemsList = (list, label) => {
+    if (!list || list.length === 0) return null;
+    return (
+      <div style={{ marginTop: 14 }}>
+        <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          {label} ({list.length})
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {list.map((it, idx) => (
+            <div key={it.id || idx} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "8px 12px",
+              borderBottom: `1px solid ${C.line}`,
+            }}>
+              <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                {it.name}
+              </span>
+              {it.category && (
+                <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}>
+                  {it.category}
+                </span>
+              )}
+              {it.weight && (
+                <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                  {it.weight}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderContents = () => {
+    if (submission.kind === "kit") {
+      const kit = payload.kit || {};
+      const items = payload.items || kit.items || [];
+      return (
+        <>
+          <div style={{ marginTop: 14, padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>KIT</div>
+            <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{kit.name || submission.title}</div>
+            {kit.category && (
+              <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                {kit.category}
+              </div>
+            )}
+          </div>
+          {renderItemsList(items, t("admin.itemsInKit"))}
+        </>
+      );
+    }
+    if (submission.kind === "category") {
+      const cat = payload.category || {};
+      const items = payload.items || [];
+      return (
+        <>
+          <div style={{ marginTop: 14, padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>CATEGORY</div>
+            <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{cat.name || submission.title}</div>
+          </div>
+          {renderItemsList(items, t("admin.itemsInCategory"))}
+        </>
+      );
+    }
+    if (submission.kind === "trip") {
+      const pl = payload.packlist || {};
+      const kitsList = payload.kits || [];
+      const itemsList = payload.items || [];
+      return (
+        <>
+          <div style={{ marginTop: 14, padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>TRIP / PACKLIST</div>
+            <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{pl.name || submission.title}</div>
+            {pl.dest && <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>📍 {pl.dest}</div>}
+            {pl.date && <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>📅 {pl.date}</div>}
+          </div>
+          {kitsList.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("admin.kitsInTrip")} ({kitsList.length})
+              </div>
+              {kitsList.map((k, idx) => (
+                <div key={k.id || idx} style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700 }}>{k.name}</div>
+                  {k.items && k.items.length > 0 && (
+                    <div style={{ paddingLeft: 12 }}>
+                      {k.items.map((it, ii) => (
+                        <div key={it.id || ii} style={{ padding: "4px 0", fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>
+                          • {it.name}{it.weight ? ` — ${it.weight}` : ""}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {renderItemsList(itemsList, t("admin.standaloneItems"))}
+        </>
+      );
+    }
+    return null;
+  };
+
+  const handleApprove = async () => {
+    setBusy(true);
+    setError("");
+    const result = await supabaseService.setSubmissionStatus(submission.id, "approved");
+    setBusy(false);
+    if (result.error) { setError(result.error); return; }
+    onAfterAction();
+  };
+
+  const handleReject = async () => {
+    setBusy(true);
+    setError("");
+    const result = await supabaseService.setSubmissionStatus(submission.id, "rejected", rejectReason.trim() || null);
+    setBusy(false);
+    if (result.error) { setError(result.error); return; }
+    onAfterAction();
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(26,36,33,0.55)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        width: "100%", maxWidth: 720, maxHeight: "92vh", overflowY: "auto",
+        background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 18 : 28,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Coord>{submission.kind.toUpperCase()}  ·  {submission.activity || t("admin.noActivity")}</Coord>
+            <h3 style={{ margin: "4px 0 0", fontFamily: F.display, fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {submission.title}<span style={{ color: C.rust }}>.</span>
+            </h3>
+            <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              @{submission.publisher_username}{submission.publisher_region ? ` · ${submission.publisher_region}` : ""} · {fmtDate(submission.created_at)}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 4 }} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+
+        {submission.description && (
+          <div style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.ochre}`, fontFamily: F.body, fontSize: 14, fontStyle: "italic", color: C.ink, lineHeight: 1.5 }}>
+            "{submission.description}"
+          </div>
+        )}
+
+        <div style={{ marginTop: 14, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          {t("admin.currentStatus")}: <span style={{ color: submission.status === "approved" ? C.forest : submission.status === "rejected" ? C.rust : C.muted }}>{submission.status}</span>
+        </div>
+        {submission.rejection_reason && (
+          <div style={{ marginTop: 6, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.rust }}>
+            {t("admin.rejectionReason")}: {submission.rejection_reason}
+          </div>
+        )}
+
+        {renderContents()}
+
+        {error && (
+          <div style={{ marginTop: 14, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust, fontFamily: F.body, fontSize: 13 }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        {confirmingReject ? (
+          <div style={{ marginTop: 18, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.rust}` }}>
+            <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+              {t("admin.rejectingTitle")}
+            </div>
+            <div style={{ marginBottom: 10, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>
+              {t("admin.rejectingHint")}
+            </div>
+            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={t("admin.rejectReasonPh")} rows={3}
+              style={{
+                width: "100%", padding: "10px 12px", background: C.paper, border: `1px solid ${C.line}`,
+                outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink, resize: "vertical",
+              }} />
+            <div style={{ marginTop: 10, display: "flex", gap: 6, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
+              <Btn variant="ghost" icon={X} onClick={() => setConfirmingReject(false)} fullWidth={isMobile} disabled={busy}>{t("common.cancel")}</Btn>
+              <Btn variant="rust" icon={Check} onClick={handleReject} fullWidth={isMobile} disabled={busy}>{t("admin.confirmReject")}</Btn>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginTop: 18, display: "flex", gap: 8, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
+            {submission.status !== "rejected" && (
+              <Btn variant="ghost" icon={X} onClick={() => setConfirmingReject(true)} fullWidth={isMobile} disabled={busy}>{t("admin.btnReject")}</Btn>
+            )}
+            {submission.status !== "approved" && (
+              <Btn variant="rust" icon={Check} onClick={handleApprove} fullWidth={isMobile} disabled={busy}>{t("admin.btnApprove")}</Btn>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    MySubmissions — shown inside Settings. Lists this user's
    library submissions with status (pending/approved/rejected),
    and lets them delete their own.
@@ -11407,6 +11860,9 @@ function MySubmissions({ currentUser }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState(null);
+  // Admin overlay — only available to users with is_admin=true on their profile
+  const [adminReviewOpen, setAdminReviewOpen] = useState(false);
+  const isAdmin = !!currentUser?.is_admin;
 
   const refresh = async () => {
     if (!currentUser?.id) { setItems([]); setLoading(false); return; }
@@ -11438,7 +11894,16 @@ function MySubmissions({ currentUser }) {
   };
 
   return (
+    <>
     <SettingGroup title={t("lib.mySubsTitle")} num="03">
+      {/* Admin-only button to enter the full review screen */}
+      {isAdmin && (
+        <div style={{ marginBottom: 14 }}>
+          <Btn variant="rust" icon={Globe} onClick={() => setAdminReviewOpen(true)}>
+            {t("admin.reviewBtn")}
+          </Btn>
+        </div>
+      )}
       {!currentUser?.id ? (
         <div style={{ padding: 12, fontFamily: F.body, fontSize: 13, color: C.muted, fontStyle: "italic" }}>
           Sign in to manage your library submissions.
@@ -11512,6 +11977,8 @@ function MySubmissions({ currentUser }) {
         </div>
       )}
     </SettingGroup>
+    {adminReviewOpen && <AdminSubmissionsReview onClose={() => setAdminReviewOpen(false)} />}
+    </>
   );
 }
 
@@ -12367,6 +12834,7 @@ export default function App() {
         email: session.user.email || "",
         username: session.profile?.username || "",
         region: session.profile?.region || "",
+        is_admin: !!session.profile?.is_admin,
       });
       // If we're on welcome/login/signup screen, jump to dashboard.
       // BUT: don't override "reset" — we need to stay there even with a session.
