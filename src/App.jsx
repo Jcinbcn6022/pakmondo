@@ -1,7 +1,7 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
-  ArrowLeft, Plus, Check, X, ChevronRight, User, Lock, Mail, CreditCard,
+  ArrowLeft, Plus, Check, X, ChevronRight, ChevronDown, User, Lock, Mail, CreditCard,
   Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil,
   Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu
 } from "lucide-react";
@@ -829,6 +829,7 @@ const TRANSLATIONS = {
     "trips.startDate": "Start Date",
     "trips.endDate": "End Date",
     "trips.tripType": "ADV Style",
+    "trips.selectType": "Select trip type…",
     "trips.newType": "New style",
     "trips.defineType": "Define a new ADV Style",
     "trips.addType": "Add style",
@@ -1433,6 +1434,7 @@ const TRANSLATIONS = {
     "trips.startDate": "Fecha de inicio",
     "trips.endDate": "Fecha de fin",
     "trips.tripType": "Estilo ADV",
+    "trips.selectType": "Selecciona tipo de viaje…",
     "trips.newType": "Nuevo estilo",
     "trips.defineType": "Define un nuevo Estilo ADV",
     "trips.addType": "Añadir estilo",
@@ -1898,14 +1900,152 @@ const SEED_CATEGORIES = [
   { id: "cat-5", name: "First Aid", icon: "tag", count: 12 },
   { id: "cat-6", name: "Tech", icon: "layers", count: 7 },
 ];
+/* ============================================================
+   TRIP TYPE ICONS — 13 icons (12 adventure styles + Other)
+   Each icon is single-stroke 2px, currentColor for theming.
+   Designed to render at 64x64 viewBox; scales cleanly to any size.
+   ============================================================ */
+const TT_ICONS = {
+  "bike-packer":   <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="14" cy="46" r="8"/><circle cx="50" cy="46" r="8"/><path d="M14 46 L30 26 L42 26 L50 46"/><path d="M30 26 L24 22 L20 22"/><rect x="34" y="18" width="14" height="10" rx="1.5"/></g>,
+  "comfort":       <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="48"/><line x1="52" y1="20" x2="52" y2="48"/><path d="M8 20 Q12 14 16 20"/><path d="M48 20 Q52 14 56 20"/><path d="M12 28 Q32 46 52 28"/><line x1="12" y1="28" x2="14" y2="26"/><line x1="52" y1="28" x2="50" y2="26"/></g>,
+  "cultural":      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 22 L32 10 L54 22"/><line x1="12" y1="22" x2="52" y2="22"/><line x1="18" y1="22" x2="18" y2="48"/><line x1="32" y1="22" x2="32" y2="48"/><line x1="46" y1="22" x2="46" y2="48"/><line x1="10" y1="48" x2="54" y2="48"/></g>,
+  "digital-nomad": <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="14" y="18" width="36" height="22" rx="2"/><path d="M10 44 L54 44 L50 40 L14 40 Z"/><circle cx="32" cy="29" r="6"/><line x1="26" y1="29" x2="38" y2="29"/><path d="M32 23 Q27 29 32 35"/><path d="M32 23 Q37 29 32 35"/></g>,
+  "documentary":   <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="20" width="48" height="28" rx="3"/><path d="M22 20 L26 14 L38 14 L42 20"/><circle cx="32" cy="34" r="8"/><circle cx="32" cy="34" r="3"/><circle cx="48" cy="26" r="1.2" fill="currentColor"/></g>,
+  "expeditionist": <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 50 L22 28 L34 40 L46 22 L58 50 Z"/><line x1="46" y1="22" x2="46" y2="8"/><path d="M46 8 L56 12 L46 16"/></g>,
+  "extreme-adv":   <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="46" r="8"/><circle cx="50" cy="46" r="8"/><path d="M18 46 L26 30 L42 30 L46 38"/><path d="M26 30 L22 24 L18 24"/><path d="M42 30 L48 24"/><line x1="10" y1="38" x2="4" y2="38"/><line x1="10" y1="46" x2="4" y2="46"/><line x1="10" y1="54" x2="4" y2="54"/></g>,
+  "hiker":         <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16 L26 16 L28 30 L46 30 L52 36 L52 46 L16 46 Z"/><line x1="16" y1="40" x2="52" y2="40"/><line x1="18" y1="22" x2="26" y2="22"/><line x1="18" y1="26" x2="26" y2="26"/></g>,
+  "nature":        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="46" cy="18" r="5"/><path d="M6 50 L20 30 L30 40 L40 26 L58 50 Z"/></g>,
+  "overlander":    <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 32 L14 22 L50 22 L56 32 L56 42 L8 42 Z"/><line x1="8" y1="42" x2="56" y2="42"/><line x1="14" y1="20" x2="50" y2="20"/><line x1="14" y1="22" x2="14" y2="20"/><line x1="50" y1="22" x2="50" y2="20"/><line x1="32" y1="22" x2="32" y2="20"/><circle cx="20" cy="46" r="5"/><circle cx="44" cy="46" r="5"/></g>,
+  "pathfinder":    <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="32" cy="32" r="20"/><path d="M32 16 L37 32 L32 48 L27 32 Z"/><circle cx="32" cy="32" r="1.5" fill="currentColor"/><line x1="32" y1="10" x2="32" y2="13"/></g>,
+  "primitive":     <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" y1="50" x2="54" y2="50"/><line x1="14" y1="50" x2="48" y2="40"/><line x1="50" y1="50" x2="16" y2="40"/><path d="M32 14 Q24 24 28 32 Q32 26 32 32 Q36 26 36 22 Q42 30 36 38 L28 38 Q22 30 32 14 Z"/></g>,
+  "other":         <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="32" cy="32" r="22"/><path d="M24 24 Q24 16 32 16 Q40 16 40 24 Q40 30 32 32 L32 38"/><circle cx="32" cy="46" r="1.5" fill="currentColor"/></g>,
+};
+
+/* TripTypeBadge — square ochre tile with the trip-type icon in black.
+   Used everywhere a trip type is displayed (chips, cards, detail). */
+function TripTypeBadge({ iconKey, size = 36 }) {
+  const innerSvg = TT_ICONS[iconKey] || TT_ICONS["other"];
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      width: size, height: size,
+      background: C.ochre, color: "#000",
+      flexShrink: 0,
+    }} aria-hidden="true">
+      <svg viewBox="0 0 64 64" width={Math.round(size * 0.72)} height={Math.round(size * 0.72)}>
+        {innerSvg}
+      </svg>
+    </span>
+  );
+}
+
+/* The 13 trip types — fixed list. Names + descriptions + iconKey.
+   Matches the icon set provided by the design team.
+   NOTE: This replaces the old chip-style trip-type catalogue. */
 const SEED_TRAVEL_TYPES = [
-  { id: "tt-1", name: "Alpine Trek", icon: "mountain", climate: "Cold", days: "5-14" },
-  { id: "tt-2", name: "Desert Crossing", icon: "flame", climate: "Hot Arid", days: "3-7" },
-  { id: "tt-3", name: "Coastal Kayak", icon: "waves", climate: "Wet Mild", days: "2-10" },
-  { id: "tt-4", name: "Polar Expedition", icon: "snow", climate: "Sub-zero", days: "10-30" },
-  { id: "tt-5", name: "Jungle Trail", icon: "tree", climate: "Humid Hot", days: "4-12" },
-  { id: "tt-6", name: "Urban Layover", icon: "globe", climate: "Variable", days: "1-4" },
+  { id: "tt-bike-packer",   name: "Bike Packer",       icon: "bike-packer",   description: "Multi-day cycling adventures" },
+  { id: "tt-comfort",       name: "Comfort",           icon: "comfort",       description: "Adventure with creature comforts" },
+  { id: "tt-cultural",      name: "Cultural",          icon: "cultural",      description: "People, places & traditions" },
+  { id: "tt-digital-nomad", name: "Digital Nomad",     icon: "digital-nomad", description: "Remote work on the road" },
+  { id: "tt-documentary",   name: "Documentary",       icon: "documentary",   description: "Travel with a creative purpose" },
+  { id: "tt-expeditionist", name: "Expeditionist",     icon: "expeditionist", description: "Mission-driven, goal-focused trips" },
+  { id: "tt-extreme-adv",   name: "Extreme Adventure", icon: "extreme-adv",   description: "Thrill-seeking off-road riding" },
+  { id: "tt-hiker",         name: "Hiker",             icon: "hiker",         description: "Travel on foot, trail-focused" },
+  { id: "tt-nature",        name: "Nature",            icon: "nature",        description: "Landscapes & wildlife immersion" },
+  { id: "tt-overlander",    name: "Overlander",        icon: "overlander",    description: "Self-reliant vehicle journeys" },
+  { id: "tt-pathfinder",    name: "Pathfinder",        icon: "pathfinder",    description: "Solo, self-guided exploration" },
+  { id: "tt-primitive",     name: "Primitive",         icon: "primitive",     description: "Bare-essentials wilderness travel" },
+  { id: "tt-other",         name: "Other",             icon: "other",         description: "Anything that doesn't fit a category" },
 ];
+
+/* Lookup helper — given a stored trip-type label (e.g. "Hiker"), find the
+   matching catalogue entry. Falls back to the "Other" entry so existing
+   trips with old type names display the Other icon instead of breaking. */
+function getTripType(name) {
+  if (!name) return null;
+  return SEED_TRAVEL_TYPES.find((tt) => tt.name === name) || SEED_TRAVEL_TYPES.find((tt) => tt.id === "tt-other");
+}
+
+/* TripTypeSelect — custom dropdown for picking a trip type.
+   Trigger shows current selection (icon + name).
+   Open list shows all 13 with descriptions. */
+function TripTypeSelect({ value, onChange }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selected = getTripType(value);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(!open)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 12,
+          padding: "10px 12px", background: C.paper,
+          border: `1.5px solid ${C.ink}`, cursor: "pointer", textAlign: "left",
+        }}>
+        {selected ? (
+          <>
+            <TripTypeBadge iconKey={selected.icon} size={32} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 600, color: C.ink }}>
+                {selected.name}
+              </div>
+            </span>
+          </>
+        ) : (
+          <span style={{ flex: 1, fontFamily: F.body, fontSize: 14, color: C.muted }}>
+            {t("trips.selectType") || "Select trip type…"}
+          </span>
+        )}
+        <ChevronDown size={16} style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
+          background: C.paper, border: `1.5px solid ${C.ink}`,
+          maxHeight: 360, overflowY: "auto",
+          boxShadow: "0 8px 24px rgba(26,36,33,0.15)",
+        }}>
+          {SEED_TRAVEL_TYPES.map((tt) => {
+            const isSel = selected?.id === tt.id;
+            return (
+              <button key={tt.id} type="button"
+                onClick={() => { onChange(tt.name); setOpen(false); }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 12px", background: isSel ? C.paperDeep : "transparent",
+                  border: "none", borderBottom: `1px solid ${C.line}`, cursor: "pointer", textAlign: "left",
+                }}
+                onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = C.paperDeep; }}
+                onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
+                <TripTypeBadge iconKey={tt.icon} size={36} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 15, fontWeight: 600, color: C.ink, lineHeight: 1.2 }}>
+                    {tt.name}
+                  </div>
+                  <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 12, color: C.muted, lineHeight: 1.3 }}>
+                    {tt.description}
+                  </div>
+                </span>
+                {isSel && <Check size={14} style={{ color: C.rust, flexShrink: 0 }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 const SEED_ITEMS = [
   { id: "it-1", name: "Down Sleeping Bag", category: "Shelter", weight: "1.2 kg", packed: true },
   { id: "it-2", name: "Merino Base Layer", category: "Apparel", weight: "0.18 kg", packed: true },
@@ -5434,7 +5574,10 @@ function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
               </div>
               <div>
                 <Coord>{t("trips.colType")}</Coord>
-                <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 13 }}>{tOrLiteral(lang, "tt", tr.type)}</div>
+                <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                  {tr.type && <TripTypeBadge iconKey={getTripType(tr.type)?.icon || "other"} size={28} />}
+                  <span style={{ fontFamily: F.body, fontSize: 13 }}>{tOrLiteral(lang, "tt", tr.type)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -5463,7 +5606,10 @@ function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
           </div>
           <div style={{ fontFamily: F.body, fontSize: 14 }}>
             <Coord>{t("trips.colType")}</Coord>
-            <div style={{ marginTop: 4 }}>{tOrLiteral(lang, "tt", tr.type)}</div>
+            <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              {tr.type && <TripTypeBadge iconKey={getTripType(tr.type)?.icon || "other"} size={28} />}
+              <span>{tOrLiteral(lang, "tt", tr.type)}</span>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             {onShare && !tr.linkedFrom && (
@@ -7272,35 +7418,12 @@ function TripPacklistForm({
             <Field label={t("trips.endDate")} type="date" icon={Calendar} value={end} onChange={(e) => setEnd(e.target.value)} />
           </div>
 
-          {/* Trip type chips */}
+          {/* Trip type — custom dropdown */}
           <div>
             <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
               {t("trips.tripType")}
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {travelTypes.map((tt) => {
-                const sel = type === tt.name;
-                return (
-                  <button key={tt.id} onClick={() => setType(sel ? "" : tt.name)}
-                    style={{ padding: "6px 12px", border: `1.5px solid ${sel ? C.forest : C.line}`, background: sel ? C.forest : "transparent", color: sel ? C.paper : C.ink, cursor: "pointer", fontFamily: F.body, fontSize: 13 }}>
-                    {tOrLiteral(lang, "tt", tt.name)}
-                  </button>
-                );
-              })}
-              <button onClick={() => setAddingType(!addingType)}
-                style={{ padding: "6px 12px", border: `1.5px dashed ${C.line}`, background: "transparent", color: C.forest, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", fontWeight: 700 }}>
-                + {t("common.add")}
-              </button>
-            </div>
-            {addingType && (
-              <div style={{ marginTop: 12, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
-                <Field label="Type name" value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} />
-                <div style={{ marginTop: 10, display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                  <Btn variant="ghost" icon={X} onClick={() => { setAddingType(false); setNewType({ name: "", climate: "", days: "" }); }}>{t("common.cancel")}</Btn>
-                  <Btn variant="rust" icon={Check} onClick={saveNewType} disabled={!newType.name.trim()}>{t("common.save")}</Btn>
-                </div>
-              </div>
-            )}
+            <TripTypeSelect value={type} onChange={(v) => setType(v)} />
           </div>
 
           {/* Notes */}
@@ -7644,35 +7767,12 @@ function PacklistEditorDialog({
                   <Field label={t("trips.endDate")} type="date" icon={Calendar} value={end} onChange={(e) => setEnd(e.target.value)} />
                 </div>
 
-                {/* Trip type chips */}
+                {/* Trip type — custom dropdown */}
                 <div>
                   <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
                     {t("trips.tripType")}
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {travelTypes.map((tt) => {
-                      const sel = type === tt.name;
-                      return (
-                        <button key={tt.id} onClick={() => setType(sel ? "" : tt.name)}
-                          style={{ padding: "6px 12px", border: `1.5px solid ${sel ? C.forest : C.line}`, background: sel ? C.forest : "transparent", color: sel ? C.paper : C.ink, cursor: "pointer", fontFamily: F.body, fontSize: 13 }}>
-                          {tOrLiteral(lang, "tt", tt.name)}
-                        </button>
-                      );
-                    })}
-                    <button onClick={() => setAddingType(!addingType)}
-                      style={{ padding: "6px 12px", border: `1.5px dashed ${C.line}`, background: "transparent", color: C.forest, cursor: "pointer", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", fontWeight: 700 }}>
-                      + {t("common.add")}
-                    </button>
-                  </div>
-                  {addingType && (
-                    <div style={{ marginTop: 12, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
-                      <Field label="Type name" value={newType.name} onChange={(e) => setNewType({ name: e.target.value })} />
-                      <div style={{ marginTop: 10, display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <Btn variant="ghost" icon={X} onClick={() => { setAddingType(false); setNewType({ name: "" }); }}>{t("common.cancel")}</Btn>
-                        <Btn variant="rust" icon={Check} onClick={saveNewType} disabled={!newType.name.trim()}>{t("common.save")}</Btn>
-                      </div>
-                    </div>
-                  )}
+                  <TripTypeSelect value={type} onChange={(v) => setType(v)} />
                 </div>
 
                 {/* Notes */}
@@ -7848,9 +7948,12 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           <ArrowLeft size={14} /> {t("nav.packlists")}
         </button>
         <Coord>{packlist.dest ? packlist.dest.toUpperCase() : "PACKLIST"}</Coord>
-        <h2 style={{ margin: "8px 0 8px", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>
-          {packlist.name}<span style={{ color: C.rust }}>.</span>
-        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+          {packlist.type && <TripTypeBadge iconKey={getTripType(packlist.type)?.icon || "other"} size={isMobile ? 36 : 48} />}
+          <h2 style={{ margin: "0 0 0 0", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>
+            {packlist.name}<span style={{ color: C.rust }}>.</span>
+          </h2>
+        </div>
 
         {/* Trip metadata strip */}
         {hasMetadata && (
