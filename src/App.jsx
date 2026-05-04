@@ -1043,6 +1043,9 @@ const TRANSLATIONS = {
     "qadd.emptyItems": "You don't have any items yet. Create one below.",
     "qadd.emptyKits": "You don't have any kits yet. Create one below.",
     "qadd.emptyCats": "You don't have any categories yet. Create one below.",
+    "qadd.orCreateItem": "Or create a new item",
+    "qadd.orCreateKit": "Or create a new kit",
+    "qadd.orCreateCat": "Or create a new category",
     "picked.heading": "Currently in this packlist",
     "picked.items": "Items",
     "picked.kits": "Kits",
@@ -1686,6 +1689,9 @@ const TRANSLATIONS = {
     "qadd.emptyItems": "Aún no tienes artículos. Crea uno abajo.",
     "qadd.emptyKits": "Aún no tienes kits. Crea uno abajo.",
     "qadd.emptyCats": "Aún no tienes categorías. Crea una abajo.",
+    "qadd.orCreateItem": "O crea un nuevo artículo",
+    "qadd.orCreateKit": "O crea un nuevo kit",
+    "qadd.orCreateCat": "O crea una nueva categoría",
     "picked.heading": "Actualmente en esta lista",
     "picked.items": "Artículos",
     "picked.kits": "Kits",
@@ -7988,6 +7994,10 @@ function TripPacklistForm({
 
   // Inline-create UI state
   const [inlineMode, setInlineMode] = useState(null); // "item" | "kit" | "cat" | null
+  // Whether the "create new" form is expanded inside the picker. Hidden by
+  // default so the existing-items list is the obvious primary action and the
+  // misleading inline "Save" button doesn't compete with the bottom Save.
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
   const [newKit, setNewKit] = useState({ name: "", category: "" });
   const [newCat, setNewCat] = useState({ name: "" });
@@ -8175,7 +8185,7 @@ function TripPacklistForm({
           ].map(([k, label, count]) => {
             const active = inlineMode === k;
             return (
-              <button key={k} onClick={() => setInlineMode(active ? null : k)}
+              <button key={k} onClick={() => { setInlineMode(active ? null : k); setShowCreateForm(false); }}
                 style={{
                   padding: isMobile ? "12px 14px" : "14px 16px",
                   border: `1.5px solid ${active ? C.rust : C.ink}`,
@@ -8234,23 +8244,37 @@ function TripPacklistForm({
                 </div>
               )}
             </div>
-            {/* Create new item form */}
-            <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
-              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-                + {t("trips.addNewItemInline").replace(/^\+\s*/, "")}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                  <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
-                  <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+            {/* Create new item — collapsed by default */}
+            {!showCreateForm ? (
+              <button onClick={() => setShowCreateForm(true)}
+                style={{
+                  width: "100%", padding: "12px 14px",
+                  background: "transparent", border: `1.5px dashed ${C.rust}`,
+                  color: C.rust, cursor: "pointer",
+                  fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}>
+                <Plus size={14} strokeWidth={2.5} />
+                {t("qadd.orCreateItem")}
+              </button>
+            ) : (
+              <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+                <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  + {t("trips.addNewItemInline").replace(/^\+\s*/, "")}
                 </div>
-                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                  <Btn variant="ghost" icon={X} onClick={() => { setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                  <Btn variant="rust" icon={Check} onClick={saveInlineItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                    <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+                    <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+                  </div>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    <Btn variant="ghost" icon={X} onClick={() => { setShowCreateForm(false); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                    <Btn variant="rust" icon={Check} onClick={() => { saveInlineItem(); setShowCreateForm(false); }} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -8294,19 +8318,33 @@ function TripPacklistForm({
                 </div>
               )}
             </div>
-            <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
-              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-                + {t("trips.addNewKitInline").replace(/^\+\s*/, "")}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
-                <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
-                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                  <Btn variant="ghost" icon={X} onClick={() => { setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                  <Btn variant="rust" icon={Check} onClick={saveInlineKit} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+            {!showCreateForm ? (
+              <button onClick={() => setShowCreateForm(true)}
+                style={{
+                  width: "100%", padding: "12px 14px",
+                  background: "transparent", border: `1.5px dashed ${C.rust}`,
+                  color: C.rust, cursor: "pointer",
+                  fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}>
+                <Plus size={14} strokeWidth={2.5} />
+                {t("qadd.orCreateKit")}
+              </button>
+            ) : (
+              <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+                <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  + {t("trips.addNewKitInline").replace(/^\+\s*/, "")}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
+                  <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    <Btn variant="ghost" icon={X} onClick={() => { setShowCreateForm(false); setNewKit({ name: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                    <Btn variant="rust" icon={Check} onClick={() => { saveInlineKit(); setShowCreateForm(false); }} disabled={!newKit.name.trim()}>{t("trips.inlineSave")}</Btn>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -8350,18 +8388,32 @@ function TripPacklistForm({
                 </div>
               )}
             </div>
-            <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
-              <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-                + {t("trips.addNewCatInline").replace(/^\+\s*/, "")}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
-                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                  <Btn variant="ghost" icon={X} onClick={() => { setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
-                  <Btn variant="rust" icon={Check} onClick={saveInlineCat} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+            {!showCreateForm ? (
+              <button onClick={() => setShowCreateForm(true)}
+                style={{
+                  width: "100%", padding: "12px 14px",
+                  background: "transparent", border: `1.5px dashed ${C.rust}`,
+                  color: C.rust, cursor: "pointer",
+                  fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}>
+                <Plus size={14} strokeWidth={2.5} />
+                {t("qadd.orCreateCat")}
+              </button>
+            ) : (
+              <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+                <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  + {t("trips.addNewCatInline").replace(/^\+\s*/, "")}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    <Btn variant="ghost" icon={X} onClick={() => { setShowCreateForm(false); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                    <Btn variant="rust" icon={Check} onClick={() => { saveInlineCat(); setShowCreateForm(false); }} disabled={!newCat.name.trim()}>{t("trips.inlineSave")}</Btn>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -11113,4 +11165,3 @@ export default function App() {
     </I18nContext.Provider>
   );
 }
-
