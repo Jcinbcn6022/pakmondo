@@ -549,6 +549,33 @@ const TRANSLATIONS = {
     "common.loading": "Breaking camp...",
     "common.loadingSub": "Loading field journal",
 
+    "kitDetail.itemsInKit": "Items in this kit",
+    "kitDetail.empty": "This kit is empty. Add items below.",
+    "kitDetail.unlinkItem": "Remove from kit",
+    "kitDetail.addExisting": "Add existing items",
+    "kitDetail.tickToAdd": "Tap an item to add it to the kit",
+    "kitDetail.noOthersToAdd": "No other items in your inventory to add.",
+    "kitDetail.createNew": "Create a new item",
+
+    "catDetail.itemsInCategory": "Items in this category",
+    "catDetail.empty": "No items in this category yet.",
+    "catDetail.unlinkItem": "Remove from category",
+    "catDetail.addExisting": "Add existing items",
+    "catDetail.tickToAdd": "Tap an item to move it into this category",
+    "catDetail.noOthersToAdd": "All your items are already in this category.",
+    "catDetail.createNew": "Create a new item",
+
+    "itemDetail.category": "Category",
+    "itemDetail.weight": "Weight",
+    "itemDetail.quantity": "Quantity",
+    "itemDetail.size": "Size",
+    "itemDetail.consumable": "Consumable",
+    "itemDetail.expiry": "Expires",
+    "itemDetail.notes": "Notes",
+    "itemDetail.edit": "Edit",
+    "itemDetail.delete": "Delete from inventory",
+    "itemDetail.confirmDelete": "Delete this item permanently? It will be removed from all kits and packlists.",
+
     "import.button": "Import",
     "import.heading": "Bulk Import",
     "import.title": "Import from spreadsheet",
@@ -1235,6 +1262,33 @@ const TRANSLATIONS = {
     "common.done": "Listo",
     "common.loading": "Levantando el campamento...",
     "common.loadingSub": "Cargando el diario de campo",
+
+    "kitDetail.itemsInKit": "Artículos en este kit",
+    "kitDetail.empty": "Este kit está vacío. Añade artículos abajo.",
+    "kitDetail.unlinkItem": "Quitar del kit",
+    "kitDetail.addExisting": "Añadir artículos existentes",
+    "kitDetail.tickToAdd": "Toca un artículo para añadirlo al kit",
+    "kitDetail.noOthersToAdd": "No hay otros artículos en tu inventario para añadir.",
+    "kitDetail.createNew": "Crear un nuevo artículo",
+
+    "catDetail.itemsInCategory": "Artículos en esta categoría",
+    "catDetail.empty": "Aún no hay artículos en esta categoría.",
+    "catDetail.unlinkItem": "Quitar de la categoría",
+    "catDetail.addExisting": "Añadir artículos existentes",
+    "catDetail.tickToAdd": "Toca un artículo para moverlo a esta categoría",
+    "catDetail.noOthersToAdd": "Todos tus artículos ya están en esta categoría.",
+    "catDetail.createNew": "Crear un nuevo artículo",
+
+    "itemDetail.category": "Categoría",
+    "itemDetail.weight": "Peso",
+    "itemDetail.quantity": "Cantidad",
+    "itemDetail.size": "Talla",
+    "itemDetail.consumable": "Consumible",
+    "itemDetail.expiry": "Caduca",
+    "itemDetail.notes": "Notas",
+    "itemDetail.edit": "Editar",
+    "itemDetail.delete": "Borrar del inventario",
+    "itemDetail.confirmDelete": "¿Borrar este artículo permanentemente? Se eliminará de todos los kits y listas.",
 
     "import.button": "Importar",
     "import.heading": "Importación masiva",
@@ -8043,10 +8097,14 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
   const [editingId, setEditingId] = useState(null);  // when tab === "edit"
   const [openId, setOpenId] = useState(null);        // detail view
   const [editorOpenId, setEditorOpenId] = useState(null);  // modal editor — independent of tab/detail
-  // Edit modals reachable from PacklistDetail — tap any card/row to open
-  const [editingItemId, setEditingItemId] = useState(null);
-  const [editingKitId, setEditingKitId] = useState(null);
-  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  // Two layers of modals reachable from PacklistDetail:
+  //   1) "Detail" modals — opened by tapping a card; show contents + add/remove
+  //   2) "Form" modals — opened from inside a Detail modal (Edit) for full edit
+  const [detailKitId, setDetailKitId] = useState(null);
+  const [detailCategoryId, setDetailCategoryId] = useState(null);
+  const [detailItemId, setDetailItemId] = useState(null);
+  // Form modal — only used for items currently (kits/cats edit inline in their detail)
+  const [formItemId, setFormItemId] = useState(null);
 
   const addPacklist = (data) => {
     setPacklists([{ id: uid("pl"), ...data }, ...packlists]);
@@ -8067,6 +8125,19 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
   // shared state so the packlist re-renders with new data.
   const updateItem = (id, data) =>
     setItems(items.map((i) => (i.id === id ? { ...i, ...data } : i)));
+  const addItem = (item) =>
+    setItems([item, ...items]);
+  const deleteItem = (id) => {
+    setItems(items.filter((i) => i.id !== id));
+    // Cascade: also remove from any kits referencing it
+    setKits(kits.map((k) => (k.itemIds || []).includes(id)
+      ? { ...k, itemIds: k.itemIds.filter((x) => x !== id) }
+      : k));
+    // And from packlists' item lists
+    setPacklists(packlists.map((p) => (p.itemIds || []).includes(id)
+      ? { ...p, itemIds: p.itemIds.filter((x) => x !== id) }
+      : p));
+  };
   const updateKit = (kit) =>
     setKits(kits.map((k) => (k.id === kit.id ? { ...k, ...kit } : k)));
   const updateCategory = (id, data) =>
@@ -8111,9 +8182,9 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onRemoveItem={(itemId) => removeItemFromPacklist(openPacklist.id, itemId)}
             onRemoveKit={(kitId) => removeKitFromPacklist(openPacklist.id, kitId)}
             onRemoveCategory={(catId) => removeCategoryFromPacklist(openPacklist.id, catId)}
-            onEditItem={(id) => setEditingItemId(id)}
-            onEditKit={(id) => setEditingKitId(id)}
-            onEditCategory={(id) => setEditingCategoryId(id)}
+            onEditItem={(id) => setDetailItemId(id)}
+            onEditKit={(id) => setDetailKitId(id)}
+            onEditCategory={(id) => setDetailCategoryId(id)}
           />
         </div>
         <Footer />
@@ -8129,44 +8200,66 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
           />
         )}
 
-        {/* Inline edit modals — reachable by tapping any item / kit / category card on the detail view */}
-        {editingItemId && (() => {
-          const it = items.find((x) => x.id === editingItemId);
+        {/* === KIT DETAIL — items inside, add/remove === */}
+        {detailKitId && (() => {
+          const k = kits.find((x) => x.id === detailKitId);
+          if (!k) return null;
+          return (
+            <KitDetailModal
+              kit={k}
+              items={items}
+              categories={categories}
+              onUpdateKit={updateKit}
+              onUpdateItem={updateItem}
+              onAddItem={addItem}
+              onEditItem={(id) => setDetailItemId(id)}
+              onClose={() => setDetailKitId(null)}
+            />
+          );
+        })()}
+
+        {/* === CATEGORY DETAIL — items in this category === */}
+        {detailCategoryId && (() => {
+          const c = categories.find((x) => x.id === detailCategoryId);
+          if (!c) return null;
+          return (
+            <CategoryDetailModal
+              category={c}
+              items={items}
+              categories={categories}
+              onUpdateItem={updateItem}
+              onAddItem={addItem}
+              onEditItem={(id) => setDetailItemId(id)}
+              onClose={() => setDetailCategoryId(null)}
+            />
+          );
+        })()}
+
+        {/* === ITEM DETAIL — view + Edit/Delete buttons === */}
+        {detailItemId && (() => {
+          const it = items.find((x) => x.id === detailItemId);
           if (!it) return null;
           return (
-            <Modal title={t("form.editItemTitle")} onClose={() => setEditingItemId(null)}>
+            <ItemDetailModal
+              item={it}
+              onClose={() => setDetailItemId(null)}
+              onEdit={() => { setFormItemId(detailItemId); setDetailItemId(null); }}
+              onDelete={() => { deleteItem(detailItemId); }}
+            />
+          );
+        })()}
+
+        {/* === ITEM FORM — full edit, opened from ItemDetailModal's Edit button === */}
+        {formItemId && (() => {
+          const it = items.find((x) => x.id === formItemId);
+          if (!it) return null;
+          return (
+            <Modal title={t("form.editItemTitle")} onClose={() => setFormItemId(null)}>
               <AddItemForm
                 categories={categories}
                 initial={it}
-                onAdd={(data) => { updateItem(editingItemId, data); setEditingItemId(null); }}
-                onCancel={() => setEditingItemId(null)}
-              />
-            </Modal>
-          );
-        })()}
-        {editingKitId && (() => {
-          const k = kits.find((x) => x.id === editingKitId);
-          if (!k) return null;
-          return (
-            <Modal title={t("kit.editFormTitle")} onClose={() => setEditingKitId(null)}>
-              <AddKitForm
-                categories={categories}
-                initial={k}
-                onAdd={(data) => { updateKit({ ...k, ...data }); setEditingKitId(null); }}
-                onCancel={() => setEditingKitId(null)}
-              />
-            </Modal>
-          );
-        })()}
-        {editingCategoryId && (() => {
-          const c = categories.find((x) => x.id === editingCategoryId);
-          if (!c) return null;
-          return (
-            <Modal title={t("form.editCatTitle")} onClose={() => setEditingCategoryId(null)}>
-              <AddCategoryForm
-                initial={c}
-                onAdd={(data) => { updateCategory(editingCategoryId, data); setEditingCategoryId(null); }}
-                onCancel={() => setEditingCategoryId(null)}
+                onAdd={(data) => { updateItem(formItemId, data); setFormItemId(null); }}
+                onCancel={() => setFormItemId(null)}
               />
             </Modal>
           );
@@ -9673,6 +9766,430 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
   win.document.open();
   win.document.write(html);
   win.document.close();
+}
+
+/* ============================================================
+   KitDetailModal — shows the items in a kit, lets the user:
+     • Tap an item to edit it
+     • Click X next to an item to UNLINK it from the kit
+       (item still exists in inventory, just not in this kit)
+     • Tick existing items from inventory to ADD to the kit
+     • Create a brand-new item which gets added to the kit
+   Used from PacklistDetail when the user taps a kit card.
+   ============================================================ */
+function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onAddItem, onClose, onEditItem }) {
+  const { t, lang, units } = useI18n();
+  const { isMobile } = useViewport();
+  const [showCreate, setShowCreate] = useState(false);
+  const [showAddExisting, setShowAddExisting] = useState(false);
+  const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
+
+  // Items currently in the kit
+  const kitItems = (kit.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  // Items in inventory NOT currently in the kit — candidates for "add"
+  const otherItems = items.filter((it) => !(kit.itemIds || []).includes(it.id));
+  // Total weight summary
+  const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+  const kitWeightStr = formatWeightFromKg(kitKg, units);
+
+  // Unlink an item from the kit (item itself is preserved)
+  const removeFromKit = (itemId) => {
+    onUpdateKit({ ...kit, itemIds: (kit.itemIds || []).filter((x) => x !== itemId) });
+  };
+  // Toggle "add existing" — flips an item's membership in the kit
+  const toggleExisting = (itemId) => {
+    const isIn = (kit.itemIds || []).includes(itemId);
+    onUpdateKit({
+      ...kit,
+      itemIds: isIn
+        ? kit.itemIds.filter((x) => x !== itemId)
+        : [...(kit.itemIds || []), itemId],
+    });
+  };
+  // Create a new item and add it to the kit in one go
+  const saveNewItem = () => {
+    if (!newItem.name.trim()) return;
+    const created = {
+      id: uid("it"),
+      name: newItem.name.trim(),
+      weight: newItem.weight.trim() || null,
+      category: newItem.category || null,
+      packed: false,
+    };
+    onAddItem(created);
+    onUpdateKit({ ...kit, itemIds: [...(kit.itemIds || []), created.id] });
+    setNewItem({ name: "", weight: "", category: "" });
+    setShowCreate(false);
+  };
+
+  return (
+    <Modal title={kit.name} onClose={onClose}>
+      <div style={{ padding: isMobile ? 16 : 24, overflowY: "auto" }}>
+        {/* Header strip */}
+        <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1.5px solid ${C.line}` }}>
+          <Coord>KIT</Coord>
+          <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
+          </div>
+        </div>
+
+        {/* === ITEMS IN THIS KIT === */}
+        <div style={{ marginBottom: 18, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          {t("kitDetail.itemsInKit")}
+        </div>
+        {kitItems.length === 0 ? (
+          <div style={{ padding: "12px 0", marginBottom: 18, fontFamily: F.body, fontStyle: "italic", color: C.inkSoft, fontSize: 13 }}>
+            {t("kitDetail.empty")}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
+            {kitItems.map((it) => (
+              <div key={it.id}
+                onClick={() => onEditItem && onEditItem(it.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                  background: C.paper, border: `1px solid ${C.line}`,
+                  cursor: onEditItem ? "pointer" : "default",
+                }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                  <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    {it.category || t("trips.unifiedNoCategory")}{it.weight ? ` · ${formatWeight(it.weight, units)}` : ""}
+                  </div>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); removeFromKit(it.id); }}
+                  style={{ width: 28, height: 28, padding: 0, background: "transparent", border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                  title={t("kitDetail.unlinkItem")}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.rust; e.currentTarget.style.color = C.rust; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.muted; }}>
+                  <X size={13} strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* === ADD EXISTING ITEMS === */}
+        {!showAddExisting ? (
+          <button onClick={() => setShowAddExisting(true)}
+            style={{
+              width: "100%", padding: "12px 14px", marginBottom: 8,
+              background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink,
+              cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+              letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.addExisting")} ({otherItems.length})
+          </button>
+        ) : (
+          <div style={{ marginBottom: 10, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.ink}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("kitDetail.tickToAdd")}
+              </span>
+              <button onClick={() => setShowAddExisting(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
+                <X size={14} />
+              </button>
+            </div>
+            {otherItems.length === 0 ? (
+              <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("kitDetail.noOthersToAdd")}
+              </div>
+            ) : (
+              <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                {otherItems.map((it) => (
+                  <button key={it.id}
+                    onClick={() => toggleExisting(it.id)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                      background: "transparent",
+                      border: `1px solid ${C.line}`,
+                      cursor: "pointer", textAlign: "left",
+                    }}>
+                    <span style={{ width: 18, height: 18, flexShrink: 0, border: `1.5px solid ${C.muted}`, background: "transparent" }}></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                      <div style={{ marginTop: 1, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                        {it.category || t("trips.unifiedNoCategory")}{it.weight ? ` · ${formatWeight(it.weight, units)}` : ""}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* === CREATE NEW ITEM === */}
+        {!showCreate ? (
+          <button onClick={() => setShowCreate(true)}
+            style={{
+              width: "100%", padding: "12px 14px",
+              background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
+              cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+              letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
+          </button>
+        ) : (
+          <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+            <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+              + {t("kitDetail.createNew")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+                <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
+              </div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Btn variant="ghost" icon={X} onClick={() => { setShowCreate(false); setNewItem({ name: "", weight: "", category: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                <Btn variant="rust" icon={Check} onClick={saveNewItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
+          <Btn variant="ghost" icon={Check} onClick={onClose} fullWidth={isMobile}>{t("common.done")}</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ============================================================
+   CategoryDetailModal — shows items in this category, lets the
+   user add/remove items via item.category field assignment.
+   Same shape as KitDetailModal but operates on the category
+   field of items rather than a kit's itemIds list.
+   ============================================================ */
+function CategoryDetailModal({ category, items, categories, onUpdateItem, onAddItem, onClose, onEditItem }) {
+  const { t, units } = useI18n();
+  const { isMobile } = useViewport();
+  const [showCreate, setShowCreate] = useState(false);
+  const [showAddExisting, setShowAddExisting] = useState(false);
+  const [newItem, setNewItem] = useState({ name: "", weight: "" });
+
+  // Items currently in this category — match by name (the live link)
+  const inCategory = items.filter((i) => i.category === category.name);
+  const otherItems = items.filter((i) => i.category !== category.name);
+
+  // Unset an item's category (item still exists, just unlinked from this category)
+  const removeFromCategory = (itemId) => {
+    onUpdateItem(itemId, { category: null });
+  };
+  // Move an existing item into this category
+  const addExisting = (itemId) => {
+    onUpdateItem(itemId, { category: category.name });
+  };
+  // Create a new item in this category
+  const saveNewItem = () => {
+    if (!newItem.name.trim()) return;
+    onAddItem({
+      id: uid("it"),
+      name: newItem.name.trim(),
+      weight: newItem.weight.trim() || null,
+      category: category.name,
+      packed: false,
+    });
+    setNewItem({ name: "", weight: "" });
+    setShowCreate(false);
+  };
+
+  return (
+    <Modal title={category.name} onClose={onClose}>
+      <div style={{ padding: isMobile ? 16 : 24, overflowY: "auto" }}>
+        <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1.5px solid ${C.line}` }}>
+          <Coord>CATEGORY</Coord>
+          <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            {inCategory.length} {inCategory.length === 1 ? "item" : "items"}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 18, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          {t("catDetail.itemsInCategory")}
+        </div>
+        {inCategory.length === 0 ? (
+          <div style={{ padding: "12px 0", marginBottom: 18, fontFamily: F.body, fontStyle: "italic", color: C.inkSoft, fontSize: 13 }}>
+            {t("catDetail.empty")}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
+            {inCategory.map((it) => (
+              <div key={it.id}
+                onClick={() => onEditItem && onEditItem(it.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                  background: C.paper, border: `1px solid ${C.line}`,
+                  cursor: onEditItem ? "pointer" : "default",
+                }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                  {it.weight && (
+                    <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      {formatWeight(it.weight, units)}
+                    </div>
+                  )}
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); removeFromCategory(it.id); }}
+                  style={{ width: 28, height: 28, padding: 0, background: "transparent", border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                  title={t("catDetail.unlinkItem")}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.rust; e.currentTarget.style.color = C.rust; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.muted; }}>
+                  <X size={13} strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add existing items */}
+        {!showAddExisting ? (
+          <button onClick={() => setShowAddExisting(true)}
+            style={{
+              width: "100%", padding: "12px 14px", marginBottom: 8,
+              background: "transparent", border: `1.5px solid ${C.ink}`, color: C.ink,
+              cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+              letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            <Plus size={14} strokeWidth={2.5} /> {t("catDetail.addExisting")} ({otherItems.length})
+          </button>
+        ) : (
+          <div style={{ marginBottom: 10, padding: 12, background: C.paperDeep, border: `1.5px solid ${C.ink}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("catDetail.tickToAdd")}
+              </span>
+              <button onClick={() => setShowAddExisting(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
+                <X size={14} />
+              </button>
+            </div>
+            {otherItems.length === 0 ? (
+              <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("catDetail.noOthersToAdd")}
+              </div>
+            ) : (
+              <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                {otherItems.map((it) => (
+                  <button key={it.id}
+                    onClick={() => addExisting(it.id)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                      background: "transparent", border: `1px solid ${C.line}`,
+                      cursor: "pointer", textAlign: "left",
+                    }}>
+                    <span style={{ width: 18, height: 18, flexShrink: 0, border: `1.5px solid ${C.muted}`, background: "transparent" }}></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 500, color: C.ink }}>{it.name}</div>
+                      <div style={{ marginTop: 1, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                        {it.category || t("trips.unifiedNoCategory")}{it.weight ? ` · ${formatWeight(it.weight, units)}` : ""}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Create new item in this category */}
+        {!showCreate ? (
+          <button onClick={() => setShowCreate(true)}
+            style={{
+              width: "100%", padding: "12px 14px",
+              background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
+              cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+              letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            <Plus size={14} strokeWidth={2.5} /> {t("catDetail.createNew")}
+          </button>
+        ) : (
+          <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
+            <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+              + {t("catDetail.createNew")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+              <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Btn variant="ghost" icon={X} onClick={() => { setShowCreate(false); setNewItem({ name: "", weight: "" }); }}>{t("trips.inlineCancel")}</Btn>
+                <Btn variant="rust" icon={Check} onClick={saveNewItem} disabled={!newItem.name.trim()}>{t("trips.inlineSave")}</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
+          <Btn variant="ghost" icon={Check} onClick={onClose} fullWidth={isMobile}>{t("common.done")}</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ============================================================
+   ItemDetailModal — read-only item view with Edit and Delete
+   buttons. Tap Edit to open the full item edit modal; Delete
+   removes the item from inventory entirely (with confirmation).
+   ============================================================ */
+function ItemDetailModal({ item, onClose, onEdit, onDelete }) {
+  const { t, units } = useI18n();
+  const { isMobile } = useViewport();
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <Modal title={item.name} onClose={onClose}>
+      <div style={{ padding: isMobile ? 16 : 24, overflowY: "auto" }}>
+        <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1.5px solid ${C.line}` }}>
+          <Coord>ITEM</Coord>
+          <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
+            {item.name}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+          <DetailRow label={t("itemDetail.category")} value={item.category || "—"} />
+          <DetailRow label={t("itemDetail.weight")}   value={item.weight ? formatWeight(item.weight, units) : "—"} />
+          {item.quantity > 1 && <DetailRow label={t("itemDetail.quantity")} value={String(item.quantity)} />}
+          {item.size                && <DetailRow label={t("itemDetail.size")}     value={item.size} />}
+          {item.consumable           && <DetailRow label={t("itemDetail.consumable")} value={t("common.yes")} />}
+          {item.expiry              && <DetailRow label={t("itemDetail.expiry")}   value={item.expiry} />}
+          {item.notes               && <DetailRow label={t("itemDetail.notes")}    value={item.notes} />}
+        </div>
+
+        {confirming ? (
+          <div style={{ marginBottom: 14, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.rust}` }}>
+            <div style={{ fontFamily: F.body, fontSize: 14, color: C.inkSoft, marginBottom: 12 }}>
+              {t("itemDetail.confirmDelete")}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "flex-end" }}>
+              <Btn variant="ghost" icon={X} onClick={() => setConfirming(false)} fullWidth={isMobile}>{t("common.cancel")}</Btn>
+              <Btn variant="rust" icon={Trash2} onClick={() => { onDelete(); onClose(); }} fullWidth={isMobile}>{t("pl.confirmYes")}</Btn>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
+            <Btn variant="ghost" icon={Trash2} onClick={() => setConfirming(true)} fullWidth={isMobile}>{t("itemDetail.delete")}</Btn>
+            <Btn variant="rust" icon={Pencil} onClick={onEdit} fullWidth={isMobile}>{t("itemDetail.edit")}</Btn>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/* Tiny labelled detail row used inside ItemDetailModal */
+function DetailRow({ label, value }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `1px solid ${C.line}` }}>
+      <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>{label}</span>
+      <span style={{ fontFamily: F.body, fontSize: 14, color: C.ink, textAlign: "right", maxWidth: "70%" }}>{value}</span>
+    </div>
+  );
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
