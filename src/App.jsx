@@ -1037,6 +1037,7 @@ const TRANSLATIONS = {
     "trips.unifiedNoCategory": "Uncategorized",
     "trips.unifiedEmptyInventory": "Your inventory is empty. Add items, kits, or categories below.",
     "trips.unifiedQuickAdd": "Quick add new",
+    "trips.quickAddHint": "Don't have what you need? Create a new item, kit, or category right here.",
     "addTo.button": "Add to...",
     "addTo.heading": "Add to a Trip/Packlist",
     "addTo.empty": "No saved Trip/Packlists yet.",
@@ -1666,6 +1667,7 @@ const TRANSLATIONS = {
     "trips.unifiedNoCategory": "Sin categoría",
     "trips.unifiedEmptyInventory": "Tu inventario está vacío. Añade artículos, kits o categorías abajo.",
     "trips.unifiedQuickAdd": "Añadir nuevo",
+    "trips.quickAddHint": "¿No tienes lo que necesitas? Crea un nuevo artículo, kit o categoría aquí mismo.",
     "addTo.button": "Añadir a...",
     "addTo.heading": "Añadir a un Viaje/Lista",
     "addTo.empty": "Aún no hay Viajes/Listas guardados.",
@@ -7962,25 +7964,21 @@ function TripPacklistForm({
         {t("trips.summarySection")}: <span style={{ marginLeft: 6, opacity: 0.85 }}>{summaryText}</span>
       </div>
 
-      {/* === UNIFIED INVENTORY BROWSER === */}
-      <UnifiedInventoryBrowser
-        categories={categories}
-        kits={kits}
-        items={items}
-        pickedCategoryIds={pickedCategoryIds}
-        setPickedCategoryIds={setPickedCategoryIds}
-        pickedKitIds={pickedKitIds}
-        setPickedKitIds={setPickedKitIds}
-        pickedItemIds={pickedItemIds}
-        setPickedItemIds={setPickedItemIds}
-      />
-
-      {/* === Quick add new — collapsible toolbar for creating new items/kits/categories on the fly === */}
-      <div style={{ marginTop: 24, padding: 14, background: C.paperDeep, border: `1.5px dashed ${C.line}` }}>
-        <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-          {t("trips.unifiedQuickAdd")}
+      {/* === QUICK ADD TOOLBAR (prominent, at top — same style as edit dialog) === */}
+      <div style={{
+        marginBottom: 28, padding: isMobile ? 14 : 18,
+        background: C.paperDeep,
+        border: `2px solid ${C.rust}`,
+        boxShadow: `inset 0 0 0 1px ${C.paper}`,
+      }}>
+        <div style={{
+          marginBottom: 12, fontFamily: F.mono, fontSize: 11,
+          color: C.rust, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <Plus size={14} strokeWidth={2.5} /> {t("trips.unifiedQuickAdd")}
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 8 }}>
           {[
             ["item", t("trips.addNewItemInline")],
             ["kit", t("trips.addNewKitInline")],
@@ -7990,14 +7988,17 @@ function TripPacklistForm({
             return (
               <button key={k} onClick={() => setInlineMode(active ? null : k)}
                 style={{
-                  padding: "6px 12px",
-                  border: `1.5px ${active ? "solid" : "dashed"} ${C.forest}`,
-                  background: active ? C.forest : "transparent",
-                  color: active ? C.paper : C.forest,
+                  padding: isMobile ? "12px 14px" : "14px 16px",
+                  border: `1.5px solid ${active ? C.rust : C.ink}`,
+                  background: active ? C.rust : C.paper,
+                  color: active ? C.paper : C.ink,
                   cursor: "pointer",
-                  fontFamily: F.mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                  fontFamily: F.mono, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  minHeight: 44,
                 }}>
-                {label}
+                {active ? <X size={14} strokeWidth={2.5} /> : <Plus size={14} strokeWidth={2.5} />}
+                {label.replace(/^\+\s*/, "")}
               </button>
             );
           })}
@@ -8005,8 +8006,8 @@ function TripPacklistForm({
 
         {/* Inline create forms */}
         {inlineMode === "item" && (
-          <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
@@ -8020,8 +8021,8 @@ function TripPacklistForm({
           </div>
         )}
         {inlineMode === "kit" && (
-          <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Field label={t("trips.inlineKitName")} value={newKit.name} onChange={(e) => setNewKit({ ...newKit, name: e.target.value })} />
               <CategorySelect categories={categories} value={newKit.category} onChange={(v) => setNewKit({ ...newKit, category: v })} />
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
@@ -8032,8 +8033,8 @@ function TripPacklistForm({
           </div>
         )}
         {inlineMode === "cat" && (
-          <div style={{ marginTop: 12, padding: 12, background: C.paper, border: `1px solid ${C.line}` }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 14, padding: 14, background: C.paper, border: `1.5px solid ${C.ink}` }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Field label={t("trips.inlineCatName")} value={newCat.name} onChange={(e) => setNewCat({ name: e.target.value })} />
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                 <Btn variant="ghost" icon={X} onClick={() => { setInlineMode(null); setNewCat({ name: "" }); }}>{t("trips.inlineCancel")}</Btn>
@@ -8043,6 +8044,19 @@ function TripPacklistForm({
           </div>
         )}
       </div>
+
+      {/* === UNIFIED INVENTORY BROWSER === */}
+      <UnifiedInventoryBrowser
+        categories={categories}
+        kits={kits}
+        items={items}
+        pickedCategoryIds={pickedCategoryIds}
+        setPickedCategoryIds={setPickedCategoryIds}
+        pickedKitIds={pickedKitIds}
+        setPickedKitIds={setPickedKitIds}
+        pickedItemIds={pickedItemIds}
+        setPickedItemIds={setPickedItemIds}
+      />
 
       {/* Action row */}
       <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "space-between", flexWrap: "wrap" }}>
