@@ -3841,8 +3841,9 @@ function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, badge
    creates real data so they end with a working starter setup.
    ============================================================ */
 const ONBOARDING_KEY = "pakmondo:onboardingComplete";
+const ONBOARDING_FORCE_KEY = "pakmondo:onboardingForce";
 
-function OnboardingWizard({ user, items, setItems, kits, setKits, packlists, setPacklists, categories, setCategories, onClose, onGo }) {
+function OnboardingWizard({ user, items, setItems, kits, setKits, packlists, setPacklists, categories, setCategories, onClose, onGo, replayMode = false }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [step, setStep] = useState(0);
@@ -3861,53 +3862,61 @@ function OnboardingWizard({ user, items, setItems, kits, setKits, packlists, set
 
   const skip = () => finish();
 
-  // Step actions — each creates a real piece of data + advances
+  // In replay mode (user already has data), don't actually create entities —
+  // just show the same screens for review and advance.
+  // In fresh-run mode, each step creates real data so they end with a starter setup.
   const handleAddItem = () => {
     const trimmed = itemName.trim();
     if (!trimmed) return;
-    const newItem = {
-      id: uid("it"),
-      name: trimmed,
-      category: null,
-      weight: null,
-      quantity: 1,
-      packed: false,
-    };
-    setItems([newItem, ...items]);
-    setCreatedItemId(newItem.id);
+    if (!replayMode) {
+      const newItem = {
+        id: uid("it"),
+        name: trimmed,
+        category: null,
+        weight: null,
+        quantity: 1,
+        packed: false,
+      };
+      setItems([newItem, ...items]);
+      setCreatedItemId(newItem.id);
+    }
     setStep(2);
   };
 
   const handleAddKit = () => {
     const trimmed = kitName.trim();
     if (!trimmed) return;
-    const newKit = {
-      id: uid("kit"),
-      name: trimmed,
-      category: null,
-      itemIds: createdItemId ? [createdItemId] : [],
-    };
-    setKits([newKit, ...kits]);
-    setCreatedKitId(newKit.id);
+    if (!replayMode) {
+      const newKit = {
+        id: uid("kit"),
+        name: trimmed,
+        category: null,
+        itemIds: createdItemId ? [createdItemId] : [],
+      };
+      setKits([newKit, ...kits]);
+      setCreatedKitId(newKit.id);
+    }
     setStep(3);
   };
 
   const handleAddPacklist = () => {
     const trimmed = packlistName.trim();
     if (!trimmed) return;
-    const newPacklist = {
-      id: uid("pl"),
-      name: trimmed,
-      kitIds: createdKitId ? [createdKitId] : [],
-      itemIds: [],
-      categoryIds: [],
-      type: null,
-      dest: null,
-      date: null,
-      notes: null,
-    };
-    setPacklists([newPacklist, ...packlists]);
-    setCreatedPacklistId(newPacklist.id);
+    if (!replayMode) {
+      const newPacklist = {
+        id: uid("pl"),
+        name: trimmed,
+        kitIds: createdKitId ? [createdKitId] : [],
+        itemIds: [],
+        categoryIds: [],
+        type: null,
+        dest: null,
+        date: null,
+        notes: null,
+      };
+      setPacklists([newPacklist, ...packlists]);
+      setCreatedPacklistId(newPacklist.id);
+    }
     setStep(4);
   };
 
@@ -4206,20 +4215,33 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
 
   // ── Onboarding wizard trigger ────────────────────────────────────────────
   // Show on first signed-in dashboard visit when:
-  //   - the user is signed in (has a user.id)
-  //   - they have zero items
-  //   - they haven't completed/skipped the wizard before (localStorage flag)
-  // Once dismissed, the flag prevents the wizard from coming back even if
-  // the user later deletes everything. If they want it again they can clear
-  // local storage.
+  //   - the user is signed in (has a user.id), AND EITHER
+  //     a) they have zero items AND haven't dismissed the wizard before, OR
+  //     b) they explicitly tapped "Replay tutorial" (force flag set)
+  // Once dismissed, the flag prevents the wizard from coming back unless
+  // they tap Replay again.
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingReplayMode, setOnboardingReplayMode] = useState(false);
   useEffect(() => {
     if (!user?.id) return;
-    if (items.length > 0) return;
+    let force = false;
     let alreadyDone = false;
-    try { alreadyDone = localStorage.getItem(ONBOARDING_KEY) === "true"; } catch (e) { /* ignore */ }
-    if (!alreadyDone) {
-      // Tiny delay so the dashboard renders first, then the modal appears on top.
+    try {
+      force = localStorage.getItem(ONBOARDING_FORCE_KEY) === "true";
+      alreadyDone = localStorage.getItem(ONBOARDING_KEY) === "true";
+    } catch (e) { /* ignore */ }
+    // Force-replay takes priority over everything else
+    if (force) {
+      // Consume the force flag so it only fires once
+      try { localStorage.removeItem(ONBOARDING_FORCE_KEY); } catch (e) { /* ignore */ }
+      // If user has data already, show in replay-mode (no entity creation)
+      setOnboardingReplayMode(items.length > 0);
+      const timer = setTimeout(() => setShowOnboarding(true), 200);
+      return () => clearTimeout(timer);
+    }
+    // First-run path: only when user has nothing AND hasn't seen it
+    if (items.length === 0 && !alreadyDone) {
+      setOnboardingReplayMode(false);
       const timer = setTimeout(() => setShowOnboarding(true), 400);
       return () => clearTimeout(timer);
     }
@@ -4489,6 +4511,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
           kits={kits} setKits={setKits}
           packlists={packlists} setPacklists={setPacklists}
           categories={categories} setCategories={setCategories}
+          replayMode={onboardingReplayMode}
           onClose={() => setShowOnboarding(false)}
           onGo={(screen) => { setShowOnboarding(false); go(screen); }}
         />
@@ -14120,13 +14143,16 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
                 <span style={{ color: statusColor }}>{statusLabel}</span>
               </span>
             } />
-            {/* Replay first-run tutorial. Clears the localStorage flag and
-                bounces the user to dashboard, where the wizard will trigger
-                if they have no items. (If they have items, it won't re-trigger
-                — the user can clear them first if they really want it.) */}
+            {/* Replay first-run tutorial. Sets a one-shot "force" flag that
+                the dashboard consumes to re-open the wizard, regardless of
+                whether the user has items already. */}
             <div style={{ marginTop: 16 }}>
               <Btn variant="ghost" icon={Compass} onClick={() => {
-                try { localStorage.removeItem(ONBOARDING_KEY); } catch (e) { /* ignore */ }
+                try {
+                  localStorage.setItem(ONBOARDING_FORCE_KEY, "true");
+                  // Also clear the "complete" flag so first-run logic stays consistent
+                  localStorage.removeItem(ONBOARDING_KEY);
+                } catch (e) { /* ignore */ }
                 go("dashboard");
               }}>
                 {t("set.replayTutorial")}
