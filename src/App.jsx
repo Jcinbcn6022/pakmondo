@@ -3886,11 +3886,9 @@ function Header({ go, active, onBack }) {
           {!isMobile && (
             <button onClick={() => go("cart")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: C.ink }} aria-label={t("nav.cart")}><ShoppingCart size={18} /></button>
           )}
-          {!isMobile && (
-            <button onClick={() => go("help")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: active === "help" ? C.rust : C.ink }} aria-label={t("nav.help")} title={t("nav.help")}>
-              <BookOpen size={18} />
-            </button>
-          )}
+          <button onClick={() => go("help")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: active === "help" ? C.rust : C.ink, minWidth: isMobile ? 44 : "auto", minHeight: isMobile ? 44 : "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("nav.help")} title={t("nav.help")}>
+            <BookOpen size={isMobile ? 22 : 18} />
+          </button>
           <button onClick={() => go("settings")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("set.title")}>
             <Settings size={isMobile ? 22 : 18} />
           </button>
