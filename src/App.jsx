@@ -6017,6 +6017,10 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
   if (items.length === 0) return <EmptyState label={emptyLabel || t("inv.emptyItems")} hint={emptyHint || t("inv.emptyItemsHint")} />;
+  // Sort items alphabetically by name. Use locale-aware comparison so
+  // accented characters sort correctly (á before b, etc.) and case is ignored.
+  // We sort a COPY to avoid mutating props.
+  items = [...items].sort((a, b) => (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" }));
 
   const fmtExpiry = (iso) => {
     if (!iso) return "";
@@ -6456,15 +6460,20 @@ function AddToPacklistMenu({ kind, entityId, entityName, packlists, setPacklists
 }
 
 function CategoriesView({ categories, items, kits, onDelete, onOpen, onShare, onPublish, onEdit, packlists, setPacklists }) {
-  const { t, lang, units } = useI18n();
+  const { t, lang, units, locale } = useI18n();
   const { isMobile } = useViewport();
   // Collapse-by-default state. expanded[id] = true means show items beneath.
   const [expanded, setExpanded] = useState({});
   const toggleExpanded = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   if (categories.length === 0) return <EmptyState label={t("inv.emptyCats")} hint={t("inv.emptyCatsHint")} />;
+  // Sort categories alphabetically by name (locale-aware, case-insensitive).
+  // Sort a copy to avoid mutating props.
+  const sortedCategories = [...categories].sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" })
+  );
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      {categories.map((c) => {
+      {sortedCategories.map((c) => {
         const Icon = iconFor(c.icon);
         const catItems = items.filter((it) => it.category === c.name);
         const kitCount = kits.filter((k) => k.category === c.name).length;
@@ -7133,38 +7142,38 @@ function KitCard({ kit, items, categories, onUpdate, onDelete, onShare, onPublis
 }
 
 function KitsView({ kits, items, categories, onUpdateKit, onDeleteKit, onShareKit, onPublishKit, onEditKit, packlists, setPacklists }) {
-  const { t, lang, units } = useI18n();
+  const { t, lang, units, locale } = useI18n();
   const { isMobile } = useViewport();
   // Collapse-by-default state per kit. expanded[kitId] = true means show items.
   const [expanded, setExpanded] = useState({});
   const toggleExpanded = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   if (kits.length === 0) return <EmptyState label={t("kit.empty")} hint={t("kit.emptyHint")} />;
 
+  // Helper: locale-aware case-insensitive name comparison.
+  const byName = (a, b) =>
+    (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" });
+
   // Group kits by their `category` field. Kits with the same category appear
   // under one heading. Kits without a category go into a "No category" group
-  // shown last. Categories are ordered by the `categories` array (which is
-  // typically the order the user created them) with unknowns at the end.
+  // shown last. Within each group, kits are sorted alphabetically.
   const byCategory = new Map(); // categoryName | "" -> [kits]
   kits.forEach((k) => {
     const key = k.category || "";
     if (!byCategory.has(key)) byCategory.set(key, []);
     byCategory.get(key).push(k);
   });
+  // Sort kits within each group
+  byCategory.forEach((arr) => arr.sort(byName));
 
-  // Build an ordered list: known categories first (in `categories` order),
-  // then any categories not in the array, then the no-category bucket last.
+  // Build an ordered list: alphabetical category groups first, then the
+  // no-category bucket last. (Previously this followed the categories array
+  // order — alphabetical is more discoverable when there are many.)
   const orderedGroups = [];
-  const seenKeys = new Set();
-  categories.forEach((c) => {
-    if (byCategory.has(c.name)) {
-      orderedGroups.push({ categoryName: c.name, kits: byCategory.get(c.name) });
-      seenKeys.add(c.name);
-    }
-  });
-  byCategory.forEach((arr, key) => {
-    if (key === "" || seenKeys.has(key)) return;
-    orderedGroups.push({ categoryName: key, kits: arr });
-    seenKeys.add(key);
+  const groupKeys = Array.from(byCategory.keys())
+    .filter((k) => k !== "")
+    .sort((a, b) => a.localeCompare(b, locale, { sensitivity: "base" }));
+  groupKeys.forEach((key) => {
+    orderedGroups.push({ categoryName: key, kits: byCategory.get(key) });
   });
   if (byCategory.has("")) {
     orderedGroups.push({ categoryName: null, kits: byCategory.get("") });
