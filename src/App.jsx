@@ -513,6 +513,7 @@ const C = {
   inkSoft: "#2C3A33",
   forest: "#2D4A3E",
   forestDeep: "#1E3329",
+  forestBright: "#3F8B5C", // clearer mid-green for ticked checkboxes / status fills
   rust: "#B8451F",
   ochre: "#C99A4F",
   muted: "#8B7E66",
@@ -10440,10 +10441,9 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
     vertical-align: middle;
   }
   .cb-want   { border-color: #B8451F; color: #B8451F; }
-  .cb-packed { border-color: #2D4A3E; color: #2D4A3E; }
-  .cb-checked { background-image: linear-gradient(transparent, transparent); }
+  .cb-packed { border-color: #3F8B5C; color: #3F8B5C; }
   .cb-want.cb-checked   { background: #B8451F; color: #FFFFFF; }
-  .cb-packed.cb-checked { background: #2D4A3E; color: #FFFFFF; }
+  .cb-packed.cb-checked { background: #3F8B5C; color: #FFFFFF; }
   .footer {
     margin-top: 36px; padding-top: 14px;
     border-top: 1px dashed #C9BBA0;
@@ -11336,7 +11336,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         title={t("pl.wantToggle")}
       />
       <Checkbox
-        checked={isPacked(itemId)} color={C.forest}
+        checked={isPacked(itemId)} color={C.forestBright}
         onClick={() => onTogglePacked && onTogglePacked(itemId)}
         title={t("pl.packedToggle")}
       />
@@ -11421,8 +11421,8 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                 <span style={{ width: 14, height: 14, border: `2px solid ${C.rust}`, background: C.rust, display: "inline-block" }}></span>
                 {t("pl.colWant")} — {wantedCount}/{totalUnique}
               </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: C.forest, fontWeight: 700 }}>
-                <span style={{ width: 14, height: 14, border: `2px solid ${C.forest}`, background: C.forest, display: "inline-block" }}></span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: C.forestBright, fontWeight: 700 }}>
+                <span style={{ width: 14, height: 14, border: `2px solid ${C.forestBright}`, background: C.forestBright, display: "inline-block" }}></span>
                 {t("pl.colPacked")} — {packedCount}/{wantedCount}
               </span>
             </div>
@@ -11590,7 +11590,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                       }}>
                         <div style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
                           <span style={{ width: 22, textAlign: "center", color: C.rust }}>{lang === "es" ? "LLEV" : "WANT"}</span>
-                          <span style={{ width: 22, textAlign: "center", color: C.forest }}>{lang === "es" ? "EMP" : "PKD"}</span>
+                          <span style={{ width: 22, textAlign: "center", color: C.forestBright }}>{lang === "es" ? "EMP" : "PKD"}</span>
                         </div>
                       </div>
                       {kitItems.map((it) => (
