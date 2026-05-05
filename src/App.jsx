@@ -5632,9 +5632,13 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
                 {t("dash.libraryCardTag")}
               </div>
             </div>
-            <Btn variant="rust" icon={ChevronRight} onClick={() => go("library")} fullWidth={isMobile}>
-              {t("dash.libraryCardCta")}
-            </Btn>
+            {/* Wrap Btn in a div with explicit z-index + position to ensure
+                nothing in the card overlay layer can intercept its clicks */}
+            <div style={{ position: "relative", zIndex: 5, flexShrink: 0 }}>
+              <Btn variant="rust" icon={ChevronRight} onClick={() => go("library")} fullWidth={isMobile}>
+                {t("dash.libraryCardCta")}
+              </Btn>
+            </div>
           </div>
         </div>
         <Footer go={go} />
