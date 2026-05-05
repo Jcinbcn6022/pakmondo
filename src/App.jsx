@@ -662,6 +662,10 @@ const TRANSLATIONS = {
     "footer.contact": "CONTACT: pakmondoapp@gmail.com",
     "footer.fieldManual": "FIELD MANUAL",
     "nav.help": "Help",
+    "manualPopup.kicker": "FIELD MANUAL",
+    "manualPopup.title": "Field Manual",
+    "manualPopup.body": "Everything PakMondo can do, explained simply.",
+    "manualPopup.openBtn": "Open manual",
     "set.fieldManual": "Read the field manual",
     "common.back": "Back",
     "common.cancel": "Cancel",
@@ -1883,6 +1887,10 @@ const TRANSLATIONS = {
     "footer.contact": "CONTACTO: pakmondoapp@gmail.com",
     "footer.fieldManual": "MANUAL DE CAMPO",
     "nav.help": "Ayuda",
+    "manualPopup.kicker": "MANUAL DE CAMPO",
+    "manualPopup.title": "Manual de campo",
+    "manualPopup.body": "Todo lo que PakMondo puede hacer, explicado de forma simple.",
+    "manualPopup.openBtn": "Abrir manual",
     "set.fieldManual": "Leer el manual de campo",
     "common.back": "Atrás",
     "common.cancel": "Cancelar",
@@ -4099,10 +4107,60 @@ function Header({ go, active, onBack }) {
   const { isMobile } = useViewport();
   const user = useCurrentUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Field Manual hover/tap popup state.
+  // Desktop: open on hover (with small delay), close on mouse-leave.
+  // Mobile: tap toggles. The popup contains an explicit "Open Field Manual"
+  // button so the navigation intent is unambiguous on touch.
+  const [manualPopupOpen, setManualPopupOpen] = useState(false);
+  const manualHoverTimerRef = useRef(null);
+  const manualButtonRef = useRef(null);
+  const manualPopupRef = useRef(null);
   const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["packlists", t("nav.packlists")], ["library", t("nav.library")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")], ["help", t("nav.help")]];
 
   // Close menu on route change
-  useEffect(() => { setMenuOpen(false); }, [active]);
+  useEffect(() => { setMenuOpen(false); setManualPopupOpen(false); }, [active]);
+
+  // Close the manual popup when tapping outside it (mobile)
+  useEffect(() => {
+    if (!manualPopupOpen) return;
+    const handleOutsideClick = (e) => {
+      if (manualPopupRef.current && manualPopupRef.current.contains(e.target)) return;
+      if (manualButtonRef.current && manualButtonRef.current.contains(e.target)) return;
+      setManualPopupOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [manualPopupOpen]);
+
+  // Hover handlers (desktop only — short delay so it doesn't appear on
+  // accidental cursor pass-through). Cleared if cursor leaves before delay.
+  const handleManualMouseEnter = () => {
+    if (isMobile) return;
+    if (manualHoverTimerRef.current) clearTimeout(manualHoverTimerRef.current);
+    manualHoverTimerRef.current = setTimeout(() => setManualPopupOpen(true), 350);
+  };
+  const handleManualMouseLeave = () => {
+    if (isMobile) return;
+    if (manualHoverTimerRef.current) clearTimeout(manualHoverTimerRef.current);
+    // Tiny grace period so user can move from icon → popup without it closing
+    manualHoverTimerRef.current = setTimeout(() => setManualPopupOpen(false), 150);
+  };
+  // Click behavior:
+  //   - Desktop: navigate (hover already showed the popup)
+  //   - Mobile: toggle the popup; user taps "Open Field Manual" inside to navigate
+  const handleManualClick = (e) => {
+    if (isMobile) {
+      e.preventDefault();
+      e.stopPropagation();
+      setManualPopupOpen((v) => !v);
+    } else {
+      go("help");
+    }
+  };
 
   const goAndClose = (k) => { setMenuOpen(false); go(k); };
 
@@ -4161,9 +4219,89 @@ function Header({ go, active, onBack }) {
           {!isMobile && (
             <button onClick={() => go("cart")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: C.ink }} aria-label={t("nav.cart")}><ShoppingCart size={18} /></button>
           )}
-          <button onClick={() => go("help")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: active === "help" ? C.rust : C.ink, minWidth: isMobile ? 44 : "auto", minHeight: isMobile ? 44 : "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("nav.help")} title={t("nav.help")}>
-            <ManualIcon size={isMobile ? 22 : 18} />
-          </button>
+          {/* Field Manual button + popup (hover desktop / tap mobile) */}
+          <div
+            style={{ position: "relative", display: "inline-flex" }}
+            onMouseEnter={handleManualMouseEnter}
+            onMouseLeave={handleManualMouseLeave}
+          >
+            <button
+              ref={manualButtonRef}
+              onClick={handleManualClick}
+              style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: active === "help" ? C.rust : C.ink, minWidth: isMobile ? 44 : "auto", minHeight: isMobile ? 44 : "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+              aria-label={t("nav.help")}
+              aria-expanded={manualPopupOpen}
+            >
+              <ManualIcon size={isMobile ? 22 : 18} />
+            </button>
+            {manualPopupOpen && (
+              <div
+                ref={manualPopupRef}
+                role="dialog"
+                aria-label={t("nav.help")}
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  // Anchor to the right so the popup doesn't run off screen.
+                  // On mobile the icon is near the right edge; on desktop it sits
+                  // between sync and settings — right-anchor works for both.
+                  right: 0,
+                  width: isMobile ? 260 : 280,
+                  background: C.paper,
+                  border: `1.5px solid ${C.ink}`,
+                  padding: 14,
+                  zIndex: 50,
+                  // A tiny pointer/notch above so the popup feels attached
+                  fontFamily: F.body,
+                  color: C.ink,
+                }}
+              >
+                {/* Notch/triangle pointing up at the icon */}
+                <div style={{
+                  position: "absolute",
+                  top: -7,
+                  // Visually point at the icon center (icon button is ~36px wide,
+                  // sitting at the right edge of the popup; notch ~14px from right)
+                  right: 16,
+                  width: 0, height: 0,
+                  borderLeft: "6px solid transparent",
+                  borderRight: "6px solid transparent",
+                  borderBottom: `7px solid ${C.ink}`,
+                }} />
+                <div style={{
+                  position: "absolute",
+                  top: -5,
+                  right: 17,
+                  width: 0, height: 0,
+                  borderLeft: "5px solid transparent",
+                  borderRight: "5px solid transparent",
+                  borderBottom: `6px solid ${C.paper}`,
+                }} />
+                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 4 }}>
+                  {t("manualPopup.kicker")}
+                </div>
+                <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, lineHeight: 1.1, marginBottom: 6 }}>
+                  {t("manualPopup.title")}<span style={{ color: C.rust }}>.</span>
+                </div>
+                <div style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4, marginBottom: 12 }}>
+                  {t("manualPopup.body")}
+                </div>
+                <button
+                  onClick={() => { setManualPopupOpen(false); go("help"); }}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "8px 14px",
+                    background: C.rust, color: C.paper,
+                    border: "none", cursor: "pointer",
+                    fontFamily: F.mono, fontSize: 11, fontWeight: 700,
+                    letterSpacing: "0.18em", textTransform: "uppercase",
+                  }}
+                >
+                  {t("manualPopup.openBtn")} <ChevronRight size={12} strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={() => go("settings")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("set.title")}>
             <Settings size={isMobile ? 22 : 18} />
           </button>
