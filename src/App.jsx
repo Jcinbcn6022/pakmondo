@@ -5359,18 +5359,16 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
       <div style={{ padding: padX(isMobile), position: "relative" }}>
         <TopoBG opacity={0.08} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Membership card — appears top-right when user has a member_id.
-              The hero below uses paddingTop on mobile and a larger marginTop
-              elsewhere to ensure the card never overlaps the username/region
-              badge that sits below it. */}
-          {user.member_id && (
+          {/* Membership card. On mobile, render inline as a normal flow
+              element so it can never overlap the username/coordinate text
+              below — even if the username wraps. On desktop, absolute-position
+              top-right where there's plenty of horizontal room. */}
+          {user.member_id && isMobile && (
             <div style={{
-              position: "absolute",
-              top: isMobile ? 8 : 16,
-              right: 0,
-              zIndex: 5,
-              maxWidth: isMobile ? 140 : 200,
-              padding: isMobile ? "8px 10px" : "10px 14px",
+              display: "inline-block",
+              maxWidth: 200,
+              padding: "8px 12px",
+              marginBottom: 16,
               background: C.paper,
               border: `1.5px solid ${C.ink}`,
               boxShadow: `2px 2px 0 ${C.ink}`,
@@ -5379,7 +5377,31 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
               <div style={{ fontSize: 8, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
                 {t("member.label")}
               </div>
-              <div style={{ marginTop: 2, fontSize: isMobile ? 14 : 16, fontWeight: 700, color: C.ink, letterSpacing: "0.05em" }}>
+              <div style={{ marginTop: 2, fontSize: 14, fontWeight: 700, color: C.ink, letterSpacing: "0.05em" }}>
+                {user.member_id}
+              </div>
+              <div style={{ marginTop: 4, paddingTop: 4, borderTop: `1px dashed ${C.line}`, fontSize: 8, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                {t("member.since")} {user.member_since ? new Date(user.member_since).getFullYear() : "—"}
+              </div>
+            </div>
+          )}
+          {user.member_id && !isMobile && (
+            <div style={{
+              position: "absolute",
+              top: 16,
+              right: 0,
+              zIndex: 5,
+              maxWidth: 200,
+              padding: "10px 14px",
+              background: C.paper,
+              border: `1.5px solid ${C.ink}`,
+              boxShadow: `2px 2px 0 ${C.ink}`,
+              fontFamily: F.mono,
+            }}>
+              <div style={{ fontSize: 8, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("member.label")}
+              </div>
+              <div style={{ marginTop: 2, fontSize: 16, fontWeight: 700, color: C.ink, letterSpacing: "0.05em" }}>
                 {user.member_id}
               </div>
               <div style={{ marginTop: 4, paddingTop: 4, borderTop: `1px dashed ${C.line}`, fontSize: 8, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
@@ -5388,7 +5410,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
             </div>
           )}
 
-          <div style={{ marginTop: user.member_id ? (isMobile ? 80 : 100) : (isMobile ? 24 : 40) }}>
+          <div style={{ marginTop: user.member_id && !isMobile ? 100 : (isMobile ? 8 : 40) }}>
             <Coord>{t("dash.basecamp")}</Coord>
             <h1 style={{ margin: "12px 0 6px", fontFamily: F.display, fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 700, lineHeight: 0.95, letterSpacing: "-0.03em", fontStyle: "italic", color: C.forest, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span>
