@@ -61,7 +61,28 @@ const supabaseService = {
       if (profileError || !profile) {
         return { error: "Username already taken — try another" };
       }
-      return { user: data.user, profile };
+      // Allocate a member_id for this new account (only if not already set —
+      // the trigger could have set it, or this could be a re-attempt).
+      let finalProfile = profile;
+      if (!profile.member_id) {
+        try {
+          const { data: midData } = await supabase.rpc("allocate_member_id", { p_region: region || "" });
+          if (midData) {
+            const updates = { member_id: midData, member_since: new Date().toISOString() };
+            const { data: updated } = await supabase
+              .from("profiles")
+              .update(updates)
+              .eq("id", data.user.id)
+              .select()
+              .single();
+            if (updated) finalProfile = updated;
+          }
+        } catch (e) {
+          // Member ID allocation failed — not fatal, profile still works.
+          // Admin can backfill later by re-running the SQL.
+        }
+      }
+      return { user: data.user, profile: finalProfile };
     }
     return { error: "Signup failed" };
   },
@@ -116,11 +137,27 @@ const supabaseService = {
   },
 
   // --- USER LOOKUP (for share recipient search) ---
-  findUser: async (username) => {
+  // Accepts either a username (case-insensitive) or a member_id (e.g. "0001NA").
+  // Returns the matching profile or null.
+  findUser: async (query) => {
+    const trimmed = (query || "").trim();
+    if (!trimmed) return null;
+    // Member IDs are pattern: digits + 2 letters (e.g. "0001NA"). Try that first
+    // when the input looks numeric-then-letters. Otherwise fall back to username.
+    const memberIdPattern = /^\d+[A-Za-z]{2}$/;
+    if (memberIdPattern.test(trimmed)) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .ilike("member_id", trimmed)
+        .maybeSingle();
+      if (data) return data;
+      // Fall through to username lookup if no member match
+    }
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .ilike("username", username.trim())
+      .ilike("username", trimmed)
       .maybeSingle();
     return data;
   },
@@ -725,6 +762,8 @@ const TRANSLATIONS = {
     "lib.activityPh": "Trekking, Camping, …",
     "lib.activityCustomLabel": "Use \"{name}\" as a new activity",
     "lib.fieldDescription": "Description",
+    "member.label": "MEMBER",
+    "member.since": "SINCE",
     "lib.fieldDescriptionHint": "What is this for? When/where did you use it? Why is it useful?",
     "lib.fieldCredit": "Published by",
     "lib.fieldCreditHint": "Optional. Defaults to your name. Shown publicly on the library card. Clear to publish anonymously.",
@@ -822,8 +861,8 @@ const TRANSLATIONS = {
     "share.tabUsername": "By username",
     "share.tabCode": "Share code",
     "share.tabFile": "Export file",
-    "share.usernamePh": "wayfarer, marco, …",
-    "share.usernameNotFound": "No user with that name",
+    "share.usernamePh": "wayfarer, 0001NA, …",
+    "share.usernameNotFound": "No member found by that name or ID",
     "share.cantShareSelf": "You can't share with yourself",
     "share.codeHint": "A unique code anyone can use to import this.",
     "share.generateCode": "Generate code",
@@ -1491,6 +1530,8 @@ const TRANSLATIONS = {
     "lib.activityPh": "Trekking, Acampar, …",
     "lib.activityCustomLabel": "Usar \"{name}\" como actividad nueva",
     "lib.fieldDescription": "Descripción",
+    "member.label": "MIEMBRO",
+    "member.since": "DESDE",
     "lib.fieldDescriptionHint": "¿Para qué sirve? ¿Cuándo/dónde lo usaste? ¿Por qué es útil?",
     "lib.fieldCredit": "Publicado por",
     "lib.fieldCreditHint": "Opcional. Por defecto, tu nombre. Visible en la tarjeta de la biblioteca. Déjalo vacío para publicar de forma anónima.",
@@ -1584,8 +1625,8 @@ const TRANSLATIONS = {
     "share.tabUsername": "Por usuario",
     "share.tabCode": "Código",
     "share.tabFile": "Archivo",
-    "share.usernamePh": "explorador, marco, …",
-    "share.usernameNotFound": "No existe ese usuario",
+    "share.usernamePh": "explorador, 0001EU, …",
+    "share.usernameNotFound": "No se encontró ningún miembro con ese nombre o ID",
     "share.cantShareSelf": "No puedes compartir contigo mismo",
     "share.codeHint": "Un código único que cualquiera puede usar.",
     "share.generateCode": "Generar código",
@@ -3275,6 +3316,8 @@ function Login({ go, setUser }) {
       username: result.profile?.username || "",
       region: result.profile?.region || "",
       is_admin: !!result.profile?.is_admin,
+      member_id: result.profile?.member_id || "",
+      member_since: result.profile?.member_since || result.profile?.created_at || null,
     });
     go("dashboard");
   };
@@ -3549,6 +3592,9 @@ function Signup({ go, setUser, takenUsernames, setTakenUsernames }) {
       email: form.email.trim(),
       username: finalUsername,
       region: form.region,
+      is_admin: !!result.profile?.is_admin,
+      member_id: result.profile?.member_id || "",
+      member_since: result.profile?.member_since || result.profile?.created_at || null,
     });
     setTakenUsernames([...takenUsernames, finalUsername]);
     go("dashboard");
@@ -3772,6 +3818,32 @@ function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], lo
       <div style={{ padding: padX(isMobile), position: "relative" }}>
         <TopoBG opacity={0.08} />
         <div style={{ position: "relative", zIndex: 1 }}>
+          {/* Membership card — appears top-right when user has a member_id. */}
+          {user.member_id && (
+            <div style={{
+              position: "absolute",
+              top: isMobile ? 8 : 16,
+              right: 0,
+              zIndex: 5,
+              maxWidth: isMobile ? 140 : 200,
+              padding: isMobile ? "8px 10px" : "10px 14px",
+              background: C.paper,
+              border: `1.5px solid ${C.ink}`,
+              boxShadow: `2px 2px 0 ${C.ink}`,
+              fontFamily: F.mono,
+            }}>
+              <div style={{ fontSize: 8, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
+                {t("member.label")}
+              </div>
+              <div style={{ marginTop: 2, fontSize: isMobile ? 14 : 16, fontWeight: 700, color: C.ink, letterSpacing: "0.05em" }}>
+                {user.member_id}
+              </div>
+              <div style={{ marginTop: 4, paddingTop: 4, borderTop: `1px dashed ${C.line}`, fontSize: 8, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                {t("member.since")} {user.member_since ? new Date(user.member_since).getFullYear() : "—"}
+              </div>
+            </div>
+          )}
+
           <div style={{ marginTop: isMobile ? 24 : 40 }}>
             <Coord>{t("dash.basecamp")}</Coord>
             <h1 style={{ margin: "12px 0 6px", fontFamily: F.display, fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 700, lineHeight: 0.95, letterSpacing: "-0.03em", fontStyle: "italic", color: C.forest, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -13746,6 +13818,8 @@ export default function App() {
         username: session.profile?.username || "",
         region: session.profile?.region || "",
         is_admin: !!session.profile?.is_admin,
+        member_id: session.profile?.member_id || "",
+        member_since: session.profile?.member_since || session.profile?.created_at || null,
       });
       // If we're on welcome/login/signup screen, jump to dashboard.
       // BUT: don't override "reset" — we need to stay there even with a session.
