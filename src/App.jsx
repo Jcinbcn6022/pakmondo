@@ -14655,21 +14655,719 @@ function HelpPage({ go }) {
     );
   };
 
-  // Screenshot placeholder. When you have a real image, replace with:
-  //   <img src="/screenshots/<filename>.png" alt="..." style={{ ... }} />
-  const ScreenshotPlaceholder = ({ caption }) => (
-    <div style={{
-      margin: "16px 0", padding: "32px 18px",
-      background: C.paperDeep, border: `1.5px dashed ${C.line}`,
-      textAlign: "center",
-    }}>
-      <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>
-        {t("help.screenshotPending")}
-      </div>
-      <div style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
-        {caption}
-      </div>
-    </div>
+  // Mockup component — frames a stylized SVG illustration of an app screen.
+  // Replaces the old "screenshot pending" boxes. SVG content lives in the
+  // mockupSvgs registry below, keyed by name. Each mockup renders the same
+  // Field Journal aesthetic as the rest of the app: cream paper, ink borders,
+  // dashed dividers, monospace labels, Georgia headings.
+  const mockupSvgs = {
+    // Login / signup form
+    signup: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="34" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">SIGN UP · MEMBER</text>
+        <text x="30" y="68" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Join PakMondo<tspan fill={C.rust}>.</tspan></text>
+        {[
+          ["EMAIL", "you@example.com"],
+          ["USERNAME", "wayfarer"],
+          ["NAME", "Your real name"],
+          ["REGION", "EU"],
+          ["PASSWORD", "••••••••"],
+        ].map(([label, value], i) => (
+          <g key={label} transform={`translate(30, ${100 + i * 30})`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">{label}</text>
+            <line x1="0" y1="18" x2="420" y2="18" stroke={C.ink} strokeWidth="1" />
+            <text x="0" y="14" fontFamily="Georgia, serif" fontSize="13" fill={C.inkSoft}>{value}</text>
+          </g>
+        ))}
+        <rect x="280" y="245" width="170" height="22" fill={C.rust} />
+        <text x="365" y="260" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.paper} letterSpacing="2" fontWeight="700">CREATE ACCOUNT</text>
+      </svg>
+    ),
+    // Welcome step of the onboarding wizard
+    wizard: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        {/* step dots */}
+        <g transform="translate(196, 28)">
+          <rect x="0" y="0" width="22" height="6" fill={C.rust} />
+          {[28, 40, 52, 64, 76].map((x, i) => <rect key={i} x={x} y="0" width="6" height="6" fill={C.line} />)}
+        </g>
+        <text x="240" y="70" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">WELCOME · BASECAMP</text>
+        <text x="240" y="118" textAnchor="middle" fontFamily="Georgia, serif" fontSize="26" fontWeight="700" fill={C.ink}>PakMondo helps you</text>
+        <text x="240" y="148" textAnchor="middle" fontFamily="Georgia, serif" fontSize="26" fontWeight="700" fill={C.ink}>pack smarter<tspan fill={C.rust}>.</tspan></text>
+        <text x="240" y="180" textAnchor="middle" fontFamily="Georgia, serif" fontSize="13" fill={C.inkSoft} fontStyle="italic">Let's set up your first piece of gear.</text>
+        <rect x="190" y="220" width="100" height="28" fill="none" stroke={C.ink} strokeWidth="1" />
+        <text x="240" y="238" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.ink} letterSpacing="2">SKIP TOUR</text>
+        <rect x="300" y="220" width="100" height="28" fill={C.rust} />
+        <text x="350" y="238" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.paper} letterSpacing="2" fontWeight="700">LET'S GO</text>
+      </svg>
+    ),
+    // Dashboard overview
+    dashboard: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        {/* header */}
+        <rect x="0" y="0" width="480" height="36" fill={C.paper} stroke={C.ink} strokeWidth="0" />
+        <line x1="0" y1="36" x2="480" y2="36" stroke={C.ink} strokeWidth="1" />
+        <text x="20" y="23" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>PakMondo</text>
+        <text x="430" y="23" textAnchor="end" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">⚙</text>
+        {/* membership card top right */}
+        <g transform="translate(330, 50)">
+          <rect x="0" y="0" width="130" height="56" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+          <text x="10" y="14" fontFamily="ui-monospace" fontSize="7" fill={C.muted} letterSpacing="2">MEMBER</text>
+          <text x="10" y="32" fontFamily="ui-monospace" fontSize="14" fontWeight="700" fill={C.ink}>0001EU</text>
+          <line x1="10" y1="38" x2="120" y2="38" stroke={C.line} strokeDasharray="2 2" />
+          <text x="10" y="50" fontFamily="ui-monospace" fontSize="7" fill={C.muted} letterSpacing="2">SINCE 2025</text>
+        </g>
+        {/* hero */}
+        <text x="20" y="68" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">BASECAMP</text>
+        <text x="20" y="110" fontFamily="Georgia, serif" fontSize="32" fontStyle="italic" fontWeight="700" fill={C.forest}>PakMondo1<tspan fill={C.rust} fontStyle="normal">.</tspan></text>
+        <text x="20" y="132" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">47.6062N · 122.3321W</text>
+        {/* nav cards */}
+        {[
+          ["01", "INVENTORY"], ["02", "PACKLISTS"], ["03", "LIBRARY"], ["04", "INBOX"], ["05", "CART"],
+        ].map(([n, l], i) => (
+          <g key={l} transform={`translate(${20 + (i % 3) * 150}, ${160 + Math.floor(i / 3) * 70})`}>
+            <rect x="0" y="0" width="140" height="60" fill={C.paperDeep} stroke={C.ink} strokeWidth="1" />
+            <text x="10" y="18" fontFamily="ui-monospace" fontSize="8" fill={C.rust} letterSpacing="2" fontWeight="700">{n}</text>
+            <text x="10" y="42" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>{l}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Single item edit form
+    item: (
+      <svg viewBox="0 0 480 260" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="258" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">EDIT ITEM</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="20" fontWeight="700" fill={C.ink}>Tent (3-person)<tspan fill={C.rust}>.</tspan></text>
+        {[
+          ["NAME", "Tent (3-person)"],
+          ["CATEGORY", "Shelter"],
+          ["WEIGHT", "2.4 kg"],
+          ["QUANTITY", "1"],
+          ["EXPIRY", "—"],
+        ].map(([label, value], i) => (
+          <g key={label} transform={`translate(30, ${88 + i * 28})`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">{label}</text>
+            <line x1="0" y1="16" x2="420" y2="16" stroke={C.ink} strokeWidth="1" />
+            <text x="0" y="13" fontFamily="Georgia, serif" fontSize="12" fill={C.inkSoft}>{value}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Kit detail view
+    kit: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">KIT · 4 ITEMS · 3.6 KG</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Cold Camp Essentials<tspan fill={C.rust}>.</tspan></text>
+        <line x1="30" y1="78" x2="450" y2="78" stroke={C.ink} strokeWidth="1" />
+        {[
+          ["Down sleeping bag", "1.20 kg"],
+          ["Sleeping pad", "0.55 kg"],
+          ["Merino base layer", "0.18 kg"],
+          ["Compression sack", "0.08 kg"],
+        ].map(([name, w], i) => (
+          <g key={name} transform={`translate(30, ${100 + i * 32})`}>
+            <text x="0" y="0" fontFamily="Georgia, serif" fontSize="14" fill={C.ink}>{name}</text>
+            <text x="420" y="0" textAnchor="end" fontFamily="ui-monospace" fontSize="11" fill={C.muted}>{w}</text>
+            <line x1="0" y1="14" x2="420" y2="14" stroke={C.line} strokeDasharray="2 2" />
+          </g>
+        ))}
+      </svg>
+    ),
+    // Packlist detail with want/packed checks
+    packlist: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="30" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">PACKLIST · WEEKEND TRIP</text>
+        <text x="30" y="60" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Mt Tam<tspan fill={C.rust}>.</tspan></text>
+        {/* Counter block */}
+        <rect x="30" y="78" width="420" height="46" fill={C.paperDeep} stroke={C.line} strokeWidth="1" />
+        <rect x="42" y="92" width="14" height="14" fill={C.rust} />
+        <text x="62" y="103" fontFamily="ui-monospace" fontSize="9" fill={C.rust} letterSpacing="2" fontWeight="700">WANT — 9/12</text>
+        <rect x="200" y="92" width="14" height="14" fill={C.forestBright} />
+        <text x="220" y="103" fontFamily="ui-monospace" fontSize="9" fill={C.forestBright} letterSpacing="2" fontWeight="700">PACKED — 7/9</text>
+        <text x="42" y="118" fontFamily="Georgia, serif" fontSize="10" fontStyle="italic" fill={C.inkSoft}>Tap red to want, green when packed.</text>
+        {/* item rows */}
+        {[
+          ["Tent", true, true],
+          ["Sleeping bag", true, true],
+          ["Headlamp", true, false],
+          ["Sunscreen", false, false],
+        ].map(([name, want, pkd], i) => (
+          <g key={name} transform={`translate(30, ${145 + i * 32})`}>
+            <rect x="0" y="0" width="14" height="14" fill={want ? C.rust : "transparent"} stroke={C.rust} strokeWidth="1.5" />
+            <rect x="22" y="0" width="14" height="14" fill={pkd ? C.forestBright : "transparent"} stroke={C.forestBright} strokeWidth="1.5" />
+            <text x="46" y="11" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>{name}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Inventory tabs
+    invTabs: (
+      <svg viewBox="0 0 480 80" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="78" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">INVENTORY</text>
+        {[["ITEMS", true], ["KITS", false], ["CATEGORIES", false]].map(([label, active], i) => (
+          <g key={label} transform={`translate(${20 + i * 130}, 44)`}>
+            <rect x="0" y="0" width="120" height="24" fill={active ? C.ink : "transparent"} stroke={C.ink} strokeWidth="1" />
+            <text x="60" y="16" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={active ? C.paper : C.ink} letterSpacing="2" fontWeight="700">{label}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Items table with rows
+    invItemsTable: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        {/* header */}
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">ITEMS</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1.5" />
+        {/* col headers */}
+        <text x="20" y="60" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">#</text>
+        <text x="48" y="60" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">ITEM</text>
+        <text x="200" y="60" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">KIT</text>
+        <text x="320" y="60" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">CAT</text>
+        <text x="400" y="60" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">EXP</text>
+        <line x1="20" y1="68" x2="460" y2="68" stroke={C.line} strokeWidth="1" />
+        {[
+          ["01", "Tent", "Shelter", "CAMP", "—"],
+          ["02", "Sleeping bag", "Cold Camp", "CAMP", "—"],
+          ["03", "Sunscreen", "Hygiene", "HYG", "90d"],
+          ["04", "DEET 50%", "Hygiene", "HYG", "⚠ 12d", true],
+          ["05", "Water bottle", "Day Hike", "COOK", "—"],
+          ["06", "Headlamp", "Light", "TECH", "—"],
+        ].map(([n, name, kit, cat, exp, expRed], i) => (
+          <g key={n} transform={`translate(0, ${88 + i * 28})`}>
+            <text x="20" y="0" fontFamily="ui-monospace" fontSize="9" fill={C.muted}>{n}</text>
+            <text x="48" y="0" fontFamily="Georgia, serif" fontSize="12" fill={C.ink}>{name}</text>
+            <text x="200" y="0" fontFamily="Georgia, serif" fontSize="11" fill={C.inkSoft} fontStyle="italic">{kit}</text>
+            <text x="320" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted}>{cat}</text>
+            <text x="400" y="0" fontFamily="ui-monospace" fontSize="9" fill={expRed ? C.rust : C.muted} fontWeight={expRed ? 700 : 400}>{exp}</text>
+            <line x1="20" y1="8" x2="460" y2="8" stroke={C.line} strokeDasharray="2 2" />
+          </g>
+        ))}
+      </svg>
+    ),
+    // Kits view with category banner + collapsed kits
+    invKitsView: (
+      <svg viewBox="0 0 480 240" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="238" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        {/* Category banner */}
+        <rect x="20" y="20" width="440" height="32" fill={C.paperDeep} stroke={C.ink} strokeWidth="1" />
+        <text x="32" y="40" fontFamily="ui-monospace" fontSize="9" fill={C.ink} letterSpacing="2" fontWeight="700">CATEGORY: SHELTER · 3 KITS</text>
+        {/* collapsed kit rows */}
+        {[
+          ["Cold Camp Essentials", "4 items"],
+          ["Lightweight Tarp Setup", "3 items"],
+          ["Bothy Bag Kit", "2 items"],
+        ].map(([name, count], i) => (
+          <g key={name} transform={`translate(20, ${72 + i * 36})`}>
+            <line x1="0" y1="28" x2="440" y2="28" stroke={C.line} strokeWidth="1" />
+            <text x="14" y="18" fontFamily="ui-monospace" fontSize="10" fill={C.muted}>▸</text>
+            <text x="32" y="18" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>{name}</text>
+            <text x="430" y="18" textAnchor="end" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">{count}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Items table with red expiry
+    invExpiry: (
+      <svg viewBox="0 0 480 200" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="198" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="26" fontFamily="ui-monospace" fontSize="9" fill={C.rust} letterSpacing="2" fontWeight="700">⚠ EXPIRING SOON · 2</text>
+        <line x1="20" y1="36" x2="460" y2="36" stroke={C.rust} strokeWidth="1" />
+        {[
+          ["DEET 50%", "Hygiene", "HYG", "⚠ 12 days"],
+          ["Sunscreen SPF50", "Hygiene", "HYG", "⚠ 28 days"],
+          ["Headlamp battery", "Tech", "TECH", "⚠ 4 days"],
+        ].map(([name, kit, cat, exp], i) => (
+          <g key={name} transform={`translate(20, ${60 + i * 36})`}>
+            <text x="0" y="0" fontFamily="Georgia, serif" fontSize="13" fontWeight="700" fill={C.rust}>{name}</text>
+            <text x="180" y="0" fontFamily="Georgia, serif" fontSize="11" fill={C.inkSoft} fontStyle="italic">{kit}</text>
+            <text x="290" y="0" fontFamily="ui-monospace" fontSize="9" fill={C.muted}>{cat}</text>
+            <text x="430" y="0" textAnchor="end" fontFamily="ui-monospace" fontSize="10" fill={C.rust} fontWeight="700">{exp}</text>
+            <line x1="0" y1="12" x2="430" y2="12" stroke={C.rust} strokeDasharray="2 2" strokeWidth="0.5" />
+          </g>
+        ))}
+      </svg>
+    ),
+    // Add item form
+    invAddItem: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">+ ADD ITEM</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>New piece of gear<tspan fill={C.rust}>.</tspan></text>
+        {[
+          ["NAME *", ""],
+          ["CATEGORY", "Shelter ▾"],
+          ["WEIGHT", "0.0 kg"],
+          ["QUANTITY", "1"],
+          ["SIZE", ""],
+          ["EXPIRY", "yyyy-mm-dd"],
+          ["NOTES", ""],
+        ].map(([label, value], i) => (
+          <g key={label} transform={`translate(30, ${88 + i * 28})`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">{label}</text>
+            <line x1="0" y1="16" x2="420" y2="16" stroke={C.ink} strokeWidth="1" />
+            <text x="0" y="13" fontFamily="Georgia, serif" fontSize="12" fill={C.inkSoft} fontStyle={value ? "normal" : "italic"} opacity={value ? 1 : 0.5}>{value || "—"}</text>
+          </g>
+        ))}
+        <rect x="290" y="290" width="160" height="22" fill={C.rust} />
+        <text x="370" y="305" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.paper} letterSpacing="2" fontWeight="700">FILE THE ITEM</text>
+      </svg>
+    ),
+    // Kit creation form
+    kitCreate: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">+ NEW KIT</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Build a kit<tspan fill={C.rust}>.</tspan></text>
+        <g transform="translate(30, 90)">
+          <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">KIT NAME *</text>
+          <line x1="0" y1="16" x2="420" y2="16" stroke={C.ink} strokeWidth="1" />
+          <text x="0" y="13" fontFamily="Georgia, serif" fontSize="14" fill={C.ink}>Cold Camp Essentials</text>
+        </g>
+        <g transform="translate(30, 130)">
+          <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">CATEGORY</text>
+          <line x1="0" y1="16" x2="420" y2="16" stroke={C.ink} strokeWidth="1" />
+          <text x="0" y="13" fontFamily="Georgia, serif" fontSize="14" fill={C.ink}>Shelter ▾</text>
+        </g>
+        <text x="30" y="190" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">ITEMS IN THIS KIT</text>
+        <rect x="30" y="200" width="200" height="32" fill="none" stroke={C.line} strokeWidth="1" strokeDasharray="3 3" />
+        <text x="130" y="220" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">+ ADD EXISTING</text>
+        <rect x="240" y="200" width="200" height="32" fill="none" stroke={C.line} strokeWidth="1" strokeDasharray="3 3" />
+        <text x="340" y="220" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">+ CREATE NEW</text>
+      </svg>
+    ),
+    // Kit edit screen
+    kitEdit: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">EDIT KIT · COLD CAMP ESSENTIALS</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1" />
+        {[
+          ["Down sleeping bag", "1.20 kg"],
+          ["Sleeping pad", "0.55 kg"],
+          ["Merino base layer", "0.18 kg"],
+          ["Compression sack", "0.08 kg"],
+        ].map(([name, w], i) => (
+          <g key={name} transform={`translate(20, ${64 + i * 30})`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="11" fill={C.rust} fontWeight="700">×</text>
+            <text x="22" y="0" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>{name}</text>
+            <text x="430" y="0" textAnchor="end" fontFamily="ui-monospace" fontSize="10" fill={C.muted}>{w}</text>
+            <line x1="0" y1="10" x2="430" y2="10" stroke={C.line} strokeDasharray="2 2" />
+          </g>
+        ))}
+        <rect x="20" y="210" width="200" height="28" fill="none" stroke={C.ink} strokeWidth="1" />
+        <text x="120" y="227" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.ink} letterSpacing="2">+ ADD EXISTING ITEMS</text>
+        <rect x="240" y="210" width="200" height="28" fill="none" stroke={C.ink} strokeWidth="1" />
+        <text x="340" y="227" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.ink} letterSpacing="2">+ CREATE NEW ITEM</text>
+      </svg>
+    ),
+    // New category form
+    catNew: (
+      <svg viewBox="0 0 480 220" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="218" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">+ NEW CATEGORY</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Add a category<tspan fill={C.rust}>.</tspan></text>
+        <g transform="translate(30, 90)">
+          <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">NAME *</text>
+          <line x1="0" y1="16" x2="420" y2="16" stroke={C.ink} strokeWidth="1" />
+          <text x="0" y="13" fontFamily="Georgia, serif" fontSize="14" fill={C.ink}>Shelter</text>
+        </g>
+        <g transform="translate(30, 130)">
+          <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">ICON</text>
+          {["⛺", "🔥", "❄", "🌊", "🎒", "🌲"].map((emoji, i) => (
+            <g key={emoji} transform={`translate(${i * 50}, 16)`}>
+              <rect x="0" y="0" width="40" height="36" fill={i === 0 ? C.ink : "none"} stroke={C.ink} strokeWidth="1" />
+              <text x="20" y="24" textAnchor="middle" fontSize="16" fill={i === 0 ? C.paper : C.ink}>{emoji}</text>
+            </g>
+          ))}
+        </g>
+      </svg>
+    ),
+    // Category detail showing kits + loose items
+    catDetail: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">CATEGORY · SHELTER</text>
+        <text x="20" y="58" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Shelter<tspan fill={C.rust}>.</tspan></text>
+        <text x="20" y="92" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">KITS · 2</text>
+        <line x1="20" y1="100" x2="460" y2="100" stroke={C.line} strokeWidth="1" />
+        {["Cold Camp Essentials", "Lightweight Tarp Setup"].map((name, i) => (
+          <g key={name} transform={`translate(20, ${118 + i * 26})`}>
+            <text x="0" y="0" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>▸ {name}</text>
+          </g>
+        ))}
+        <text x="20" y="200" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">LOOSE ITEMS · 1</text>
+        <line x1="20" y1="208" x2="460" y2="208" stroke={C.line} strokeWidth="1" />
+        <text x="20" y="230" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>· Spare tent stakes</text>
+      </svg>
+    ),
+    // New packlist form
+    plNew: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">+ NEW PACKLIST</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Plan a trip<tspan fill={C.rust}>.</tspan></text>
+        {[
+          ["NAME *", "Patagonia 2025"],
+          ["DATE", "2025-11-15"],
+          ["DESTINATION", "Torres del Paine"],
+          ["TYPE", "Trekking ▾"],
+          ["NOTES", "10 days, mostly W circuit"],
+        ].map(([label, value], i) => (
+          <g key={label} transform={`translate(30, ${88 + i * 30})`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">{label}</text>
+            <line x1="0" y1="16" x2="420" y2="16" stroke={C.ink} strokeWidth="1" />
+            <text x="0" y="13" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>{value}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Packlist with checkboxes (alias of packlist for plChecks)
+    plChecks: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">PACKLIST · MT TAM</text>
+        {/* legend */}
+        <rect x="20" y="44" width="440" height="44" fill={C.paperDeep} stroke={C.line} strokeWidth="1" />
+        <rect x="32" y="56" width="14" height="14" fill={C.rust} />
+        <text x="52" y="67" fontFamily="ui-monospace" fontSize="9" fill={C.rust} letterSpacing="2" fontWeight="700">WANT — 9/12</text>
+        <rect x="200" y="56" width="14" height="14" fill={C.forestBright} />
+        <text x="220" y="67" fontFamily="ui-monospace" fontSize="9" fill={C.forestBright} letterSpacing="2" fontWeight="700">PACKED — 7/9</text>
+        <text x="32" y="83" fontFamily="Georgia, serif" fontSize="10" fontStyle="italic" fill={C.inkSoft}>Tap red box to want, green when packed.</text>
+        {/* kit header */}
+        <text x="20" y="116" fontFamily="ui-monospace" fontSize="9" fill={C.ink} letterSpacing="2" fontWeight="700">▾ COLD CAMP ESSENTIALS · 4</text>
+        <line x1="20" y1="124" x2="460" y2="124" stroke={C.line} strokeWidth="1" />
+        {/* tiny col labels */}
+        <text x="20" y="138" fontFamily="ui-monospace" fontSize="7" fill={C.rust} letterSpacing="2" fontWeight="700">WANT</text>
+        <text x="50" y="138" fontFamily="ui-monospace" fontSize="7" fill={C.forestBright} letterSpacing="2" fontWeight="700">PKD</text>
+        {/* item rows */}
+        {[
+          ["Down sleeping bag", true, true],
+          ["Sleeping pad", true, true],
+          ["Merino base layer", true, false],
+          ["Compression sack", false, false],
+        ].map(([name, want, pkd], i) => (
+          <g key={name} transform={`translate(20, ${152 + i * 32})`}>
+            <rect x="0" y="0" width="14" height="14" fill={want ? C.rust : "transparent"} stroke={C.rust} strokeWidth="1.5" />
+            <rect x="22" y="0" width="14" height="14" fill={pkd ? C.forestBright : "transparent"} stroke={C.forestBright} strokeWidth="1.5" />
+            <text x="48" y="11" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>{name}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Weather check button on packlist
+    wxOpen: (
+      <svg viewBox="0 0 480 200" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="198" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">PACKLIST · ACTIONS</text>
+        <text x="20" y="60" fontFamily="Georgia, serif" fontSize="20" fontWeight="700" fill={C.ink}>Patagonia 2025<tspan fill={C.rust}>.</tspan></text>
+        <text x="20" y="84" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">📅 2025-11-15 · TORRES DEL PAINE</text>
+        {/* action buttons */}
+        {[
+          { label: "✎ EDIT", color: C.rust, fill: true },
+          { label: "☁ WEATHER CHECK", color: C.ink, fill: false, hl: true },
+          { label: "↓ DOWNLOAD PDF", color: C.ink, fill: false },
+          { label: "🗑 DELETE", color: C.ink, fill: false },
+        ].map((b, i) => (
+          <g key={b.label} transform={`translate(${20 + i * 110}, 130)`}>
+            <rect x="0" y="0" width="100" height="28"
+              fill={b.fill ? b.color : (b.hl ? C.paperDeep : "transparent")}
+              stroke={b.hl ? C.rust : b.color}
+              strokeWidth={b.hl ? 2 : 1} />
+            <text x="50" y="18" textAnchor="middle" fontFamily="ui-monospace" fontSize="8" fill={b.fill ? C.paper : (b.hl ? C.rust : b.color)} letterSpacing="1.5" fontWeight="700">{b.label}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Weather results modal
+    wxResults: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">WEATHER CHECK · TORRES DEL PAINE</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1.5" />
+        {/* summary bar */}
+        {[
+          ["TEMP", "−4° / +12°"],
+          ["RAIN", "65%"],
+          ["WIND", "55 km/h"],
+          ["UV", "8"],
+        ].map(([k, v], i) => (
+          <g key={k} transform={`translate(${30 + i * 105}, 60)`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">{k}</text>
+            <text x="0" y="20" fontFamily="Georgia, serif" fontSize="16" fontWeight="700" fill={C.ink}>{v}</text>
+          </g>
+        ))}
+        {/* gaps */}
+        <rect x="20" y="100" width="440" height="80" fill="none" stroke={C.rust} strokeWidth="1.5" />
+        <text x="32" y="120" fontFamily="ui-monospace" fontSize="9" fill={C.rust} letterSpacing="2" fontWeight="700">⚠ GAPS · 2</text>
+        <text x="32" y="142" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>· No rain jacket detected</text>
+        <text x="32" y="164" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>· No insulating layer for sub-zero temps</text>
+        {/* covered */}
+        <rect x="20" y="200" width="440" height="80" fill="none" stroke={C.forest} strokeWidth="1.5" />
+        <text x="32" y="220" fontFamily="ui-monospace" fontSize="9" fill={C.forest} letterSpacing="2" fontWeight="700">✓ COVERED · 3</text>
+        <text x="32" y="242" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>· Wind protection (shell jacket)</text>
+        <text x="32" y="264" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>· Sun protection (sunscreen, hat)</text>
+      </svg>
+    ),
+    // Share to member dialog
+    shMember: (
+      <svg viewBox="0 0 480 240" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="238" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">SHARE · COLD CAMP ESSENTIALS</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1" />
+        {/* tabs */}
+        {[["MEMBER", true], ["CODE", false], ["FILE", false]].map(([l, active], i) => (
+          <g key={l} transform={`translate(${20 + i * 105}, 60)`}>
+            <rect x="0" y="0" width="95" height="24" fill={active ? C.ink : "transparent"} stroke={C.ink} strokeWidth="1" />
+            <text x="48" y="16" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={active ? C.paper : C.ink} letterSpacing="2" fontWeight="700">{l}</text>
+          </g>
+        ))}
+        <g transform="translate(20, 110)">
+          <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">RECIPIENT (USERNAME OR MEMBER ID)</text>
+          <line x1="0" y1="20" x2="440" y2="20" stroke={C.ink} strokeWidth="1" />
+          <text x="0" y="16" fontFamily="Georgia, serif" fontSize="14" fill={C.inkSoft} fontStyle="italic">wayfarer, 0001NA, …</text>
+        </g>
+        <rect x="320" y="180" width="120" height="28" fill={C.rust} />
+        <text x="380" y="198" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.paper} letterSpacing="2" fontWeight="700">SEND</text>
+      </svg>
+    ),
+    // Inbox view
+    shInbox: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">INBOX · 2 INCOMING</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1" />
+        {[
+          ["@marco · Marco Polo", "Sent: Spice Trail Kit", "kit · 12 items"],
+          ["@amelia · Amelia Earhart", "Sent: Cross-country flight Packlist", "packlist · 28 items"],
+        ].map(([from, what, kind], i) => (
+          <g key={from} transform={`translate(20, ${64 + i * 90})`}>
+            <rect x="0" y="0" width="440" height="78" fill={C.paperDeep} stroke={C.line} strokeWidth="1" />
+            <text x="14" y="20" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">{from}</text>
+            <text x="14" y="42" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>{what}</text>
+            <text x="14" y="60" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="1">{kind}</text>
+            <rect x="280" y="48" width="70" height="22" fill={C.forest} />
+            <text x="315" y="62" textAnchor="middle" fontFamily="ui-monospace" fontSize="8" fill={C.paper} letterSpacing="2" fontWeight="700">ACCEPT</text>
+            <rect x="358" y="48" width="70" height="22" fill="none" stroke={C.rust} strokeWidth="1" />
+            <text x="393" y="62" textAnchor="middle" fontFamily="ui-monospace" fontSize="8" fill={C.rust} letterSpacing="2" fontWeight="700">REJECT</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Library browse view
+    libBrowse: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">LIBRARY · COMMUNITY</text>
+        {/* filter chips */}
+        <g transform="translate(20, 50)">
+          {["KITS", "HIKING", "EU"].map((l, i) => (
+            <g key={l} transform={`translate(${i * 80}, 0)`}>
+              <rect x="0" y="0" width="70" height="22" fill={C.ink} />
+              <text x="35" y="15" textAnchor="middle" fontFamily="ui-monospace" fontSize="8" fill={C.paper} letterSpacing="1.5" fontWeight="700">{l} ✕</text>
+            </g>
+          ))}
+        </g>
+        {/* card grid */}
+        {[
+          ["Alpine Pack", "Backpacking · EU"],
+          ["Coastal 3-day", "Hiking · EU"],
+          ["Bothy Bag Kit", "Trekking · EU"],
+          ["Light Run Kit", "Trail run · EU"],
+        ].map(([title, meta], i) => (
+          <g key={title} transform={`translate(${20 + (i % 2) * 220}, ${90 + Math.floor(i / 2) * 110})`}>
+            <rect x="0" y="0" width="200" height="92" fill={C.paperDeep} stroke={C.ink} strokeWidth="1" />
+            <text x="12" y="22" fontFamily="Georgia, serif" fontSize="13" fontWeight="700" fill={C.ink}>{title}</text>
+            <text x="12" y="38" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="1.5">{meta}</text>
+            <line x1="12" y1="68" x2="188" y2="68" stroke={C.line} strokeDasharray="2 2" />
+            <text x="12" y="82" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="1">John Stewart</text>
+            <text x="188" y="82" textAnchor="end" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="1">42 IMPORTS</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Library item detail with import
+    libImport: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">LIBRARY · KIT</text>
+        <text x="20" y="60" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Alpine Pack<tspan fill={C.rust}>.</tspan></text>
+        <text x="20" y="80" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">PUBLISHED BY: JOHN STEWART · EU · 2025-10-12</text>
+        <text x="20" y="108" fontFamily="Georgia, serif" fontSize="13" fontStyle="italic" fill={C.inkSoft}>Tested across the Picos de Europa in October.</text>
+        <line x1="20" y1="128" x2="460" y2="128" stroke={C.ink} strokeWidth="1" />
+        {[
+          ["Tent (3-season)", "1.8 kg"],
+          ["Sleeping bag (-5°C)", "1.2 kg"],
+          ["Sleeping pad", "0.55 kg"],
+          ["Stove + canister", "0.3 kg"],
+        ].map(([n, w], i) => (
+          <g key={n} transform={`translate(20, ${152 + i * 26})`}>
+            <text x="0" y="0" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>· {n}</text>
+            <text x="430" y="0" textAnchor="end" fontFamily="ui-monospace" fontSize="10" fill={C.muted}>{w}</text>
+          </g>
+        ))}
+        <rect x="320" y="276" width="140" height="28" fill={C.rust} />
+        <text x="390" y="294" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.paper} letterSpacing="2" fontWeight="700">↓ IMPORT KIT</text>
+      </svg>
+    ),
+    // Publish form
+    libPublish: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="30" y="32" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">PUBLISH TO LIBRARY</text>
+        <text x="30" y="62" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Share with the<tspan fontStyle="italic" fill={C.forest}> community</tspan><tspan fill={C.rust}>.</tspan></text>
+        {[
+          ["TITLE *", "Cold Camp Essentials"],
+          ["ACTIVITY (OPT)", "Backpacking ▾"],
+          ["DESCRIPTION (OPT)", "Tested across…"],
+          ["PUBLISHED BY (OPT)", "John Stewart"],
+        ].map(([label, value], i) => (
+          <g key={label} transform={`translate(30, ${100 + i * 38})`}>
+            <text x="0" y="0" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">{label}</text>
+            <line x1="0" y1="20" x2="420" y2="20" stroke={C.ink} strokeWidth="1" />
+            <text x="0" y="16" fontFamily="Georgia, serif" fontSize="13" fill={C.ink}>{value}</text>
+          </g>
+        ))}
+        <rect x="290" y="270" width="160" height="28" fill={C.rust} />
+        <text x="370" y="288" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.paper} letterSpacing="2" fontWeight="700">PUBLISH FOR REVIEW</text>
+      </svg>
+    ),
+    // Membership card on dashboard
+    memCard: (
+      <svg viewBox="0 0 480 200" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="198" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        {/* dashboard hero hint */}
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">BASECAMP · DASHBOARD</text>
+        <text x="20" y="60" fontFamily="Georgia, serif" fontStyle="italic" fontSize="22" fontWeight="700" fill={C.forest}>PakMondo1<tspan fill={C.rust} fontStyle="normal">.</tspan></text>
+        {/* membership card */}
+        <g transform="translate(280, 50)">
+          <rect x="0" y="0" width="180" height="80" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+          {/* small drop shadow */}
+          <rect x="3" y="3" width="180" height="80" fill="none" stroke={C.ink} strokeWidth="0.5" opacity="0.3" />
+          <rect x="0" y="0" width="180" height="80" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+          <text x="14" y="22" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2" fontWeight="700">MEMBER</text>
+          <text x="14" y="50" fontFamily="ui-monospace" fontSize="22" fontWeight="700" fill={C.ink}>0001EU</text>
+          <line x1="14" y1="58" x2="166" y2="58" stroke={C.line} strokeDasharray="2 2" />
+          <text x="14" y="72" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">SINCE 2025</text>
+        </g>
+      </svg>
+    ),
+    // My submissions list
+    subList: (
+      <svg viewBox="0 0 480 280" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="278" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">▾ MY LIBRARY SUBMISSIONS · 03</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1.5" />
+        {[
+          ["Cold Camp Essentials", "Backpacking · 2 days ago", "PENDING", C.muted],
+          ["Patagonia Trek Packlist", "Hiking · 1 week ago", "APPROVED", C.forest],
+          ["Day Hike Light Kit", "Hiking · 3 weeks ago", "REJECTED", C.rust],
+        ].map(([title, meta, status, color], i) => (
+          <g key={title} transform={`translate(20, ${66 + i * 60})`}>
+            <rect x="0" y="0" width="440" height="50" fill={C.paperDeep} stroke={C.line} strokeWidth="1" />
+            <text x="14" y="20" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>· {title}</text>
+            <text x="14" y="38" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="1.5">{meta}</text>
+            <rect x="358" y="14" width="70" height="22" fill="none" stroke={color} strokeWidth="1.5" />
+            <text x="393" y="28" textAnchor="middle" fontFamily="ui-monospace" fontSize="8" fill={color} letterSpacing="1.5" fontWeight="700">{status}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Settings overview
+    set: (
+      <svg viewBox="0 0 480 320" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="318" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">SETTINGS</text>
+        <text x="20" y="60" fontFamily="Georgia, serif" fontSize="22" fontWeight="700" fill={C.ink}>Adjust the rig<tspan fill={C.rust}>.</tspan></text>
+        {[
+          ["01", "PROFILE"],
+          ["02", "PREFERENCES"],
+          ["03", "MY LIBRARY SUBMISSIONS"],
+          ["04", "DATA"],
+          ["05", "SIGN OUT"],
+        ].map(([n, l], i) => (
+          <g key={l} transform={`translate(20, ${90 + i * 42})`}>
+            <line x1="0" y1="32" x2="440" y2="32" stroke={C.ink} strokeWidth="1.5" />
+            <text x="0" y="20" fontFamily="ui-monospace" fontSize="10" fill={C.muted}>▸</text>
+            <text x="20" y="20" fontFamily="Georgia, serif" fontSize="16" fontWeight="700" fill={C.ink}>{l}</text>
+            <text x="430" y="20" textAnchor="end" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">{n}</text>
+          </g>
+        ))}
+      </svg>
+    ),
+    // Excel template
+    excel: (
+      <svg viewBox="0 0 480 240" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="478" height="238" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+        <text x="20" y="28" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">PAKMONDO_IMPORT_TEMPLATE.XLSX</text>
+        <line x1="20" y1="40" x2="460" y2="40" stroke={C.ink} strokeWidth="1.5" />
+        {/* header row */}
+        <rect x="20" y="50" width="440" height="22" fill={C.paperDeep} />
+        {["CATEGORY", "KIT", "ITEM NAME", "WEIGHT"].map((h, i) => (
+          <text key={h} x={30 + i * 110} y="65" fontFamily="ui-monospace" fontSize="8" fill={C.ink} letterSpacing="1.5" fontWeight="700">{h}</text>
+        ))}
+        {/* data rows */}
+        {[
+          ["Shelter", "Cold Camp", "Tent", "1.8 kg"],
+          ["Shelter", "Cold Camp", "Sleeping bag", "1.2 kg"],
+          ["Galley", "Cooking", "Stove", "0.3 kg"],
+          ["Galley", "Cooking", "Pot 1L", "0.18 kg"],
+        ].map((row, i) => (
+          <g key={i} transform={`translate(0, ${78 + i * 26})`}>
+            <line x1="20" y1="20" x2="460" y2="20" stroke={C.line} strokeDasharray="2 2" />
+            {row.map((v, j) => (
+              <text key={j} x={30 + j * 110} y="14" fontFamily="ui-monospace" fontSize="10" fill={C.ink}>{v}</text>
+            ))}
+          </g>
+        ))}
+      </svg>
+    ),
+  };
+
+  // Mockup component — renders the SVG with a caption.
+  // Uses a key into mockupSvgs above. If the key is missing it falls back
+  // to the old "screenshot pending" box so we know what's missing visually.
+  const Mockup = ({ name, caption }) => {
+    const svg = mockupSvgs[name];
+    if (!svg) {
+      return (
+        <div style={{
+          margin: "16px 0", padding: "32px 18px",
+          background: C.paperDeep, border: `1.5px dashed ${C.line}`,
+          textAlign: "center",
+        }}>
+          <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>
+            {t("help.screenshotPending")}
+          </div>
+          <div style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
+            {caption}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <figure style={{ margin: "20px 0", padding: 0 }}>
+        <div style={{ background: C.paperDeep, padding: isMobile ? 8 : 12, border: `1px solid ${C.line}` }}>
+          {svg}
+        </div>
+        <figcaption style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted, textAlign: "center" }}>
+          {caption}
+        </figcaption>
+      </figure>
+    );
+  };
+
+  // Backwards-compat alias — old code paths still call ScreenshotPlaceholder.
+  // It now just defers to Mockup so any unmapped name still renders cleanly.
+  const ScreenshotPlaceholder = ({ caption, name }) => (
+    <Mockup name={name} caption={caption} />
   );
 
   // Two-column layout helper
@@ -14767,13 +15465,13 @@ function HelpPage({ go }) {
           </Para>
           <SubHeading>{t("help.qsStep1")}</SubHeading>
           <Para>{t("help.qsStep1Body")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotSignup")} />
+          <Mockup name="signup" caption={t("help.shotSignup")} />
           <SubHeading>{t("help.qsStep2")}</SubHeading>
           <Para>{t("help.qsStep2Body")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotWizard")} />
+          <Mockup name="wizard" caption={t("help.shotWizard")} />
           <SubHeading>{t("help.qsStep3")}</SubHeading>
           <Para>{t("help.qsStep3Body")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotDashboard")} />
+          <Mockup name="dashboard" caption={t("help.shotDashboard")} />
           <CallOut kind="tip">{t("help.qsTip")}</CallOut>
 
           {/* === SECTION 02 — THE THREE BUILDING BLOCKS === */}
@@ -14783,12 +15481,12 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.blocksItemsTitle")}</SubHeading>
           <Para>{t("help.blocksItemsBody1")}</Para>
           <Para>{t("help.blocksItemsBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotItem")} />
+          <Mockup name="item" caption={t("help.shotItem")} />
 
           <SubHeading>{t("help.blocksKitsTitle")}</SubHeading>
           <Para>{t("help.blocksKitsBody1")}</Para>
           <Para>{t("help.blocksKitsBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotKit")} />
+          <Mockup name="kit" caption={t("help.shotKit")} />
 
           <SubHeading>{t("help.blocksCategoriesTitle")}</SubHeading>
           <Para>{t("help.blocksCategoriesBody1")}</Para>
@@ -14797,7 +15495,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.blocksPacklistsTitle")}</SubHeading>
           <Para>{t("help.blocksPacklistsBody1")}</Para>
           <Para>{t("help.blocksPacklistsBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotPacklist")} />
+          <Mockup name="packlist" caption={t("help.shotPacklist")} />
 
           <SubHeading>{t("help.blocksFlowTitle")}</SubHeading>
           <Para>{t("help.blocksFlow")}</Para>
@@ -14835,17 +15533,17 @@ function HelpPage({ go }) {
 
           <SubHeading>{t("help.invTabsTitle")}</SubHeading>
           <Para>{t("help.invTabsBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotInvTabs")} />
+          <Mockup name="invTabs" caption={t("help.shotInvTabs")} />
 
           <SubHeading>{t("help.invItemsTitle")}</SubHeading>
           <Para>{t("help.invItemsBody1")}</Para>
           <Para>{t("help.invItemsBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotInvItemsTable")} />
+          <Mockup name="invItemsTable" caption={t("help.shotInvItemsTable")} />
 
           <SubHeading>{t("help.invKitsTitle")}</SubHeading>
           <Para>{t("help.invKitsBody1")}</Para>
           <Para>{t("help.invKitsBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotInvKitsView")} />
+          <Mockup name="invKitsView" caption={t("help.shotInvKitsView")} />
 
           <SubHeading>{t("help.invCategoriesTitle")}</SubHeading>
           <Para>{t("help.invCategoriesBody")}</Para>
@@ -14853,7 +15551,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.invExpiryTitle")}</SubHeading>
           <Para>{t("help.invExpiryBody1")}</Para>
           <Para>{t("help.invExpiryBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotInvExpiry")} />
+          <Mockup name="invExpiry" caption={t("help.shotInvExpiry")} />
           <CallOut kind="tip">{t("help.invExpiryTip")}</CallOut>
 
           <SubHeading>{t("help.invFiltersTitle")}</SubHeading>
@@ -14861,7 +15559,7 @@ function HelpPage({ go }) {
 
           <SubHeading>{t("help.invAddingTitle")}</SubHeading>
           <Para>{t("help.invAddingBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotInvAddItem")} />
+          <Mockup name="invAddItem" caption={t("help.shotInvAddItem")} />
 
           <SubHeading>{t("help.invDeletingTitle")}</SubHeading>
           <Para>{t("help.invDeletingBody")}</Para>
@@ -14874,11 +15572,11 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.kitsCreatingTitle")}</SubHeading>
           <Para>{t("help.kitsCreatingBody1")}</Para>
           <Para>{t("help.kitsCreatingBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotKitCreate")} />
+          <Mockup name="kitCreate" caption={t("help.shotKitCreate")} />
 
           <SubHeading>{t("help.kitsEditingTitle")}</SubHeading>
           <Para>{t("help.kitsEditingBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotKitEdit")} />
+          <Mockup name="kitEdit" caption={t("help.shotKitEdit")} />
 
           <SubHeading>{t("help.kitsItemPickerTitle")}</SubHeading>
           <Para>{t("help.kitsItemPickerBody1")}</Para>
@@ -14901,12 +15599,12 @@ function HelpPage({ go }) {
 
           <SubHeading>{t("help.catCreatingTitle")}</SubHeading>
           <Para>{t("help.catCreatingBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotCatNew")} />
+          <Mockup name="catNew" caption={t("help.shotCatNew")} />
 
           <SubHeading>{t("help.catDetailTitle")}</SubHeading>
           <Para>{t("help.catDetailBody1")}</Para>
           <Para>{t("help.catDetailBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotCatDetail")} />
+          <Mockup name="catDetail" caption={t("help.shotCatDetail")} />
 
           <SubHeading>{t("help.catBestPracticeTitle")}</SubHeading>
           <Para>{t("help.catBestPracticeBody")}</Para>
@@ -14919,7 +15617,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.plCreateTitle")}</SubHeading>
           <Para>{t("help.plCreateBody1")}</Para>
           <Para>{t("help.plCreateBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotPlNew")} />
+          <Mockup name="plNew" caption={t("help.shotPlNew")} />
 
           <SubHeading>{t("help.plMetaTitle")}</SubHeading>
           <Para>{t("help.plMetaBody")}</Para>
@@ -14927,7 +15625,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.plChecksTitle")}</SubHeading>
           <Para>{t("help.plChecksBody1")}</Para>
           <Para>{t("help.plChecksBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotPlChecks")} />
+          <Mockup name="plChecks" caption={t("help.shotPlChecks")} />
           <CallOut kind="tip">{t("help.plChecksTip")}</CallOut>
 
           <SubHeading>{t("help.plEditTitle")}</SubHeading>
@@ -14947,11 +15645,11 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.wxHowTitle")}</SubHeading>
           <Para>{t("help.wxHowBody1")}</Para>
           <Para>{t("help.wxHowBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotWxOpen")} />
+          <Mockup name="wxOpen" caption={t("help.shotWxOpen")} />
 
           <SubHeading>{t("help.wxResultsTitle")}</SubHeading>
           <Para>{t("help.wxResultsBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotWxResults")} />
+          <Mockup name="wxResults" caption={t("help.shotWxResults")} />
 
           <SubHeading>{t("help.wxGapsTitle")}</SubHeading>
           <Para>{t("help.wxGapsBody1")}</Para>
@@ -14972,7 +15670,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.shMemberTitle")}</SubHeading>
           <Para>{t("help.shMemberBody1")}</Para>
           <Para>{t("help.shMemberBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotShMember")} />
+          <Mockup name="shMember" caption={t("help.shotShMember")} />
 
           <SubHeading>{t("help.shCodeTitle")}</SubHeading>
           <Para>{t("help.shCodeBody1")}</Para>
@@ -14983,7 +15681,7 @@ function HelpPage({ go }) {
 
           <SubHeading>{t("help.shInboxTitle")}</SubHeading>
           <Para>{t("help.shInboxBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotShInbox")} />
+          <Mockup name="shInbox" caption={t("help.shotShInbox")} />
           <CallOut kind="tip">{t("help.shTip")}</CallOut>
 
           {/* === SECTION 09 — THE LIBRARY === */}
@@ -14993,7 +15691,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.libBrowseTitle")}</SubHeading>
           <Para>{t("help.libBrowseBody1")}</Para>
           <Para>{t("help.libBrowseBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotLibBrowse")} />
+          <Mockup name="libBrowse" caption={t("help.shotLibBrowse")} />
 
           <SubHeading>{t("help.libCardsTitle")}</SubHeading>
           <Para>{t("help.libCardsBody")}</Para>
@@ -15001,12 +15699,12 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.libImportTitle")}</SubHeading>
           <Para>{t("help.libImportBody1")}</Para>
           <Para>{t("help.libImportBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotLibImport")} />
+          <Mockup name="libImport" caption={t("help.shotLibImport")} />
 
           <SubHeading>{t("help.libPublishTitle")}</SubHeading>
           <Para>{t("help.libPublishBody1")}</Para>
           <Para>{t("help.libPublishBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotLibPublish")} />
+          <Mockup name="libPublish" caption={t("help.shotLibPublish")} />
 
           <SubHeading>{t("help.libCreditTitle")}</SubHeading>
           <Para>{t("help.libCreditBody")}</Para>
@@ -15019,7 +15717,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.memFormatTitle")}</SubHeading>
           <Para>{t("help.memFormatBody1")}</Para>
           <Para>{t("help.memFormatBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotMemCard")} />
+          <Mockup name="memCard" caption={t("help.shotMemCard")} />
 
           <SubHeading>{t("help.memUseTitle")}</SubHeading>
           <Para>{t("help.memUseBody")}</Para>
@@ -15038,7 +15736,7 @@ function HelpPage({ go }) {
 
           <SubHeading>{t("help.subStatusTitle")}</SubHeading>
           <Para>{t("help.subStatusBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotSubList")} />
+          <Mockup name="subList" caption={t("help.shotSubList")} />
 
           <SubHeading>{t("help.subRejectTitle")}</SubHeading>
           <Para>{t("help.subRejectBody")}</Para>
@@ -15062,7 +15760,7 @@ function HelpPage({ go }) {
 
           <SubHeading>{t("help.setDataTitle")}</SubHeading>
           <Para>{t("help.setDataBody")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotSet")} />
+          <Mockup name="set" caption={t("help.shotSet")} />
 
           <SubHeading>{t("help.setSignOutTitle")}</SubHeading>
           <Para>{t("help.setSignOutBody")}</Para>
@@ -15095,7 +15793,7 @@ function HelpPage({ go }) {
           <SubHeading>{t("help.tipsExcelTitle")}</SubHeading>
           <Para>{t("help.tipsExcelBody1")}</Para>
           <Para>{t("help.tipsExcelBody2")}</Para>
-          <ScreenshotPlaceholder caption={t("help.shotExcel")} />
+          <Mockup name="excel" caption={t("help.shotExcel")} />
 
           <SubHeading>{t("help.tipsLanguageTitle")}</SubHeading>
           <Para>{t("help.tipsLanguageBody")}</Para>
