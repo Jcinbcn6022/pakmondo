@@ -1046,6 +1046,9 @@ const TRANSLATIONS = {
     "pl.packedCount": "packed",
     "pl.wantToggle": "Want to take",
     "pl.packedToggle": "Packed in bag",
+    "pl.colWant": "WANT",
+    "pl.colPacked": "PACKED",
+    "pl.legend": "Tap the red box for items you need to pack. Tap the green box once it's in your bag.",
     "pl.openBtn": "Open packlist",
     "pl.editBtn": "Edit",
     "pl.deleteBtn": "Delete",
@@ -1796,6 +1799,9 @@ const TRANSLATIONS = {
     "pl.packedCount": "empacados",
     "pl.wantToggle": "Llevar",
     "pl.packedToggle": "En la mochila",
+    "pl.colWant": "LLEVAR",
+    "pl.colPacked": "EMPACADO",
+    "pl.legend": "Marca la casilla roja para los artículos que necesitas empacar. Marca la verde cuando ya esté en la mochila.",
     "pl.openBtn": "Abrir lista",
     "pl.editBtn": "Editar",
     "pl.deleteBtn": "Borrar",
@@ -11403,17 +11409,26 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           {t("pl.totalUnique", { n: totalUnique })}{totalUnique > 0 ? `  /  ${totalWeightStr}` : ""}
         </div>
 
-        {/* Want / Packed progress counter — only useful when there's items */}
+        {/* Want / Packed progress counter + legend explaining the boxes.
+            Only renders when the packlist has items. */}
         {totalUnique > 0 && (
-          <div style={{ marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.rust, fontWeight: 700 }}>
-              <span style={{ width: 12, height: 12, border: `2px solid ${C.rust}`, display: "inline-block" }}></span>
-              {wantedCount}/{totalUnique} {t("pl.wantedCount")}
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.forest, fontWeight: 700 }}>
-              <span style={{ width: 12, height: 12, border: `2px solid ${C.forest}`, display: "inline-block" }}></span>
-              {packedCount}/{wantedCount} {t("pl.packedCount")}
-            </span>
+          <div style={{
+            marginTop: 12, padding: 12,
+            background: C.paperDeep, border: `1px solid ${C.line}`,
+          }}>
+            <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 8 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: C.rust, fontWeight: 700 }}>
+                <span style={{ width: 14, height: 14, border: `2px solid ${C.rust}`, background: C.rust, display: "inline-block" }}></span>
+                {t("pl.colWant")} — {wantedCount}/{totalUnique}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: C.forest, fontWeight: 700 }}>
+                <span style={{ width: 14, height: 14, border: `2px solid ${C.forest}`, background: C.forest, display: "inline-block" }}></span>
+                {t("pl.colPacked")} — {packedCount}/{wantedCount}
+              </span>
+            </div>
+            <div style={{ fontFamily: F.body, fontStyle: "italic", fontSize: 12, color: C.inkSoft, lineHeight: 1.4 }}>
+              {t("pl.legend")}
+            </div>
           </div>
         )}
 
@@ -11566,6 +11581,18 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column" }}>
+                      {/* Tiny column label row showing what the two boxes mean */}
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "2px 12px 4px 12px",
+                        fontFamily: F.mono, fontSize: 8,
+                        letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                      }}>
+                        <div style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+                          <span style={{ width: 22, textAlign: "center", color: C.rust }}>{lang === "es" ? "LLEV" : "WANT"}</span>
+                          <span style={{ width: 22, textAlign: "center", color: C.forest }}>{lang === "es" ? "EMP" : "PKD"}</span>
+                        </div>
+                      </div>
                       {kitItems.map((it) => (
                         <div key={it.id}
                           onClick={() => onEditItem && onEditItem(it.id)}
