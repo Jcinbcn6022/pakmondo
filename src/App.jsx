@@ -236,13 +236,14 @@ const supabaseService = {
   },
 
   // Submit content to the library (status starts as 'pending', awaiting admin review)
-  publishToLibrary: async ({ kind, title, description, activity, payload, publisher }) => {
+  publishToLibrary: async ({ kind, title, description, activity, payload, publisher, credit }) => {
     const { data, error } = await supabase
       .from("library_items")
       .insert({
         publisher_user_id: publisher.id,
         publisher_username: publisher.username,
         publisher_region: publisher.region,
+        publisher_credit: (credit || "").trim() || null,
         kind,
         title: title.trim(),
         description: (description || "").trim() || null,
@@ -309,7 +310,7 @@ const supabaseService = {
   fetchLibrary: async ({ kind, activity, region, limit = 60 } = {}) => {
     let q = supabase
       .from("library_items")
-      .select("id, publisher_user_id, publisher_username, publisher_region, kind, title, description, activity, view_count, import_count, created_at")
+      .select("id, publisher_user_id, publisher_username, publisher_credit, publisher_region, kind, title, description, activity, view_count, import_count, created_at")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -725,6 +726,9 @@ const TRANSLATIONS = {
     "lib.activityCustomLabel": "Use \"{name}\" as a new activity",
     "lib.fieldDescription": "Description",
     "lib.fieldDescriptionHint": "What is this for? When/where did you use it? Why is it useful?",
+    "lib.fieldCredit": "Published by",
+    "lib.fieldCreditHint": "Optional. Defaults to your name. Shown publicly on the library card. Clear to publish anonymously.",
+    "lib.creditPh": "e.g. John from Barcelona",
     "lib.descriptionPh": "Three weeks in the Cordillera Darwin range. Wet, cold, exposed.",
     "lib.submit": "Submit for review",
     "lib.submitting": "Submitting...",
@@ -1488,6 +1492,9 @@ const TRANSLATIONS = {
     "lib.activityCustomLabel": "Usar \"{name}\" como actividad nueva",
     "lib.fieldDescription": "Descripción",
     "lib.fieldDescriptionHint": "¿Para qué sirve? ¿Cuándo/dónde lo usaste? ¿Por qué es útil?",
+    "lib.fieldCredit": "Publicado por",
+    "lib.fieldCreditHint": "Opcional. Por defecto, tu nombre. Visible en la tarjeta de la biblioteca. Déjalo vacío para publicar de forma anónima.",
+    "lib.creditPh": "p.ej. Juan de Barcelona",
     "lib.descriptionPh": "Tres semanas en la Cordillera Darwin. Húmedo, frío, expuesto.",
     "lib.submit": "Enviar para revisión",
     "lib.submitting": "Enviando...",
@@ -6429,6 +6436,9 @@ function PublishDialog({
   const [activity, setActivity] = useState("");
   const [activityFocused, setActivityFocused] = useState(false);
   const [description, setDescription] = useState("");
+  // Optional public credit name shown on the library card. Defaults to the
+  // user's real name from their profile (falls back to username if no name set).
+  const [credit, setCredit] = useState(currentUser?.name || currentUser?.username || "");
   const [knownActivities, setKnownActivities] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -6501,6 +6511,7 @@ function PublishDialog({
         username: currentUser.username,
         region: currentUser.region,
       },
+      credit,
     });
 
     setSubmitting(false);
@@ -6604,6 +6615,26 @@ function PublishDialog({
                     fontFamily: F.body, fontSize: 16, color: C.ink, resize: "vertical",
                   }} />
                 <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldDescriptionHint")}</div>
+              </label>
+
+              {/* Published-by credit — optional, defaults to user's real name.
+                  Shown publicly on the library card so contributors get credit. */}
+              <label style={{ display: "block" }}>
+                <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                  {t("lib.fieldCredit")} {t("lib.optionalSuffix")}
+                </div>
+                <input
+                  type="text"
+                  value={credit}
+                  onChange={(e) => setCredit(e.target.value)}
+                  placeholder={t("lib.creditPh")}
+                  style={{
+                    width: "100%", padding: "10px 0", background: "transparent", border: "none",
+                    borderBottom: `1.5px solid ${C.ink}`, outline: "none",
+                    fontFamily: F.body, fontSize: 16, color: C.ink,
+                  }}
+                />
+                <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldCreditHint")}</div>
               </label>
 
               {error && (
@@ -8601,14 +8632,49 @@ function Cart({ go, cart, setCart }) {
   );
 }
 
-function SettingGroup({ title, num, children }) {
+function SettingGroup({ title, num, children, collapsible = false, defaultExpanded = false }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  // When collapsible, the header becomes a button that toggles visibility.
+  // Otherwise it renders exactly as before — backwards compatible.
+  if (!collapsible) {
+    return (
+      <div>
+        <div style={{ marginBottom: 24, paddingBottom: 12, borderBottom: `1.5px solid ${C.ink}`, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div style={{ fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>{title}</div>
+          <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", color: C.muted }}>{num}</div>
+        </div>
+        <div>{children}</div>
+      </div>
+    );
+  }
   return (
     <div>
-      <div style={{ marginBottom: 24, paddingBottom: 12, borderBottom: `1.5px solid ${C.ink}`, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <div style={{ fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>{title}</div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        style={{
+          width: "100%",
+          marginBottom: expanded ? 24 : 0,
+          paddingBottom: 12,
+          borderBottom: `1.5px solid ${C.ink}`,
+          background: "transparent",
+          border: "none",
+          borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+          display: "flex", justifyContent: "space-between", alignItems: "baseline",
+          cursor: "pointer", textAlign: "left",
+        }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          {/* Chevron rotates with state */}
+          <ChevronRight
+            size={18}
+            strokeWidth={2}
+            color={C.muted}
+            style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.15s", alignSelf: "center" }}
+          />
+          <div style={{ fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>{title}</div>
+        </div>
         <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", color: C.muted }}>{num}</div>
-      </div>
-      <div>{children}</div>
+      </button>
+      {expanded && <div>{children}</div>}
     </div>
   );
 }
@@ -12740,7 +12806,7 @@ function MySubmissions({ currentUser }) {
 
   return (
     <>
-    <SettingGroup title={t("lib.mySubsTitle")} num="03">
+    <SettingGroup title={t("lib.mySubsTitle")} num="03" collapsible defaultExpanded={false}>
       {/* Admin-only button to enter the full review screen */}
       {isAdmin && (
         <div style={{ marginBottom: 14 }}>
@@ -13045,7 +13111,7 @@ function LibraryCard({ item, onOpen }) {
       <div style={{ flex: 1 }} />
       <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
         <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}>
-          @{item.publisher_username}
+          {item.publisher_credit ? item.publisher_credit : `@${item.publisher_username}`}
         </span>
         <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted }}>
           {importsLabel}
