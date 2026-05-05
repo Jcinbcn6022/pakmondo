@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext, useRef } from "r
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
   ArrowLeft, Plus, Check, X, ChevronRight, ChevronDown, User, Lock, Mail, CreditCard,
-  Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil, Download,
+  Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil, Download, Cloud,
   Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
@@ -1046,6 +1046,22 @@ const TRANSLATIONS = {
     "pl.editBtn": "Edit",
     "pl.deleteBtn": "Delete",
     "pl.downloadPDF": "Download PDF",
+    "weather.btn": "Weather check",
+    "weather.heading": "FORECAST",
+    "weather.title": "Weather check",
+    "weather.loading": "Fetching forecast...",
+    "weather.noDestination": "Add a destination",
+    "weather.noDestinationHint": "This packlist doesn't have a destination set. Edit the packlist and add one (e.g. 'Iceland', 'Patagonia', 'Yosemite') so we can pull the forecast.",
+    "weather.geocodeFailed": "Couldn't find that destination. Try a more specific place name (city or region).",
+    "weather.forecastFailed": "Couldn't fetch the forecast. Open-Meteo may be unavailable, or the dates are too far out (max 16 days).",
+    "weather.unknownError": "Something went wrong fetching the weather.",
+    "weather.errorTitle": "Couldn't fetch weather",
+    "weather.gapsHeading": "Gaps in your packlist",
+    "weather.coveredHeading": "Covered",
+    "weather.suggestKeywords": "Look for",
+    "weather.allClear": "Looks good for these conditions",
+    "weather.allClearHint": "No critical gaps detected based on the forecast. Mild weather expected.",
+    "weather.poweredBy": "Forecast",
     "pl.confirmDelete": "Delete this packlist? Kits and items in it remain in your inventory.",
     "pl.confirmYes": "Yes, delete",
     "pl.detailKits": "Kits in this packlist",
@@ -1776,6 +1792,22 @@ const TRANSLATIONS = {
     "pl.editBtn": "Editar",
     "pl.deleteBtn": "Borrar",
     "pl.downloadPDF": "Descargar PDF",
+    "weather.btn": "Revisar el tiempo",
+    "weather.heading": "PRONÓSTICO",
+    "weather.title": "Revisión del tiempo",
+    "weather.loading": "Consultando el pronóstico...",
+    "weather.noDestination": "Añade un destino",
+    "weather.noDestinationHint": "Esta lista no tiene destino. Edítala y añade uno (p.ej. 'Islandia', 'Patagonia', 'Yosemite') para poder consultar el tiempo.",
+    "weather.geocodeFailed": "No encontramos ese destino. Prueba con un nombre más específico (ciudad o región).",
+    "weather.forecastFailed": "No se pudo obtener el pronóstico. Open-Meteo puede no estar disponible, o las fechas están demasiado lejos (máx 16 días).",
+    "weather.unknownError": "Algo salió mal al consultar el tiempo.",
+    "weather.errorTitle": "No se pudo obtener el tiempo",
+    "weather.gapsHeading": "Huecos en tu lista",
+    "weather.coveredHeading": "Cubierto",
+    "weather.suggestKeywords": "Busca",
+    "weather.allClear": "Bien para estas condiciones",
+    "weather.allClearHint": "No hay huecos críticos según el pronóstico. Se espera buen tiempo.",
+    "weather.poweredBy": "Datos meteorológicos",
     "pl.confirmDelete": "¿Borrar esta lista? Los kits y artículos permanecen en tu inventario.",
     "pl.confirmYes": "Sí, borrar",
     "pl.detailKits": "Kits en esta lista",
@@ -9963,6 +9995,162 @@ function PacklistEditorDialog({
 }
 
 /* ============================================================
+   WEATHER GAP DETECTION
+   Pulls forecast from Open-Meteo (free, no API key) for a given
+   destination + date range, then cross-references against the
+   packlist contents to flag missing gear.
+   ============================================================ */
+
+// Try to geocode a destination string (e.g. "Iceland", "Patagonia")
+// using Open-Meteo's free geocoding endpoint. Returns {lat,lon,name} or null.
+async function geocodeDestination(query, lang = "en") {
+  if (!query || !query.trim()) return null;
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=1&language=${lang}&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const r = data?.results?.[0];
+    if (!r) return null;
+    return {
+      lat: r.latitude,
+      lon: r.longitude,
+      name: r.name + (r.country ? `, ${r.country}` : ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Pull a daily forecast from Open-Meteo for the given coordinates and
+// date range. Up to 16 days into the future is supported by the API.
+async function fetchForecast({ lat, lon, startDate, endDate, units = "metric" }) {
+  if (lat == null || lon == null) return null;
+  const tempUnit = units === "imperial" ? "fahrenheit" : "celsius";
+  const windUnit = units === "imperial" ? "mph" : "kmh";
+  const precipUnit = units === "imperial" ? "inch" : "mm";
+  let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+    + `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,`
+    + `windspeed_10m_max,uv_index_max,snowfall_sum&timezone=auto`
+    + `&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&precipitation_unit=${precipUnit}`;
+  if (startDate) url += `&start_date=${startDate}`;
+  if (endDate)   url += `&end_date=${endDate}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.daily?.time?.length) return null;
+    const d = data.daily;
+    const safeMin = (arr) => arr.filter((v) => v != null).length ? Math.min(...arr.filter((v) => v != null)) : null;
+    const safeMax = (arr) => arr.filter((v) => v != null).length ? Math.max(...arr.filter((v) => v != null)) : null;
+    return {
+      tempMin: safeMin(d.temperature_2m_min || []),
+      tempMax: safeMax(d.temperature_2m_max || []),
+      precipMaxMm:    safeMax(d.precipitation_sum || []),
+      precipMaxProb:  safeMax(d.precipitation_probability_max || []),
+      windMax:        safeMax(d.windspeed_10m_max || []),
+      uvMax:          safeMax(d.uv_index_max || []),
+      snowMax:        safeMax(d.snowfall_sum || []),
+      days: d.time.map((t, i) => ({
+        date: t,
+        tempMin: d.temperature_2m_min?.[i],
+        tempMax: d.temperature_2m_max?.[i],
+        precipMm: d.precipitation_sum?.[i],
+        precipProb: d.precipitation_probability_max?.[i],
+        windMax: d.windspeed_10m_max?.[i],
+        snowMm: d.snowfall_sum?.[i],
+        uvMax: d.uv_index_max?.[i],
+      })),
+      tempUnit, windUnit, precipUnit,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Knowledge base: which conditions trigger which gear requirements.
+// Each requirement has a `keywords` list — if ANY of the user's items has
+// that substring (case-insensitive) in name or category, the requirement
+// is considered "covered". Otherwise it's flagged as a gap.
+function buildRequirements(units) {
+  const isMetric = units !== "imperial";
+  const T_COLD       = isMetric ? 5 : 41;
+  const T_FREEZING   = isMetric ? 0 : 32;
+  const T_HOT        = isMetric ? 27 : 80;
+  const WIND_HIGH    = isMetric ? 30 : 19;
+  const SNOW_ANY     = 1;
+
+  return [
+    {
+      id: "rain",
+      label: "Rain protection",
+      detail: (w) => `${w.precipMaxProb || 0}% chance of rain, up to ${(w.precipMaxMm || 0).toFixed(1)}${w.precipUnit}`,
+      triggered: (w) => (w.precipMaxProb || 0) >= 40 || (w.precipMaxMm || 0) > 5,
+      keywords: ["rain", "waterproof", "hardshell", "hard shell", "poncho", "dry bag", "pack cover"],
+    },
+    {
+      id: "cold",
+      label: "Insulation layer",
+      detail: (w) => `Temperatures down to ${Math.round(w.tempMin)}°${isMetric ? "C" : "F"}`,
+      triggered: (w) => w.tempMin != null && w.tempMin < T_COLD,
+      keywords: ["insulation", "down", "puffy", "puffer", "fleece", "thermal", "wool", "merino", "base layer", "long underwear", "vest"],
+    },
+    {
+      id: "freezing",
+      label: "Freezing-grade gear",
+      detail: (w) => `Temperatures hit ${Math.round(w.tempMin)}°${isMetric ? "C" : "F"}`,
+      triggered: (w) => w.tempMin != null && w.tempMin < T_FREEZING,
+      keywords: ["sleeping bag", "winter", "subzero", "sub-zero", "balaclava", "beanie", "warm hat", "winter hat", "glove", "mitten"],
+    },
+    {
+      id: "wind",
+      label: "Wind protection",
+      detail: (w) => `Winds up to ${Math.round(w.windMax)} ${w.windUnit}`,
+      triggered: (w) => w.windMax != null && w.windMax >= WIND_HIGH,
+      keywords: ["wind", "windproof", "windbreaker", "shell", "hardshell", "softshell"],
+    },
+    {
+      id: "snow",
+      label: "Snow gear",
+      detail: (w) => `Snowfall expected (${(w.snowMax || 0).toFixed(1)} cm)`,
+      triggered: (w) => (w.snowMax || 0) >= SNOW_ANY,
+      keywords: ["microspike", "crampon", "gaiter", "snow", "winter boot", "ski"],
+    },
+    {
+      id: "sun",
+      label: "Sun protection",
+      detail: (w) => `UV index up to ${Math.round(w.uvMax)}`,
+      triggered: (w) => w.uvMax != null && w.uvMax >= 6,
+      keywords: ["sunscreen", "spf", "sunblock", "sun hat", "brim hat", "sunglasses", "shades", "lip balm"],
+    },
+    {
+      id: "heat",
+      label: "Heat / hydration",
+      detail: (w) => `Daytime highs up to ${Math.round(w.tempMax)}°${isMetric ? "C" : "F"}`,
+      triggered: (w) => w.tempMax != null && w.tempMax >= T_HOT,
+      keywords: ["water bottle", "hydration", "bladder", "electrolyte", "salt"],
+    },
+  ];
+}
+
+// Run the analyzer. Returns array of { req, triggered, covered, matchedItems[] }
+function analyzePacklistAgainstWeather(items, weather, units) {
+  const reqs = buildRequirements(units);
+  const haystack = items.map((it) => ({
+    item: it,
+    text: `${(it.name || "").toLowerCase()} ${(it.category || "").toLowerCase()} ${(it.notes || "").toLowerCase()}`,
+  }));
+  return reqs.map((req) => {
+    const trig = req.triggered(weather);
+    if (!trig) return { req, triggered: false, covered: true, matchedItems: [] };
+    const matchedItems = haystack
+      .filter(({ text }) => req.keywords.some((kw) => text.includes(kw.toLowerCase())))
+      .map(({ item }) => item);
+    return { req, triggered: true, covered: matchedItems.length > 0, matchedItems };
+  });
+}
+
+/* ============================================================
    Generate a printable HTML document for a packlist + open the
    browser's print dialog. The user picks "Save as PDF".
    This avoids any external PDF library.
@@ -10774,11 +10962,261 @@ function DetailRow({ label, value }) {
   );
 }
 
+/* ============================================================
+   WeatherCheckModal — runs gap detection for a packlist:
+   1) Resolve coords from packlist.coords or geocode packlist.dest
+   2) Fetch forecast for date range
+   3) Cross-check items vs requirements
+   4) Show summary + gaps
+   ============================================================ */
+function WeatherCheckModal({ packlist, items, kits, categories, onClose }) {
+  const { t, lang, units } = useI18n();
+  const { isMobile } = useViewport();
+  const [stage, setStage] = useState("loading"); // "loading" | "needsLocation" | "ready" | "error"
+  const [weather, setWeather] = useState(null);
+  const [analysis, setAnalysis] = useState([]);
+  const [resolvedLocation, setResolvedLocation] = useState(null);
+  const [error, setError] = useState("");
+
+  // Resolve included items (from kits, standalone, and category-linked)
+  const allUniqueItems = (() => {
+    const idsSet = new Set();
+    (packlist.kitIds || []).forEach((kid) => {
+      const kit = kits.find((k) => k.id === kid);
+      if (kit) (kit.itemIds || []).forEach((iid) => idsSet.add(iid));
+    });
+    (packlist.itemIds || []).forEach((iid) => idsSet.add(iid));
+    (packlist.categoryIds || []).forEach((cid) => {
+      const cat = categories.find((c) => c.id === cid);
+      if (cat) items.forEach((it) => { if (it.category === cat.name) idsSet.add(it.id); });
+    });
+    return Array.from(idsSet).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+  })();
+
+  // Parse date range from packlist.date — accept ISO strings, ranges, or single dates
+  const parseDateRange = () => {
+    const raw = packlist.date || "";
+    // Try to find ISO dates (YYYY-MM-DD) inside the string
+    const matches = raw.match(/\d{4}-\d{2}-\d{2}/g) || [];
+    if (matches.length >= 2) return { startDate: matches[0], endDate: matches[1] };
+    if (matches.length === 1) {
+      const d = matches[0];
+      // Default to a 1-day forecast
+      return { startDate: d, endDate: d };
+    }
+    // No usable date — use today + 7 days as a sensible default
+    const today = new Date();
+    const week  = new Date(today.getTime() + 7 * 86400000);
+    const fmt = (d) => d.toISOString().slice(0, 10);
+    return { startDate: fmt(today), endDate: fmt(week) };
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // Step 1: get coordinates
+        let lat = packlist.coords?.lat;
+        let lon = packlist.coords?.lon;
+        let placeName = packlist.dest;
+
+        if (lat == null || lon == null) {
+          // Try to geocode the destination
+          if (!packlist.dest || !packlist.dest.trim()) {
+            if (!cancelled) setStage("needsLocation");
+            return;
+          }
+          const geo = await geocodeDestination(packlist.dest, lang);
+          if (!geo) {
+            if (!cancelled) {
+              setError(t("weather.geocodeFailed"));
+              setStage("error");
+            }
+            return;
+          }
+          lat = geo.lat; lon = geo.lon; placeName = geo.name;
+        }
+
+        if (!cancelled) setResolvedLocation({ lat, lon, name: placeName });
+
+        // Step 2: fetch forecast
+        const { startDate, endDate } = parseDateRange();
+        const forecast = await fetchForecast({ lat, lon, startDate, endDate, units });
+        if (!forecast) {
+          if (!cancelled) {
+            setError(t("weather.forecastFailed"));
+            setStage("error");
+          }
+          return;
+        }
+
+        // Step 3: analyze
+        const result = analyzePacklistAgainstWeather(allUniqueItems, forecast, units);
+        if (!cancelled) {
+          setWeather(forecast);
+          setAnalysis(result);
+          setStage("ready");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || t("weather.unknownError"));
+          setStage("error");
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isMetric = units !== "imperial";
+  const tempLabel = (v) => v == null ? "—" : `${Math.round(v)}°${isMetric ? "C" : "F"}`;
+
+  const triggeredReqs = analysis.filter((a) => a.triggered);
+  const gaps = triggeredReqs.filter((a) => !a.covered);
+  const covered = triggeredReqs.filter((a) => a.covered);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(26,36,33,0.55)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        width: "100%", maxWidth: 720, maxHeight: "92vh", overflowY: "auto",
+        background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 18 : 28,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Coord>{t("weather.heading")}</Coord>
+            <h3 style={{ margin: "4px 0 0", fontFamily: F.display, fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              {t("weather.title")}<span style={{ color: C.rust }}>.</span>
+            </h3>
+            {resolvedLocation && (
+              <div style={{ marginTop: 4, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                📍 {resolvedLocation.name}
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 4 }} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* === LOADING === */}
+        {stage === "loading" && (
+          <div style={{ padding: 24, textAlign: "center" }}>
+            <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: 18, color: C.inkSoft }}>
+              {t("weather.loading")}
+            </div>
+          </div>
+        )}
+
+        {/* === NEEDS LOCATION === */}
+        {stage === "needsLocation" && (
+          <div style={{ padding: 16, background: C.paperDeep, border: `1.5px solid ${C.rust}` }}>
+            <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t("weather.noDestination")}</div>
+            <div style={{ fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>{t("weather.noDestinationHint")}</div>
+          </div>
+        )}
+
+        {/* === ERROR === */}
+        {stage === "error" && (
+          <div style={{ padding: 16, background: C.paperDeep, border: `1.5px solid ${C.rust}`, color: C.rust }}>
+            <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t("weather.errorTitle")}</div>
+            <div style={{ fontFamily: F.body, fontSize: 14 }}>{error}</div>
+          </div>
+        )}
+
+        {/* === READY === */}
+        {stage === "ready" && weather && (
+          <>
+            {/* Summary bar */}
+            <div style={{ marginTop: 14, padding: 14, background: C.ink, color: C.paper, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+              <div>
+                <div style={{ fontFamily: F.mono, fontSize: 9, opacity: 0.7, letterSpacing: "0.18em" }}>TEMP RANGE</div>
+                <div style={{ marginTop: 2, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{tempLabel(weather.tempMin)} — {tempLabel(weather.tempMax)}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: F.mono, fontSize: 9, opacity: 0.7, letterSpacing: "0.18em" }}>RAIN</div>
+                <div style={{ marginTop: 2, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{weather.precipMaxProb || 0}%</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: F.mono, fontSize: 9, opacity: 0.7, letterSpacing: "0.18em" }}>WIND MAX</div>
+                <div style={{ marginTop: 2, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{Math.round(weather.windMax || 0)} {weather.windUnit}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: F.mono, fontSize: 9, opacity: 0.7, letterSpacing: "0.18em" }}>UV MAX</div>
+                <div style={{ marginTop: 2, fontFamily: F.display, fontSize: 18, fontWeight: 700 }}>{Math.round(weather.uvMax || 0)}</div>
+              </div>
+            </div>
+
+            {/* GAPS */}
+            {gaps.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  ⚠ {t("weather.gapsHeading")} ({gaps.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {gaps.map(({ req }) => (
+                    <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
+                      <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label}</div>
+                      <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{req.detail(weather)}</div>
+                      <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                        {t("weather.suggestKeywords")}: {req.keywords.slice(0, 4).join(", ")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* COVERED */}
+            {covered.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.forest, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                  ✓ {t("weather.coveredHeading")} ({covered.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {covered.map(({ req, matchedItems }) => (
+                    <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+                      <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label}</div>
+                      <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{req.detail(weather)}</div>
+                      <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.05em" }}>
+                        {matchedItems.slice(0, 4).map((it) => it.name).join(" · ")}
+                        {matchedItems.length > 4 && `  +${matchedItems.length - 4} more`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* All clear */}
+            {triggeredReqs.length === 0 && (
+              <div style={{ marginTop: 18, padding: 16, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
+                <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.forest }}>✓ {t("weather.allClear")}</div>
+                <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{t("weather.allClearHint")}</div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 18, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.1em", textAlign: "center" }}>
+              {t("weather.poweredBy")} · open-meteo.com
+            </div>
+          </>
+        )}
+
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
+          <Btn variant="ghost" icon={Check} onClick={onClose} fullWidth={isMobile}>{t("common.done")}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Detail view of a single packlist — shows kits with their items + standalone items */
 function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
+  const [weatherOpen, setWeatherOpen] = useState(false);
 
   // Hydrate
   const includedKits = (packlist.kitIds || []).map((id) => kits.find((k) => k.id === id)).filter(Boolean);
@@ -10844,6 +11282,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
 
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn variant="rust" icon={Pencil} onClick={onEdit}>{t("pl.editBtn")}</Btn>
+          <Btn variant="ghost" icon={Cloud} onClick={() => setWeatherOpen(true)}>{t("weather.btn")}</Btn>
           <Btn variant="ghost" icon={Download} onClick={() => generatePacklistPDF({ packlist, kits, items, categories, units, lang })}>{t("pl.downloadPDF")}</Btn>
           <Btn variant="ghost" icon={Trash2} onClick={() => setConfirming(true)}>{t("pl.deleteBtn")}</Btn>
         </div>
@@ -11068,6 +11507,17 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
             ))}
           </div>
         </div>
+      )}
+
+      {/* Weather check modal — opens when user taps the Weather button */}
+      {weatherOpen && (
+        <WeatherCheckModal
+          packlist={packlist}
+          items={items}
+          kits={kits}
+          categories={categories}
+          onClose={() => setWeatherOpen(false)}
+        />
       )}
     </div>
   );
