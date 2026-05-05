@@ -682,6 +682,60 @@ const TRANSLATIONS = {
     "welcome.signIn": "Sign In",
     "welcome.createAccount": "Create Account",
 
+    // === LANDING PAGE ===
+    "landing.ctaJoin": "Join free",
+    "landing.ctaCreate": "Create your account",
+    "landing.freeNoCard": "FREE · NO CREDIT CARD",
+    // Hero
+    "landing.heroLine1": "Pack for the trip,",
+    "landing.heroLine2": "not the panic",
+    "landing.heroSub": "A field journal for adventure travelers. Track your gear, build reusable kits, plan trips, and never forget the rain jacket again.",
+    // Section: What is it
+    "landing.kickerWhat": "WHAT IS IT",
+    "landing.whatTitle": "Your gear,",
+    "landing.whatTitleItalic": "organized",
+    "landing.whatBody": "PakMondo is a packing app for people who take their trips seriously. Build a digital catalog of every item you own, group items into reusable kits, and create packlists that actually map to real trips. Forget less. Pack smarter.",
+    // Section: Core features
+    "landing.kickerHow": "HOW IT WORKS",
+    "landing.coreTitle": "Three building blocks,",
+    "landing.coreTitleItalic": "endless trips",
+    "landing.f1Title": "Track every item",
+    "landing.f1Body": "One inventory for all your gear. Weights, expiry dates, photos, notes. Searchable, sortable, never lost in a closet again.",
+    "landing.f2Title": "Build reusable kits",
+    "landing.f2Body": "Group items into kits like 'Cold Camp Essentials' or 'Day Hike Light'. Drop a whole kit into any packlist with one tap.",
+    "landing.f3Title": "Check the weather",
+    "landing.f3Body": "Tell PakMondo where and when. It compares the forecast against your gear and flags anything you might be missing.",
+    // Section: Showcase
+    "landing.kickerSee": "WHAT IT LOOKS LIKE",
+    "landing.showcaseTitle": "Built like a",
+    "landing.showcaseTitleItalic": "field journal",
+    "landing.shotInv": "Inventory · 803 items",
+    "landing.shotPl": "Packlist · with progress",
+    "landing.shotWx": "Weather check · gap finder",
+    // Section: Why not a spreadsheet
+    "landing.kickerWhy": "WHY",
+    "landing.whyTitle": "Why not just a",
+    "landing.whyTitleItalic": "spreadsheet",
+    "landing.whyBody1": "You could pack from a Google Sheet. People do. But spreadsheets don't tell you when your bug repellent is about to expire, don't compare your gear against a forecast, don't know that you've used your sleeping bag in 47 trips.",
+    "landing.whyBody2": "PakMondo is built specifically for the way real travelers think: items roll up into kits, kits roll up into trips. Every layer adds context the spreadsheet can't.",
+    "landing.whyBody3": "And it travels with you — same data on your laptop and your phone, automatically. No fiddling with file syncing.",
+    // Section: More features
+    "landing.kickerMore": "ALSO INCLUDED",
+    "landing.moreTitle": "Everything else,",
+    "landing.moreTitleItalic": "thoughtfully built",
+    "landing.f4Title": "Multi-device sync",
+    "landing.f4Body": "Sign in on any device. Your inventory, kits and packlists follow.",
+    "landing.f5Title": "Printable PDFs",
+    "landing.f5Body": "Generate a checklist for the road. Two checkboxes per item: want, packed.",
+    "landing.f6Title": "Bilingual",
+    "landing.f6Body": "Full English and Spanish support. Switch any time.",
+    "landing.f7Title": "Community library",
+    "landing.f7Body": "Browse and import packlists shared by other members. Publish your own.",
+    // Final CTA
+    "landing.finalTitleA": "Be prepared,",
+    "landing.finalTitleB": "be anywhere",
+    "landing.finalBody": "Start with a tent. Build out from there. PakMondo is free to use and works on every device. Bring everything. Forget nothing.",
+
     // Login
     "login.stamp": "Returning Member",
     "login.title": "Welcome back",
@@ -1791,6 +1845,53 @@ const TRANSLATIONS = {
 
     "welcome.signIn": "Iniciar Sesión",
     "welcome.createAccount": "Crear Cuenta",
+
+    // === LANDING PAGE ===
+    "landing.ctaJoin": "Únete gratis",
+    "landing.ctaCreate": "Crea tu cuenta",
+    "landing.freeNoCard": "GRATIS · SIN TARJETA",
+    "landing.heroLine1": "Empaca para el viaje,",
+    "landing.heroLine2": "no para el pánico",
+    "landing.heroSub": "Un diario de campo para viajeros de aventura. Lleva el control de tu equipo, crea kits reutilizables, planifica viajes y nunca olvides el chubasquero.",
+    "landing.kickerWhat": "QUÉ ES",
+    "landing.whatTitle": "Tu equipo,",
+    "landing.whatTitleItalic": "organizado",
+    "landing.whatBody": "PakMondo es una app de empaque para gente que se toma en serio sus viajes. Construye un catálogo digital de cada artículo que tienes, agrupa artículos en kits reutilizables y crea listas que realmente reflejan viajes reales. Olvida menos. Empaca mejor.",
+    "landing.kickerHow": "CÓMO FUNCIONA",
+    "landing.coreTitle": "Tres bloques,",
+    "landing.coreTitleItalic": "infinitos viajes",
+    "landing.f1Title": "Registra cada artículo",
+    "landing.f1Body": "Un inventario para todo tu equipo. Pesos, fechas de caducidad, fotos, notas. Buscable, ordenable, nunca más perdido en un armario.",
+    "landing.f2Title": "Crea kits reutilizables",
+    "landing.f2Body": "Agrupa artículos en kits como 'Imprescindibles de Frío' o 'Senderismo Ligero'. Añade un kit completo a cualquier lista con un toque.",
+    "landing.f3Title": "Revisa el tiempo",
+    "landing.f3Body": "Dile a PakMondo dónde y cuándo. Compara el pronóstico con tu equipo y marca lo que pueda faltarte.",
+    "landing.kickerSee": "ASÍ SE VE",
+    "landing.showcaseTitle": "Construido como un",
+    "landing.showcaseTitleItalic": "diario de campo",
+    "landing.shotInv": "Inventario · 803 artículos",
+    "landing.shotPl": "Lista · con progreso",
+    "landing.shotWx": "Tiempo · detector de huecos",
+    "landing.kickerWhy": "POR QUÉ",
+    "landing.whyTitle": "¿Por qué no usar una",
+    "landing.whyTitleItalic": "hoja de cálculo",
+    "landing.whyBody1": "Podrías empacar desde una hoja de Google. La gente lo hace. Pero las hojas de cálculo no te dicen cuándo tu repelente está por caducar, no comparan tu equipo con el pronóstico, no saben que has usado tu saco de dormir en 47 viajes.",
+    "landing.whyBody2": "PakMondo está construido específicamente para cómo piensan los viajeros reales: los artículos componen kits, los kits componen viajes. Cada capa añade contexto que la hoja de cálculo no puede.",
+    "landing.whyBody3": "Y viaja contigo — los mismos datos en tu portátil y en tu móvil, automáticamente. Sin trastear con sincronización de archivos.",
+    "landing.kickerMore": "TAMBIÉN INCLUIDO",
+    "landing.moreTitle": "Todo lo demás,",
+    "landing.moreTitleItalic": "pensado al detalle",
+    "landing.f4Title": "Multi-dispositivo",
+    "landing.f4Body": "Inicia sesión en cualquier dispositivo. Tu inventario, kits y listas te siguen.",
+    "landing.f5Title": "PDFs imprimibles",
+    "landing.f5Body": "Genera una lista de verificación para el camino. Dos casillas por artículo: llevar, empacado.",
+    "landing.f6Title": "Bilingüe",
+    "landing.f6Body": "Soporte completo en inglés y español. Cambia cuando quieras.",
+    "landing.f7Title": "Biblioteca comunidad",
+    "landing.f7Body": "Explora e importa listas compartidas por otros miembros. Publica las tuyas.",
+    "landing.finalTitleA": "Sé previsor,",
+    "landing.finalTitleB": "sé donde sea",
+    "landing.finalBody": "Empieza con una tienda. Construye desde ahí. PakMondo es gratis y funciona en cualquier dispositivo. Lleva todo. No olvides nada.",
 
     "login.stamp": "Miembro Existente",
     "login.title": "Bienvenido de vuelta",
@@ -3945,39 +4046,319 @@ function Footer({ go }) {
 function Welcome({ go }) {
   const { t } = useI18n();
   const { isMobile, isNarrow } = useViewport();
+
+  // Reusable section heading with kicker + display title
+  const SectionHeading = ({ kicker, title, italicWord }) => (
+    <div style={{ textAlign: "center", marginBottom: 32 }}>
+      <div style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 12 }}>
+        {kicker}
+      </div>
+      <h2 style={{
+        margin: 0, fontFamily: F.display, fontWeight: 700,
+        fontSize: isMobile ? 28 : 40, letterSpacing: "-0.02em", lineHeight: 1.05,
+      }}>
+        {title}
+        {italicWord && <> <span style={{ fontStyle: "italic", color: C.forest }}>{italicWord}</span></>}
+        <span style={{ color: C.rust }}>.</span>
+      </h2>
+    </div>
+  );
+
+  // Feature card — numbered, brief description
+  const FeatureCard = ({ num, title, body, icon: Icon }) => (
+    <div style={{
+      flex: 1, minWidth: 0,
+      padding: isMobile ? 18 : 24,
+      background: C.paper, border: `1.5px solid ${C.ink}`,
+      display: "flex", flexDirection: "column",
+      minHeight: isMobile ? "auto" : 220,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <span style={{ fontFamily: F.mono, fontSize: 11, color: C.rust, fontWeight: 700, letterSpacing: "0.2em" }}>{num}</span>
+        {Icon && <Icon size={18} color={C.ink} />}
+      </div>
+      <h3 style={{ margin: "0 0 10px 0", fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em" }}>{title}</h3>
+      <p style={{ margin: 0, fontFamily: F.body, fontSize: 14, lineHeight: 1.55, color: C.inkSoft }}>{body}</p>
+    </div>
+  );
+
+  // Inline SVG mockup of the items table (used in showcase section)
+  const ItemsMockup = (
+    <svg viewBox="0 0 360 220" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="358" height="218" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+      <text x="20" y="24" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">INVENTORY · ITEMS</text>
+      <line x1="20" y1="34" x2="340" y2="34" stroke={C.ink} strokeWidth="1.5" />
+      {[
+        ["01", "Tent", "Shelter", "—"],
+        ["02", "Sleeping bag", "Cold Camp", "—"],
+        ["03", "DEET 50%", "Hygiene", "⚠ 12d", true],
+        ["04", "Water bottle", "Day Hike", "—"],
+        ["05", "Headlamp", "Light", "—"],
+      ].map(([n, name, kit, exp, red], i) => (
+        <g key={n} transform={`translate(0, ${56 + i * 28})`}>
+          <text x="20" y="0" fontFamily="ui-monospace" fontSize="9" fill={C.muted}>{n}</text>
+          <text x="48" y="0" fontFamily="Georgia, serif" fontSize="12" fill={C.ink}>{name}</text>
+          <text x="180" y="0" fontFamily="Georgia, serif" fontSize="11" fill={C.inkSoft} fontStyle="italic">{kit}</text>
+          <text x="320" y="0" textAnchor="end" fontFamily="ui-monospace" fontSize="9" fill={red ? C.rust : C.muted} fontWeight={red ? 700 : 400}>{exp}</text>
+          <line x1="20" y1="8" x2="340" y2="8" stroke={C.line} strokeDasharray="2 2" />
+        </g>
+      ))}
+    </svg>
+  );
+
+  // Mockup of a packlist with checkboxes
+  const PacklistMockup = (
+    <svg viewBox="0 0 360 220" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="358" height="218" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+      <text x="20" y="24" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">PACKLIST · WEEKEND</text>
+      <text x="20" y="48" fontFamily="Georgia, serif" fontSize="16" fontWeight="700" fill={C.ink}>Mt Tam<tspan fill={C.rust}>.</tspan></text>
+      {/* legend */}
+      <rect x="20" y="62" width="320" height="28" fill={C.paperDeep} stroke={C.line} strokeWidth="1" />
+      <rect x="32" y="69" width="12" height="12" fill={C.rust} />
+      <text x="50" y="79" fontFamily="ui-monospace" fontSize="8" fill={C.rust} letterSpacing="2" fontWeight="700">WANT 9/12</text>
+      <rect x="160" y="69" width="12" height="12" fill={C.forestBright} />
+      <text x="178" y="79" fontFamily="ui-monospace" fontSize="8" fill={C.forestBright} letterSpacing="2" fontWeight="700">PACKED 7/9</text>
+      {/* item rows */}
+      {[
+        ["Tent", true, true],
+        ["Sleeping bag", true, true],
+        ["Headlamp", true, false],
+        ["Sunscreen", false, false],
+      ].map(([name, want, pkd], i) => (
+        <g key={name} transform={`translate(20, ${110 + i * 24})`}>
+          <rect x="0" y="0" width="12" height="12" fill={want ? C.rust : "transparent"} stroke={C.rust} strokeWidth="1.5" />
+          <rect x="18" y="0" width="12" height="12" fill={pkd ? C.forestBright : "transparent"} stroke={C.forestBright} strokeWidth="1.5" />
+          <text x="40" y="10" fontFamily="Georgia, serif" fontSize="12" fill={C.ink}>{name}</text>
+        </g>
+      ))}
+    </svg>
+  );
+
+  // Weather check mockup
+  const WeatherMockup = (
+    <svg viewBox="0 0 360 220" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="358" height="218" fill={C.paper} stroke={C.ink} strokeWidth="1.5" />
+      <text x="20" y="24" fontFamily="ui-monospace" fontSize="8" fill={C.muted} letterSpacing="2">WEATHER CHECK · TORRES DEL PAINE</text>
+      <line x1="20" y1="34" x2="340" y2="34" stroke={C.ink} strokeWidth="1.5" />
+      {/* Summary */}
+      {[["TEMP", "−4° / 12°"], ["RAIN", "65%"], ["WIND", "55 km/h"], ["UV", "8"]].map(([k, v], i) => (
+        <g key={k} transform={`translate(${28 + i * 78}, 50)`}>
+          <text x="0" y="0" fontFamily="ui-monospace" fontSize="7" fill={C.muted} letterSpacing="2">{k}</text>
+          <text x="0" y="16" fontFamily="Georgia, serif" fontSize="13" fontWeight="700" fill={C.ink}>{v}</text>
+        </g>
+      ))}
+      {/* Gaps */}
+      <rect x="20" y="84" width="320" height="58" fill="none" stroke={C.rust} strokeWidth="1.5" />
+      <text x="32" y="100" fontFamily="ui-monospace" fontSize="9" fill={C.rust} letterSpacing="2" fontWeight="700">⚠ GAPS · 2</text>
+      <text x="32" y="118" fontFamily="Georgia, serif" fontSize="11" fill={C.ink}>· No rain jacket detected</text>
+      <text x="32" y="134" fontFamily="Georgia, serif" fontSize="11" fill={C.ink}>· No insulating layer</text>
+      {/* Covered */}
+      <rect x="20" y="154" width="320" height="44" fill="none" stroke={C.forest} strokeWidth="1.5" />
+      <text x="32" y="170" fontFamily="ui-monospace" fontSize="9" fill={C.forest} letterSpacing="2" fontWeight="700">✓ COVERED · 3</text>
+      <text x="32" y="186" fontFamily="Georgia, serif" fontSize="11" fill={C.ink}>· Wind, sun, hydration</text>
+    </svg>
+  );
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
-      <TopoBG opacity={0.18} />
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "48px 20px" : "80px 24px", position: "relative", zIndex: 10 }}>
-        <div style={{ maxWidth: 720, textAlign: "center", width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: isMobile ? 24 : 32 }}>
-            <Stamp rotate={-6}>{t("brand.fieldTested")}</Stamp>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-            <CompassRose size={isMobile ? 48 : 60} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", margin: "0 0 20px 0" }}>
-            <div style={{ width: "100%", maxWidth: isMobile ? 280 : 480 }}>
-              <img src={LOGO_DATA_URL} alt="PakMondo" style={{ width: "100%", height: "auto", display: "block" }} />
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 24 }}>
-            <div style={{ width: isMobile ? 60 : 96 }}><DashLine /></div>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.rust }} />
-            <div style={{ width: isMobile ? 60 : 96 }}><DashLine /></div>
-          </div>
-          <p style={{ fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 18 : 22, color: C.inkSoft, margin: "0 0 12px 0", padding: "0 8px" }}>
-            {t("brand.tagline")}
-          </p>
-          <p style={{ fontFamily: F.mono, fontSize: isNarrow ? 10 : 11, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 40px 0" }}>
-            {t("brand.subline")}
-          </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
-            <Btn onClick={() => go("login")} variant="primary" icon={Lock} fullWidth={isMobile}>{t("welcome.signIn")}</Btn>
-            <Btn onClick={() => go("signup")} variant="ghost" icon={Plus} fullWidth={isMobile}>{t("welcome.createAccount")}</Btn>
-          </div>
+    <div style={{ minHeight: "100vh", position: "relative" }}>
+      <TopoBG opacity={0.12} />
+
+      {/* === TOP BAR === Brand left, sign-in/up right === */}
+      <div style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "16px 20px" : "20px 40px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderBottom: `1.5px solid ${C.ink}`,
+        background: C.paper,
+      }}>
+        <Logo size={isMobile ? "headerMobile" : "header"} />
+        <div style={{ display: "flex", gap: isMobile ? 6 : 10 }}>
+          <Btn variant="ghost" onClick={() => go("login")}>{t("welcome.signIn")}</Btn>
+          {!isMobile && <Btn variant="rust" onClick={() => go("signup")}>{t("landing.ctaJoin")}</Btn>}
         </div>
       </div>
+
+      {/* === HERO === */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "48px 20px 32px" : "96px 40px 64px",
+        textAlign: "center",
+        maxWidth: 880, margin: "0 auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+          <Stamp rotate={-6}>{t("brand.fieldTested")}</Stamp>
+        </div>
+        <h1 style={{
+          margin: "0 0 18px 0",
+          fontFamily: F.display, fontWeight: 700,
+          fontSize: isMobile ? 44 : 72,
+          letterSpacing: "-0.03em", lineHeight: 0.98,
+        }}>
+          {t("landing.heroLine1")}<br />
+          <span style={{ fontStyle: "italic", color: C.forest }}>{t("landing.heroLine2")}</span><span style={{ color: C.rust }}>.</span>
+        </h1>
+        <p style={{
+          margin: "0 auto 32px",
+          maxWidth: 560,
+          fontFamily: F.body, fontSize: isMobile ? 15 : 17,
+          lineHeight: 1.55, color: C.inkSoft,
+        }}>
+          {t("landing.heroSub")}
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+          <Btn variant="rust" icon={Plus} onClick={() => go("signup")} fullWidth={isMobile}>{t("landing.ctaJoin")}</Btn>
+          <Btn variant="ghost" icon={Lock} onClick={() => go("login")} fullWidth={isMobile}>{t("welcome.signIn")}</Btn>
+        </div>
+        <div style={{ marginTop: 16, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          {t("landing.freeNoCard")}
+        </div>
+      </section>
+
+      <DashLine />
+
+      {/* === WHAT IS IT === A short intro paragraph */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "40px 20px" : "64px 40px",
+        maxWidth: 760, margin: "0 auto",
+      }}>
+        <SectionHeading kicker={t("landing.kickerWhat")} title={t("landing.whatTitle")} italicWord={t("landing.whatTitleItalic")} />
+        <p style={{
+          margin: "0 auto", maxWidth: 600, textAlign: "center",
+          fontFamily: F.body, fontStyle: "italic",
+          fontSize: isMobile ? 16 : 18, lineHeight: 1.65, color: C.inkSoft,
+        }}>
+          {t("landing.whatBody")}
+        </p>
+      </section>
+
+      <DashLine />
+
+      {/* === CORE FEATURES (3 cards) === */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "40px 20px" : "64px 40px",
+        maxWidth: 1080, margin: "0 auto",
+      }}>
+        <SectionHeading kicker={t("landing.kickerHow")} title={t("landing.coreTitle")} italicWord={t("landing.coreTitleItalic")} />
+        <div style={{ display: "flex", gap: isMobile ? 14 : 20, flexDirection: isMobile ? "column" : "row" }}>
+          <FeatureCard num="01" icon={Backpack} title={t("landing.f1Title")} body={t("landing.f1Body")} />
+          <FeatureCard num="02" icon={Layers}    title={t("landing.f2Title")} body={t("landing.f2Body")} />
+          <FeatureCard num="03" icon={Cloud}     title={t("landing.f3Title")} body={t("landing.f3Body")} />
+        </div>
+      </section>
+
+      <DashLine />
+
+      {/* === SHOWCASE (mockups) === */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "40px 20px" : "64px 40px",
+        maxWidth: 1080, margin: "0 auto",
+      }}>
+        <SectionHeading kicker={t("landing.kickerSee")} title={t("landing.showcaseTitle")} italicWord={t("landing.showcaseTitleItalic")} />
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+          gap: isMobile ? 18 : 22,
+        }}>
+          {[
+            { svg: ItemsMockup,    label: t("landing.shotInv") },
+            { svg: PacklistMockup, label: t("landing.shotPl") },
+            { svg: WeatherMockup,  label: t("landing.shotWx") },
+          ].map((s, i) => (
+            <figure key={i} style={{ margin: 0 }}>
+              <div style={{ background: C.paperDeep, padding: 12, border: `1px solid ${C.line}` }}>
+                {s.svg}
+              </div>
+              <figcaption style={{
+                marginTop: 8, fontFamily: F.mono, fontSize: 10,
+                color: C.muted, letterSpacing: "0.15em",
+                textTransform: "uppercase", textAlign: "center",
+              }}>{s.label}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <DashLine />
+
+      {/* === DIFFERENTIATOR === Why not a spreadsheet? */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "40px 20px" : "64px 40px",
+        maxWidth: 720, margin: "0 auto",
+      }}>
+        <SectionHeading kicker={t("landing.kickerWhy")} title={t("landing.whyTitle")} italicWord={t("landing.whyTitleItalic")} />
+        <div style={{ fontFamily: F.body, fontSize: isMobile ? 15 : 16, lineHeight: 1.65, color: C.inkSoft }}>
+          <p style={{ margin: "0 0 14px 0" }}>{t("landing.whyBody1")}</p>
+          <p style={{ margin: "0 0 14px 0" }}>{t("landing.whyBody2")}</p>
+          <p style={{ margin: 0 }}>{t("landing.whyBody3")}</p>
+        </div>
+      </section>
+
+      <DashLine />
+
+      {/* === SECONDARY FEATURES (4 cards in a 2x2 / 4x1 grid) === */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "40px 20px" : "64px 40px",
+        maxWidth: 1080, margin: "0 auto",
+      }}>
+        <SectionHeading kicker={t("landing.kickerMore")} title={t("landing.moreTitle")} italicWord={t("landing.moreTitleItalic")} />
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)",
+          gap: isMobile ? 14 : 18,
+        }}>
+          <FeatureCard num="04" icon={Globe}    title={t("landing.f4Title")} body={t("landing.f4Body")} />
+          <FeatureCard num="05" icon={Download} title={t("landing.f5Title")} body={t("landing.f5Body")} />
+          <FeatureCard num="06" icon={MapIcon}  title={t("landing.f6Title")} body={t("landing.f6Body")} />
+          <FeatureCard num="07" icon={Tag}      title={t("landing.f7Title")} body={t("landing.f7Body")} />
+        </div>
+      </section>
+
+      <DashLine />
+
+      {/* === FINAL CTA === */}
+      <section style={{
+        position: "relative", zIndex: 10,
+        padding: isMobile ? "56px 20px" : "96px 40px",
+        textAlign: "center",
+        maxWidth: 720, margin: "0 auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 24 }}>
+          <div style={{ width: isMobile ? 60 : 96 }}><DashLine /></div>
+          <CompassRose size={isMobile ? 36 : 44} />
+          <div style={{ width: isMobile ? 60 : 96 }}><DashLine /></div>
+        </div>
+        <h2 style={{
+          margin: "0 0 14px 0", fontFamily: F.display, fontWeight: 700,
+          fontSize: isMobile ? 32 : 48, letterSpacing: "-0.02em", lineHeight: 1.05,
+        }}>
+          {t("landing.finalTitleA")} <span style={{ fontStyle: "italic", color: C.forest }}>{t("landing.finalTitleB")}</span><span style={{ color: C.rust }}>.</span>
+        </h2>
+        <p style={{
+          margin: "0 auto 28px", maxWidth: 480,
+          fontFamily: F.body, fontSize: isMobile ? 14 : 16, lineHeight: 1.55, color: C.inkSoft,
+        }}>
+          {t("landing.finalBody")}
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+          <Btn variant="rust" icon={Plus} onClick={() => go("signup")} fullWidth={isMobile}>{t("landing.ctaCreate")}</Btn>
+          <Btn variant="ghost" icon={Lock} onClick={() => go("login")} fullWidth={isMobile}>{t("welcome.signIn")}</Btn>
+        </div>
+        <div style={{ marginTop: 14, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          {t("landing.freeNoCard")}
+        </div>
+        <div style={{ marginTop: 24 }}>
+          <p style={{ fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 16 : 18, color: C.inkSoft, margin: 0 }}>
+            {t("brand.tagline")}
+          </p>
+        </div>
+      </section>
+
+      <Footer go={go} />
     </div>
   );
 }
