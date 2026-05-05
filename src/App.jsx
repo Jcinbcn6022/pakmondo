@@ -5682,11 +5682,18 @@ function AddPanel({ title, children, onSave, onCancel, saveLabel }) {
   );
 }
 
-function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory }) {
+function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory, uncategorizedDefault }) {
   const { t, lang, units } = useI18n();
   const editMode = !!initial;
   const [name, setName] = useState(initial?.name || "");
-  const [category, setCategory] = useState(initial?.category || defaultCategory || (categories[0] ? categories[0].name : ""));
+  // When uncategorizedDefault is true (e.g. when this form is opened from
+  // inside the Add Kit flow), leave category empty so the item is filed as
+  // "Uncategorized". Otherwise default to provided defaultCategory or first.
+  const [category, setCategory] = useState(
+    initial?.category
+    || defaultCategory
+    || (uncategorizedDefault ? "" : (categories[0] ? categories[0].name : ""))
+  );
   const [quantity, setQuantity] = useState(initial?.quantity || 1);
   const [size, setSize] = useState(initial?.size || "");
   // Pre-fill weight in the user's chosen unit so edits feel natural
@@ -5773,6 +5780,9 @@ function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory }) 
               cursor: "pointer",
             }}
           >
+            {/* Empty value = Uncategorized. Always present so users can opt
+                out of categorization. */}
+            <option value="">{t("kit.uncategorized")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.name}>{tOrLiteral(lang, "cat", c.name)}</option>
             ))}
@@ -6757,11 +6767,19 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
         <Modal title={t("form.addItemTitle")} onClose={() => setShowCreateItem(false)}>
           <AddItemForm
             categories={categories}
+            // Pass empty string so the form treats this item as Uncategorized
+            // by default (the user can still pick a category from the dropdown).
             defaultCategory={category || ""}
+            uncategorizedDefault={true}
             onAdd={(data) => {
-              const created = { id: uid("it"), packed: false, ...data };
-              onAddItem(created);
-              setItemIds([...itemIds, created.id]);
+              // onAddItem (wired to addItemSilent at the top level) handles
+              // the id assignment and global state update. It returns the
+              // newly-created item so we can immediately reference its id
+              // here to add it to the kit being built.
+              const created = onAddItem(data);
+              if (created && created.id) {
+                setItemIds([...itemIds, created.id]);
+              }
               setShowCreateItem(false);
             }}
             onCancel={() => setShowCreateItem(false)}
@@ -8829,7 +8847,17 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   }, [filter]);
 
   const togglePacked = (id) => setItems(items.map((i) => (i.id === id ? { ...i, packed: !i.packed } : i)));
-  const addItem = (data) => { setItems([{ id: uid("it"), packed: false, ...data }, ...items]); setAdding(false); };
+  // addItemSilent: adds an item to the global list WITHOUT closing any open panel.
+  // Used when AddKitForm or AddCategoryForm needs to create a new item mid-flow.
+  // Returns the new item's id so callers can immediately reference it.
+  const addItemSilent = (data) => {
+    const newItem = { id: uid("it"), packed: false, ...data };
+    setItems([newItem, ...items]);
+    return newItem;
+  };
+  // addItem: adds an item AND closes the Add panel. Used by the Items tab where
+  // the panel SHOULD close after a successful add.
+  const addItem = (data) => { addItemSilent(data); setAdding(false); };
   const updateItem = (id, data) => setItems(items.map((i) => (i.id === id ? { ...i, ...data } : i)));
   const deleteItem = (id) => {
     setItems(items.filter((i) => i.id !== id));
@@ -8935,7 +8963,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
                   items={items}
                   kits={kits}
                   categories={categories}
-                  onAddItem={addItem}
+                  onAddItem={addItemSilent}
                   onUpdateItem={updateItem}
                   onDeleteItem={deleteItem}
                   onTogglePacked={togglePacked}
@@ -8969,7 +8997,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
               </>
             );
           })()}
-          {tab === "kits" && <>{adding && <AddKitForm categories={categories} items={items} onAdd={addKit} onAddItem={addItem} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} onEditKit={(id) => setEditingKitId(id)} packlists={packlists} setPacklists={setPacklists} /></>}
+          {tab === "kits" && <>{adding && <AddKitForm categories={categories} items={items} onAdd={addKit} onAddItem={addItemSilent} onCancel={() => setAdding(false)} />}<KitsView kits={kits} items={items} categories={categories} onUpdateKit={updateKit} onDeleteKit={deleteKit} onShareKit={(kit) => setSharing({ kind: "kit", entity: kit })} onPublishKit={currentUser?.id ? (kit) => setPublishing({ kind: "kit", entity: kit }) : null} onEditKit={(id) => setEditingKitId(id)} packlists={packlists} setPacklists={setPacklists} /></>}
           {tab === "cart" && <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />}
         </div>
       </div>
@@ -9038,7 +9066,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
               items={items}
               initial={k}
               onAdd={(data) => { updateKit({ ...k, ...data }); setEditingKitId(null); }}
-              onAddItem={addItem}
+              onAddItem={addItemSilent}
               onCancel={() => setEditingKitId(null)}
             />
           </Modal>
@@ -10718,7 +10746,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
               categories={categories}
               onUpdateKit={updateKit}
               onUpdateItem={updateItem}
-              onAddItem={addItem}
+              onAddItem={addItemSilent}
               onEditItem={(id) => setDetailItemId(id)}
               onClose={() => setDetailKitId(null)}
             />
@@ -10736,7 +10764,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
               kits={kits}
               categories={categories}
               onUpdateItem={updateItem}
-              onAddItem={addItem}
+              onAddItem={addItemSilent}
               onEditItem={(id) => setDetailItemId(id)}
               onEditKit={(id) => setDetailKitId(id)}
               onClose={() => setDetailCategoryId(null)}
