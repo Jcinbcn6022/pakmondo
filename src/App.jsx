@@ -3999,11 +3999,7 @@ function SyncDot() {
 
 function Header({ go, active, onBack }) {
   const { t } = useI18n();
-  const { isMobile, width } = useViewport();
-  // Tagline lives in the header on wide desktop only. Below 1280px the nav
-  // items + logo + member badge already fill the row, so showing the tagline
-  // there causes overlap. The dashboard hero displays the same tagline anyway.
-  const showHeaderTagline = !isMobile && width >= 1280 && !onBack && active !== "dashboard";
+  const { isMobile } = useViewport();
   const user = useCurrentUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["packlists", t("nav.packlists")], ["library", t("nav.library")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")], ["help", t("nav.help")]];
@@ -4049,21 +4045,6 @@ function Header({ go, active, onBack }) {
               }}>
               {user.member_id}
             </button>
-          )}
-          {/* Slogan — shown ONLY on wide desktop (>= 1280px) on non-dashboard
-              pages. Below that width it overlaps the nav, and the dashboard
-              hero already displays the tagline prominently. */}
-          {showHeaderTagline && (
-            <span style={{
-              fontFamily: F.display, fontStyle: "italic",
-              fontSize: 14, color: C.inkSoft,
-              borderLeft: `1px solid ${C.line}`,
-              paddingLeft: 14, marginLeft: 4,
-              whiteSpace: "nowrap",
-              flexShrink: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis",
-            }}>
-              {t("brand.tagline")}
-            </span>
           )}
         </div>
 
