@@ -622,7 +622,22 @@ const TRANSLATIONS = {
     "common.yes": "Yes",
     "common.no": "No",
     "common.done": "Done",
+    "common.dismiss": "Dismiss",
     "common.loading": "Breaking camp...",
+    // Sync indicator
+    "sync.synced":  "SYNCED",
+    "sync.saving":  "SAVING",
+    "sync.error":   "OFFLINE",
+    "sync.init":    "STARTING",
+    "sync.syncedDetail":  "All changes saved to your account. Visible on every device.",
+    "sync.savingDetail":  "Saving changes…",
+    "sync.errorDetail":   "Some changes couldn't save. Check your connection. Recent edits may not yet be on other devices.",
+    "sync.initDetail":    "Connecting to your account…",
+    // Categories explainer banner
+    "catExplainer.kicker":   "QUICK NOTE",
+    "catExplainer.title":    "Categories vs Kits — what's the difference?",
+    "catExplainer.body":     "A category labels what TYPE of thing an item is (every tent is in 'Shelter'). A kit is a SPECIFIC GROUPING for a use case (your 'Cold Camp Kit' contains a particular tent + sleeping bag + pad). One item can have one category, but can be in many kits.",
+    "catExplainer.readMore": "Read more in the field manual",
     "common.loadingSub": "Loading field journal",
 
     "kitDetail.itemsInKit": "Items in this kit",
@@ -1787,8 +1802,23 @@ const TRANSLATIONS = {
     "common.yes": "Sí",
     "common.no": "No",
     "common.done": "Listo",
+    "common.dismiss": "Cerrar",
     "common.loading": "Levantando el campamento...",
     "common.loadingSub": "Cargando el diario de campo",
+    // Indicador de sincronización
+    "sync.synced":  "SINCRONIZADO",
+    "sync.saving":  "GUARDANDO",
+    "sync.error":   "SIN CONEXIÓN",
+    "sync.init":    "INICIANDO",
+    "sync.syncedDetail":  "Todos los cambios guardados en tu cuenta. Visibles en cualquier dispositivo.",
+    "sync.savingDetail":  "Guardando cambios…",
+    "sync.errorDetail":   "Algunos cambios no se guardaron. Revisa tu conexión. Las ediciones recientes pueden no estar aún en otros dispositivos.",
+    "sync.initDetail":    "Conectando con tu cuenta…",
+    // Banner explicativo de Categorías
+    "catExplainer.kicker":   "NOTA RÁPIDA",
+    "catExplainer.title":    "Categorías vs Kits — ¿cuál es la diferencia?",
+    "catExplainer.body":     "Una categoría etiqueta qué TIPO de cosa es un artículo (cada tienda está en 'Refugio'). Un kit es un AGRUPAMIENTO ESPECÍFICO para un caso de uso (tu 'Kit de Camp Frío' contiene una tienda + saco + esterilla particulares). Un artículo puede tener una categoría, pero puede estar en muchos kits.",
+    "catExplainer.readMore": "Leer más en el manual de campo",
 
     "kitDetail.itemsInKit": "Artículos en este kit",
     "kitDetail.empty": "Este kit está vacío. Añade artículos abajo.",
@@ -2905,6 +2935,12 @@ const TRANSLATIONS = {
 const I18nContext = createContext({ lang: "en", t: (k) => k, locale: "en-US", units: "metric" });
 const useI18n = () => useContext(I18nContext);
 
+// Sync status context — exposes the current Supabase sync state ("ready" |
+// "saving" | "error" | "init") to any component that needs to display it.
+// Default to "init" so components render the loading state when context is missing.
+const SyncStatusContext = createContext({ status: "init" });
+const useSyncStatus = () => useContext(SyncStatusContext);
+
 const makeT = (lang) => (key, params = {}) => {
   const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
   let str = dict[key] != null ? dict[key] : (TRANSLATIONS.en[key] != null ? TRANSLATIONS.en[key] : key);
@@ -3831,6 +3867,94 @@ const iconFor = (key) => {
   return map[key] || Backpack;
 };
 
+/* ============================================================
+   SyncDot — small live indicator showing whether saves are in
+   flight, succeeded, or failed. Reads from SyncStatusContext.
+   Tappable: opens a small popover with details.
+   ============================================================ */
+function SyncDot() {
+  const { status } = useSyncStatus();
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  // Color per state — matches the existing pattern from SettingsScreen
+  const color = status === "ready" ? C.forestBright
+              : status === "saving" ? C.ochre
+              : status === "error"  ? C.rust
+              : C.muted; // init / unknown
+
+  const label = status === "ready"  ? t("sync.synced")
+              : status === "saving" ? t("sync.saving")
+              : status === "error"  ? t("sync.error")
+              : t("sync.init");
+
+  // Body shown when popover is open
+  const detail = status === "ready"  ? t("sync.syncedDetail")
+               : status === "saving" ? t("sync.savingDetail")
+               : status === "error"  ? t("sync.errorDetail")
+               : t("sync.initDetail");
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label={label}
+        title={label}
+        style={{
+          padding: 8, background: "none", border: "none", cursor: "pointer",
+          minWidth: 32, minHeight: 32,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <span style={{
+          width: 10, height: 10, borderRadius: "50%",
+          background: color,
+          // Subtle pulse while saving so the user sees it's active
+          animation: status === "saving" ? "pakmondo-pulse 1.2s ease-in-out infinite" : "none",
+          boxShadow: status === "saving" ? `0 0 0 0 ${color}` : "none",
+          display: "inline-block",
+        }} />
+        {/* Inline keyframes via a style tag — declared once */}
+        <style>{`
+          @keyframes pakmondo-pulse {
+            0%   { transform: scale(1);   opacity: 1;   }
+            50%  { transform: scale(1.4); opacity: 0.6; }
+            100% { transform: scale(1);   opacity: 1;   }
+          }
+        `}</style>
+      </button>
+      {open && (
+        <>
+          {/* Click-outside catcher */}
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 99 }}
+          />
+          {/* Popover */}
+          <div style={{
+            position: "absolute", top: "100%", right: 0, marginTop: 6,
+            zIndex: 100,
+            minWidth: 220,
+            background: C.paper, border: `1.5px solid ${C.ink}`,
+            padding: 12,
+            boxShadow: `2px 2px 0 ${C.ink}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+              <span style={{ fontFamily: F.mono, fontSize: 10, color, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+                {label}
+              </span>
+            </div>
+            <div style={{ fontFamily: F.body, fontSize: 12, lineHeight: 1.45, color: C.inkSoft }}>
+              {detail}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Header({ go, active, onBack }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -3883,6 +4007,8 @@ function Header({ go, active, onBack }) {
         )}
 
         <div style={{ display: "flex", gap: isMobile ? 4 : 12, alignItems: "center" }}>
+          {/* Live sync indicator — small dot showing whether saves are syncing */}
+          <SyncDot />
           {!isMobile && (
             <button onClick={() => go("cart")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: C.ink }} aria-label={t("nav.cart")}><ShoppingCart size={18} /></button>
           )}
@@ -8435,6 +8561,71 @@ function PreviewStat({ label, count }) {
   );
 }
 
+/* ============================================================
+   CategoriesExplainer — one-time dismissible banner that
+   clarifies the difference between Categories and Kits.
+   Persists its dismissed state in localStorage per-device.
+   ============================================================ */
+const CATEGORIES_EXPLAINER_KEY = "pakmondo:categoriesExplainerDismissed";
+
+function CategoriesExplainer({ go }) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(CATEGORIES_EXPLAINER_KEY) === "true"; }
+    catch (e) { return false; }
+  });
+
+  if (dismissed) return null;
+
+  const dismiss = () => {
+    try { localStorage.setItem(CATEGORIES_EXPLAINER_KEY, "true"); } catch (e) { /* ignore */ }
+    setDismissed(true);
+  };
+
+  return (
+    <div style={{
+      marginBottom: isMobile ? 18 : 24,
+      padding: isMobile ? 14 : 18,
+      background: C.paperDeep,
+      borderLeft: `3px solid ${C.forest}`,
+      position: "relative",
+    }}>
+      <button
+        onClick={dismiss}
+        aria-label={t("common.dismiss")}
+        style={{
+          position: "absolute", top: 6, right: 6,
+          padding: 8, background: "transparent", border: "none",
+          cursor: "pointer", color: C.muted,
+          minWidth: 32, minHeight: 32,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+        }}>
+        <X size={16} />
+      </button>
+      <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: C.forest, fontWeight: 700, marginBottom: 6 }}>
+        {t("catExplainer.kicker")}
+      </div>
+      <div style={{ fontFamily: F.display, fontSize: isMobile ? 17 : 19, fontWeight: 700, marginBottom: 10, paddingRight: 30 }}>
+        {t("catExplainer.title")}
+      </div>
+      <div style={{ fontFamily: F.body, fontSize: 14, lineHeight: 1.55, color: C.inkSoft, marginBottom: 10 }}>
+        {t("catExplainer.body")}
+      </div>
+      <button
+        onClick={() => go("help")}
+        style={{
+          background: "transparent", border: "none", padding: 0,
+          fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em",
+          textTransform: "uppercase", color: C.rust, cursor: "pointer",
+          fontWeight: 700,
+        }}>
+        {t("catExplainer.readMore")} →
+      </button>
+    </div>
+  );
+}
+
 function Inventory({ go, items, setItems, categories, setCategories, travelTypes, setTravelTypes, kits, setKits, packlists, setPacklists, cart, setCart, shareService, currentUser, filter, clearFilter }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -8576,6 +8767,11 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
             }
             return (
               <>
+                {/* One-time explainer for the Categories vs Kits distinction.
+                    Dismissible — once tucked away, won't reappear (per device).
+                    Helps newcomers understand the difference without making
+                    everyone re-read it forever. */}
+                <CategoriesExplainer go={go} />
                 {adding && <AddCategoryForm onAdd={addCategory} onCancel={() => setAdding(false)} />}
                 <CategoriesView
                   categories={categories}
@@ -16790,6 +16986,7 @@ export default function App() {
 
   return (
     <I18nContext.Provider value={i18nValue}>
+      <SyncStatusContext.Provider value={{ status: storageStatus }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -16814,6 +17011,7 @@ export default function App() {
         )}
         {inner}
       </div>
+      </SyncStatusContext.Provider>
     </I18nContext.Provider>
   );
 }
