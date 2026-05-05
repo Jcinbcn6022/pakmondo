@@ -1440,6 +1440,22 @@ const TRANSLATIONS = {
     "set.backupContents": "{items} items · {kits} kits · {categories} categories · {packlists} packlists · {trips} trips",
     "set.backupFailed": "Backup couldn't be created.",
 
+    // === Duplicate finder ===
+    "dupe.findBtn": "Find duplicates",
+    "dupe.title": "Exact duplicates",
+    "dupe.previewTitle": "Found {groups} groups · {dupes} duplicate items to remove",
+    "dupe.previewBody": "These groups contain items that are identical in every detail (same name, category, weight, size, expiry, etc). Each group will be merged into one — kit, packlist and cart references will be updated automatically.",
+    "dupe.copyCount": "{n} copies",
+    "dupe.moreGroups": "+ {n} more groups not shown",
+    "dupe.warningTitle": "Heads up:",
+    "dupe.warningBody": "This action cannot be undone. If you haven't already, download a backup from Settings first.",
+    "dupe.confirmBtn": "Merge {dupes} duplicates",
+    "dupe.merging": "Merging duplicates…",
+    "dupe.successTitle": "Duplicates merged.",
+    "dupe.successBody": "Removed {merged} duplicate items across {kept} groups. Your kits and packlists have been updated to reference the kept items.",
+    "dupe.noneFoundTitle": "No exact duplicates found.",
+    "dupe.noneFoundBody": "Your inventory looks clean. If you think there are similar-but-not-identical items (different weights, notes, etc.), a more careful review tool is coming.",
+
     // === FIELD MANUAL — Help page strings ===
     "help.kicker": "FIELD MANUAL · MMXXV",
     "help.titleA": "The PakMondo",
@@ -2617,6 +2633,22 @@ const TRANSLATIONS = {
     "set.backupSuccess": "Copia guardada en tu carpeta de descargas.",
     "set.backupContents": "{items} artículos · {kits} kits · {categories} categorías · {packlists} listas · {trips} viajes",
     "set.backupFailed": "No se pudo crear la copia.",
+
+    // === Duplicate finder ===
+    "dupe.findBtn": "Buscar duplicados",
+    "dupe.title": "Duplicados exactos",
+    "dupe.previewTitle": "Encontré {groups} grupos · {dupes} artículos duplicados para eliminar",
+    "dupe.previewBody": "Estos grupos contienen artículos idénticos en todos los detalles (mismo nombre, categoría, peso, talla, caducidad, etc). Cada grupo se fusionará en uno — las referencias de kits, listas y carrito se actualizarán automáticamente.",
+    "dupe.copyCount": "{n} copias",
+    "dupe.moreGroups": "+ {n} grupos más no mostrados",
+    "dupe.warningTitle": "Atención:",
+    "dupe.warningBody": "Esta acción no se puede deshacer. Si no lo has hecho ya, descarga una copia de seguridad desde Ajustes primero.",
+    "dupe.confirmBtn": "Fusionar {dupes} duplicados",
+    "dupe.merging": "Fusionando duplicados…",
+    "dupe.successTitle": "Duplicados fusionados.",
+    "dupe.successBody": "Se eliminaron {merged} artículos duplicados en {kept} grupos. Tus kits y listas se han actualizado para referenciar los artículos conservados.",
+    "dupe.noneFoundTitle": "No se encontraron duplicados exactos.",
+    "dupe.noneFoundBody": "Tu inventario se ve limpio. Si crees que hay artículos similares pero no idénticos (pesos distintos, notas distintas, etc.), próximamente habrá una herramienta de revisión más cuidadosa.",
 
     // === MANUAL DE CAMPO — strings de la página de ayuda ===
     "help.kicker": "MANUAL DE CAMPO · MMXXV",
@@ -8920,6 +8952,160 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   // Bulk import dialog (XLSX/CSV)
   const [importingFile, setImportingFile] = useState(false);
+  // Duplicate finder state.
+  // null = closed | { groups: [{keeper, dupes}], totalDupes } = preview shown
+  // "merging" = in progress | { merged, kept } = result shown briefly
+  const [dupeState, setDupeState] = useState(null);
+
+  // === Duplicate detection ===
+  // Two items are "exact duplicates" if every field that defines what the
+  // item IS matches between them. We deliberately ignore: id (unique by
+  // definition), packed (transient state), and createdAt (audit trail).
+  // Names and category strings are normalized (trimmed, lowercased) before
+  // comparison so "Headlamp" / "headlamp" / " Headlamp " all match.
+  const findExactDuplicates = () => {
+    const norm = (v) => (v == null ? "" : String(v).trim().toLowerCase());
+    // Build a key from the fields that determine identity.
+    const keyOf = (it) => JSON.stringify([
+      norm(it.name),
+      norm(it.category),
+      norm(it.weight),
+      norm(it.size),
+      it.quantity != null ? String(it.quantity) : "",
+      it.consumable ? "1" : "0",
+      norm(it.expiry),
+      it.remindDays != null ? String(it.remindDays) : "",
+      norm(it.notes),
+    ]);
+    // Group items by key
+    const groups = new Map();
+    items.forEach((it) => {
+      const k = keyOf(it);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(it);
+    });
+    // Keep only groups with 2+ items (the duplicates).
+    // For each group: keeper = first item in array order (most stable); dupes = the rest.
+    const dupGroups = [];
+    let totalDupes = 0;
+    groups.forEach((arr) => {
+      if (arr.length < 2) return;
+      const [keeper, ...dupes] = arr;
+      dupGroups.push({ keeper, dupes });
+      totalDupes += dupes.length;
+    });
+    return { groups: dupGroups, totalDupes };
+  };
+
+  // === Apply the merge ===
+  // For each group, deletes all `dupes` and rewrites every reference (in
+  // kits, packlists, cart) from a dupe id to the keeper id. Also collapses
+  // duplicate ids inside the same kit/packlist (so a kit doesn't end up
+  // with the same item twice). Inherits "packed" status if any dupe was packed.
+  const applyExactMerge = (dupGroups) => {
+    // Build a map: dupeId -> keeperId for fast lookup
+    const remap = new Map();
+    const dupeIdsToDelete = new Set();
+    let inheritedPacked = new Map(); // keeperId -> true if any dupe was packed
+    dupGroups.forEach(({ keeper, dupes }) => {
+      let anyPacked = !!keeper.packed;
+      dupes.forEach((d) => {
+        remap.set(d.id, keeper.id);
+        dupeIdsToDelete.add(d.id);
+        if (d.packed) anyPacked = true;
+      });
+      if (anyPacked) inheritedPacked.set(keeper.id, true);
+    });
+
+    // Helper: rewrite an array of itemIds, dropping dupes (in favor of keeper)
+    // and dedupingafter the rewrite.
+    const rewriteIds = (arr) => {
+      if (!arr) return arr;
+      const seen = new Set();
+      const out = [];
+      arr.forEach((id) => {
+        const newId = remap.get(id) || id;
+        if (!seen.has(newId)) {
+          seen.add(newId);
+          out.push(newId);
+        }
+      });
+      return out;
+    };
+
+    // Update items: remove dupes, set packed status on keepers if needed
+    const newItems = items
+      .filter((it) => !dupeIdsToDelete.has(it.id))
+      .map((it) => inheritedPacked.has(it.id) ? { ...it, packed: true } : it);
+
+    // Update kits: rewrite itemIds
+    const newKits = kits.map((k) => ({
+      ...k,
+      itemIds: rewriteIds(k.itemIds || []),
+    }));
+
+    // Update packlists: rewrite itemIds (and packed maps if present)
+    const newPacklists = packlists.map((p) => {
+      const out = { ...p, itemIds: rewriteIds(p.itemIds || []) };
+      // If packlist tracks packed-state per item, rewrite that too
+      if (p.packedIds && Array.isArray(p.packedIds)) {
+        out.packedIds = rewriteIds(p.packedIds);
+      }
+      return out;
+    });
+
+    // Update cart: rewrite itemId references and dedupe
+    const cartArr = Array.isArray(cart) ? cart : [];
+    const newCartIds = new Set();
+    const newCart = [];
+    cartArr.forEach((entry) => {
+      // Cart entries can be either { itemId, ... } or just an id; handle both.
+      const oldId = entry?.itemId || entry?.id || entry;
+      const newId = remap.get(oldId) || oldId;
+      if (!newCartIds.has(newId)) {
+        newCartIds.add(newId);
+        // Preserve entry shape if it was an object
+        if (typeof entry === "object" && entry !== null) {
+          newCart.push({ ...entry, itemId: newId });
+        } else {
+          newCart.push(newId);
+        }
+      }
+    });
+
+    // Apply all updates atomically
+    setItems(newItems);
+    setKits(newKits);
+    setPacklists(newPacklists);
+    setCart(newCart);
+  };
+
+  // Triggered by the "Find duplicates" button. Scans + opens the preview.
+  const openDupeFinder = () => {
+    const result = findExactDuplicates();
+    setDupeState(result);
+  };
+
+  // Triggered by the "Merge all" button in the preview. Runs the merge then
+  // shows a result summary briefly.
+  const confirmExactMerge = () => {
+    if (!dupeState || !dupeState.groups || dupeState.groups.length === 0) {
+      setDupeState(null);
+      return;
+    }
+    setDupeState("merging");
+    // Defer one tick so the UI can update to show "merging" state if needed.
+    setTimeout(() => {
+      const groups = findExactDuplicates().groups; // re-derive for safety
+      applyExactMerge(groups);
+      setDupeState({
+        merged: groups.reduce((s, g) => s + g.dupes.length, 0),
+        kept: groups.length,
+        done: true,
+      });
+      setTimeout(() => setDupeState(null), 5000);
+    }, 100);
+  };
 
   useEffect(() => {
     if (filter === "expiring") setTab("items");
@@ -9073,6 +9259,20 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
                 )}
               </div>
             )}
+            {/* Find Duplicates link — only shown when there are items to scan */}
+            {items.length > 1 && (
+              <div style={{ marginBottom: 14, display: "flex", justifyContent: "flex-end" }}>
+                <button type="button" onClick={openDupeFinder}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em",
+                    textTransform: "uppercase", color: C.forest, fontWeight: 600,
+                    padding: "4px 0", textDecoration: "underline",
+                  }}>
+                  {t("dupe.findBtn")}
+                </button>
+              </div>
+            )}
             <ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} onEdit={(id) => setEditingItemId(id)} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} categories={categories} kits={kits} /></>}
           {tab === "categories" && (() => {
             const openCategory = openCategoryId ? categories.find((c) => c.id === openCategoryId) : null;
@@ -9157,6 +9357,101 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           setCategories={setCategories}
           onClose={() => setImportingFile(false)}
         />
+      )}
+
+      {/* === Duplicate Finder Modal ===
+          Three states:
+            1. Preview — dupeState.groups exists, show summary + confirm button
+            2. Merging — dupeState === "merging", show spinner-ish state
+            3. Done — dupeState.done === true, show result + auto-close
+      */}
+      {dupeState && (
+        <Modal title={t("dupe.title")} onClose={() => dupeState !== "merging" && setDupeState(null)}>
+          {dupeState === "merging" && (
+            <div style={{ padding: 32, textAlign: "center", fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>
+              {t("dupe.merging")}
+            </div>
+          )}
+          {dupeState && dupeState.done && (
+            <div style={{ padding: 24 }}>
+              <div style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, color: C.forestBright, marginBottom: 10 }}>
+                {t("dupe.successTitle")}
+              </div>
+              <div style={{ fontFamily: F.body, fontSize: 14, color: C.ink, lineHeight: 1.5 }}>
+                {t("dupe.successBody", { merged: dupeState.merged, kept: dupeState.kept })}
+              </div>
+              <div style={{ marginTop: 20 }}>
+                <Btn variant="ghost" icon={Check} onClick={() => setDupeState(null)}>
+                  {t("common.done")}
+                </Btn>
+              </div>
+            </div>
+          )}
+          {dupeState && !dupeState.done && dupeState !== "merging" && dupeState.groups && (
+            <div style={{ padding: 6 }}>
+              {dupeState.totalDupes === 0 ? (
+                <div style={{ padding: 24 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, marginBottom: 10 }}>
+                    {t("dupe.noneFoundTitle")}
+                  </div>
+                  <div style={{ fontFamily: F.body, fontSize: 14, color: C.inkSoft, lineHeight: 1.5 }}>
+                    {t("dupe.noneFoundBody")}
+                  </div>
+                  <div style={{ marginTop: 20 }}>
+                    <Btn variant="ghost" icon={Check} onClick={() => setDupeState(null)}>
+                      {t("common.done")}
+                    </Btn>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ padding: "0 6px 16px", borderBottom: `1px dashed ${C.line}`, marginBottom: 16 }}>
+                    <div style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+                      {t("dupe.previewTitle", { groups: dupeState.groups.length, dupes: dupeState.totalDupes })}
+                    </div>
+                    <div style={{ fontFamily: F.body, fontSize: 14, color: C.inkSoft, lineHeight: 1.5 }}>
+                      {t("dupe.previewBody")}
+                    </div>
+                  </div>
+                  {/* List preview — show first 10 groups so user can sanity-check */}
+                  <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                    {dupeState.groups.slice(0, 10).map(({ keeper, dupes }, idx) => (
+                      <div key={keeper.id} style={{ padding: 10, background: C.paperDeep, border: `1px solid ${C.line}` }}>
+                        <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 600, color: C.ink }}>
+                          {keeper.name || "(unnamed)"}
+                        </div>
+                        <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                          {keeper.category || t("kit.uncategorized")}
+                          {keeper.weight ? ` · ${keeper.weight}` : ""}
+                          {" · "}
+                          {t("dupe.copyCount", { n: dupes.length + 1 })}
+                        </div>
+                      </div>
+                    ))}
+                    {dupeState.groups.length > 10 && (
+                      <div style={{ padding: "8px 10px", fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", textAlign: "center" }}>
+                        {t("dupe.moreGroups", { n: dupeState.groups.length - 10 })}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: 12, background: C.paperDeep, border: `1.5px dashed ${C.rust}`, marginBottom: 16 }}>
+                    <div style={{ fontFamily: F.body, fontSize: 13, color: C.ink, lineHeight: 1.5 }}>
+                      <strong>{t("dupe.warningTitle")}</strong> {t("dupe.warningBody")}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Btn variant="rust" icon={Check} onClick={confirmExactMerge}>
+                      {t("dupe.confirmBtn", { dupes: dupeState.totalDupes })}
+                    </Btn>
+                    <Btn variant="ghost" icon={X} onClick={() => setDupeState(null)}>
+                      {t("common.cancel")}
+                    </Btn>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </Modal>
       )}
 
       {/* Modal: edit Item — opens when user taps an item name */}
