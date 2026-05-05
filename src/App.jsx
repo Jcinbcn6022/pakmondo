@@ -2941,6 +2941,12 @@ const useI18n = () => useContext(I18nContext);
 const SyncStatusContext = createContext({ status: "init" });
 const useSyncStatus = () => useContext(SyncStatusContext);
 
+// User context — exposes the current logged-in user object to components that
+// would otherwise require deep prop drilling. Use sparingly; for screen-level
+// data, prefer explicit props.
+const UserContext = createContext(null);
+const useCurrentUser = () => useContext(UserContext);
+
 const makeT = (lang) => (key, params = {}) => {
   const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
   let str = dict[key] != null ? dict[key] : (TRANSLATIONS.en[key] != null ? TRANSLATIONS.en[key] : key);
@@ -3958,6 +3964,7 @@ function SyncDot() {
 function Header({ go, active, onBack }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
+  const user = useCurrentUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["packlists", t("nav.packlists")], ["library", t("nav.library")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")], ["help", t("nav.help")]];
 
@@ -3977,6 +3984,30 @@ function Header({ go, active, onBack }) {
           ) : (
             <button onClick={() => go("dashboard")} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0, minWidth: 0 }}>
               <Logo size={isMobile ? "headerMobile" : "header"} />
+            </button>
+          )}
+          {/* Member ID badge — small monospace pill next to the logo,
+              shown on every screen when the user has a member_id. Tap to
+              jump to settings (where the full membership card lives). */}
+          {user?.member_id && !onBack && (
+            <button
+              onClick={() => go("settings")}
+              aria-label={`${t("member.label")} ${user.member_id}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: isMobile ? "4px 8px" : "5px 10px",
+                background: C.paper,
+                border: `1px solid ${C.ink}`,
+                cursor: "pointer",
+                fontFamily: F.mono,
+                fontSize: isMobile ? 9 : 10,
+                fontWeight: 700,
+                color: C.ink,
+                letterSpacing: "0.08em",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}>
+              {user.member_id}
             </button>
           )}
           {/* Slogan — shown on desktop on every screen EXCEPT the dashboard
@@ -5359,58 +5390,10 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
       <div style={{ padding: padX(isMobile), position: "relative" }}>
         <TopoBG opacity={0.08} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Membership card. On mobile, render inline as a normal flow
-              element so it can never overlap the username/coordinate text
-              below — even if the username wraps. On desktop, absolute-position
-              top-right where there's plenty of horizontal room. */}
-          {user.member_id && isMobile && (
-            <div style={{
-              display: "inline-block",
-              maxWidth: 200,
-              padding: "8px 12px",
-              marginBottom: 16,
-              background: C.paper,
-              border: `1.5px solid ${C.ink}`,
-              boxShadow: `2px 2px 0 ${C.ink}`,
-              fontFamily: F.mono,
-            }}>
-              <div style={{ fontSize: 8, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
-                {t("member.label")}
-              </div>
-              <div style={{ marginTop: 2, fontSize: 14, fontWeight: 700, color: C.ink, letterSpacing: "0.05em" }}>
-                {user.member_id}
-              </div>
-              <div style={{ marginTop: 4, paddingTop: 4, borderTop: `1px dashed ${C.line}`, fontSize: 8, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                {t("member.since")} {user.member_since ? new Date(user.member_since).getFullYear() : "—"}
-              </div>
-            </div>
-          )}
-          {user.member_id && !isMobile && (
-            <div style={{
-              position: "absolute",
-              top: 16,
-              right: 0,
-              zIndex: 5,
-              maxWidth: 200,
-              padding: "10px 14px",
-              background: C.paper,
-              border: `1.5px solid ${C.ink}`,
-              boxShadow: `2px 2px 0 ${C.ink}`,
-              fontFamily: F.mono,
-            }}>
-              <div style={{ fontSize: 8, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>
-                {t("member.label")}
-              </div>
-              <div style={{ marginTop: 2, fontSize: 16, fontWeight: 700, color: C.ink, letterSpacing: "0.05em" }}>
-                {user.member_id}
-              </div>
-              <div style={{ marginTop: 4, paddingTop: 4, borderTop: `1px dashed ${C.line}`, fontSize: 8, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                {t("member.since")} {user.member_since ? new Date(user.member_since).getFullYear() : "—"}
-              </div>
-            </div>
-          )}
+          {/* The membership card has moved to the header (next to the logo)
+              so it's visible on every screen, not just the dashboard. */}
 
-          <div style={{ marginTop: user.member_id && !isMobile ? 100 : (isMobile ? 8 : 40) }}>
+          <div style={{ marginTop: isMobile ? 24 : 40 }}>
             <Coord>{t("dash.basecamp")}</Coord>
             <h1 style={{ margin: "12px 0 6px", fontFamily: F.display, fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 700, lineHeight: 0.95, letterSpacing: "-0.03em", fontStyle: "italic", color: C.forest, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span>
@@ -17012,6 +16995,7 @@ export default function App() {
   return (
     <I18nContext.Provider value={i18nValue}>
       <SyncStatusContext.Provider value={{ status: storageStatus }}>
+      <UserContext.Provider value={user}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -17036,6 +17020,7 @@ export default function App() {
         )}
         {inner}
       </div>
+      </UserContext.Provider>
       </SyncStatusContext.Provider>
     </I18nContext.Provider>
   );
