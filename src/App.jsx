@@ -1441,6 +1441,193 @@ const TRANSLATIONS = {
     "help.shotInvExpiry":    "Items table with one or two rows highlighted in red because they're expiring soon",
     "help.shotInvAddItem":   "Add Item form with name, category dropdown, weight, quantity, and other fields visible",
 
+    // === Section 04 — Kits in depth ===
+    "help.kitsIntro": "Kits are reusable bundles of items. Once you build a kit, you can drop it into any number of packlists with one tap. Most users end up with 10–30 kits over time, organized by activity (camping, hiking, travel) or by purpose (sleep system, cooking gear, first aid).",
+    "help.kitsCreatingTitle": "Creating a kit",
+    "help.kitsCreatingBody1": "From the Inventory → Kits tab, tap '+ Add kit'. Give it a name (required) and optionally pick a category. The form has an items section where you can either pick existing items from your inventory OR create new items right inside the kit form.",
+    "help.kitsCreatingBody2": "When you create new items from inside the kit form, the new items get added both to your inventory AND to the kit you're creating. So 'create a kit + 5 new items' is a single saved action.",
+    "help.kitsEditingTitle": "Editing an existing kit",
+    "help.kitsEditingBody": "From the Kits tab, tap the kit name (or the chevron + edit icon). The edit screen shows every item currently in the kit with an X to remove it, plus '+ Add existing items' (picker from your inventory) and '+ Create a new item' (full new-item form in a modal). You can rename the kit and change its category here too.",
+    "help.kitsItemPickerTitle": "The item picker",
+    "help.kitsItemPickerBody1": "When you tap '+ Add existing items', you get a scrollable picker of every item NOT currently in the kit. Each row has a checkbox. Tap to select, tap again to deselect. Add the selected ones in batch.",
+    "help.kitsItemPickerBody2": "Items already in the kit don't appear in the picker — that prevents accidental duplicates. To add an item that's already in the kit (e.g. a second water bottle), edit the existing item's quantity instead.",
+    "help.kitsCategoryTitle": "Kit categories",
+    "help.kitsCategoryBody": "Assigning a category to a kit makes it appear in the right banner group on the Kits tab (e.g. 'CATEGORY: SHELTER · 4 KITS'). It's optional — uncategorized kits show under a 'no category' bucket at the bottom.",
+    "help.kitsActionsTitle": "What you can do with a kit",
+    "help.kitsActionsBody": "Each kit has buttons for: edit, share to another member, publish to the community library, view in detail, delete. Sharing sends a copy to another member's inbox. Publishing submits it for review and once approved, anyone in the library can import it.",
+    "help.kitsTip": "Kits are most powerful when you build them around a SCENARIO, not a category. 'Cold camp essentials' is more useful than 'sleeping gear' because the first matches a real packing decision.",
+
+    // === Section 05 — Categories ===
+    "help.catIntro": "Categories are top-level labels for organizing your gear. Both items and kits can have a category. They're the broadest grouping in PakMondo — think of them as the major sections of a gear closet.",
+    "help.catVsKitsTitle": "Categories vs Kits — what's the difference?",
+    "help.catVsKitsBody1": "A category is a TYPE of thing. Every tent is in 'Shelter'. Every coffee cup is in 'Galley'. One item has at most one category. Categories are taxonomy — they answer 'what kind of thing is this?'.",
+    "help.catVsKitsBody2": "A kit is a SPECIFIC GROUPING for a use case. Your 'Cold Camp Kit' contains a specific tent + sleeping bag + pad. One item can be in multiple kits. Kits answer 'what do I bring for this scenario?'.",
+    "help.catCreatingTitle": "Creating a category",
+    "help.catCreatingBody": "From Inventory → Categories tab, tap '+ Add category'. Each category has a name and an icon (mountain, tent, snowflake, etc.). Common starter categories: Shelter, Galley, Apparel, Hygiene, Tech, First Aid, Documents.",
+    "help.catDetailTitle": "Inside a category",
+    "help.catDetailBody1": "Tap any category from the Categories tab to drill in. You'll see two grouped lists: KITS in this category (each with item count) and LOOSE ITEMS in this category but not in any kit.",
+    "help.catDetailBody2": "From the category detail you can add new items, add new kits, edit the category itself, or remove items/kits from the category (un-categorize them).",
+    "help.catBestPracticeTitle": "Best practice",
+    "help.catBestPracticeBody": "Don't overthink categories. 5–10 broad ones works for most users. Mountain expedition packers might split SHELTER + SLEEPING into two; minimalists might combine APPAREL + HYGIENE into one. Start broad, refine as you find friction.",
+    "help.catNote": "Deleting a category un-categorizes everything in it but does not delete the actual items or kits. Safe to experiment with.",
+
+    // === Section 06 — Packlists ===
+    "help.plIntro": "A packlist is the list of stuff you're taking on one specific trip. It can include whole kits, individual items, or both. Packlists are where the WANT/PACKED checkboxes live, where weather check happens, and where you'd print a checklist for the road.",
+    "help.plCreateTitle": "Creating a packlist",
+    "help.plCreateBody1": "From the Packlists screen, tap '+ Add packlist'. Give it a name (required, like 'Patagonia 2025' or 'Weekend in Tahoe'). Optionally set the trip date, destination, type (camping, hiking, beach, etc.), and notes.",
+    "help.plCreateBody2": "After creating, you're taken to the packlist detail where you can add kits and items. Tap '+ Add kit' to pick from your existing kits. Tap '+ Add item' to add individual items not part of any kit (e.g. medications, documents).",
+    "help.plMetaTitle": "Trip metadata",
+    "help.plMetaBody": "Date and destination matter for the weather check. If both are filled, weather check uses them automatically. The trip type is shown as a small badge and helps you visually scan your packlist library — useful when you have many.",
+    "help.plChecksTitle": "The two checkboxes — WANT and PACKED",
+    "help.plChecksBody1": "Each item on a packlist has two checkboxes. The red WANT box: 'I want to take this on this trip.' The green PACKED box: 'It's already in my bag.' Both default to unchecked on a fresh packlist.",
+    "help.plChecksBody2": "The progress counter at the top shows e.g. 'WANT 12/15 · PACKED 7/12' — twelve of fifteen items are wanted, seven of those twelve are packed. Tap a kit's chevron to see its items and tick them.",
+    "help.plChecksTip": "The two-checkbox pattern is intentional. WANT lets you decide your packing intent first (some kit items don't apply to this trip — leave them unchecked). PACKED lets you tick them off as you actually pack the bag. Two passes = no missed items.",
+    "help.plEditTitle": "Editing a packlist",
+    "help.plEditBody": "Tap the pencil icon on a saved packlist. The edit screen lets you rename, change date/destination/type, edit notes, add or remove kits, add or remove individual items. Changes save instantly across devices.",
+    "help.plPdfTitle": "Printable PDF",
+    "help.plPdfBody1": "Tap the download icon on a saved packlist to generate a PDF. The PDF includes every item grouped by kit, with two empty checkboxes per item — one for WANT (pre-filled with red ticks based on your packlist state) and one for PACKED (always blank, for hand-ticking).",
+    "help.plPdfBody2": "Useful for taking on the road when you don't want to open the app or have no signal. The PDF is generated client-side, so no server round-trip — should download in 1–2 seconds.",
+    "help.plDeleteTitle": "Deleting a packlist",
+    "help.plDeleteBody": "Tap the trash icon. You'll get a confirmation. Deleting a packlist does NOT delete the kits or items inside it — they stay in your inventory. Only the trip-specific list is removed.",
+
+    // === Section 07 — Weather check ===
+    "help.wxIntro": "The Weather Check is one of PakMondo's most useful features. Open any saved packlist, tap the cloud icon, and PakMondo fetches the weather forecast for your destination + dates and tells you if your gear matches.",
+    "help.wxHowTitle": "How it works",
+    "help.wxHowBody1": "PakMondo geocodes your destination (turns 'Tahoe' into latitude/longitude) using Open-Meteo's free geocoding API. Then it fetches the daily forecast for your trip dates — temperature range, precipitation, wind, UV, snow.",
+    "help.wxHowBody2": "Then it analyzes your packlist's items and kits against a built-in checklist of weather conditions: cold? rain? wind? snow? sun? high heat? freezing? For each triggered condition, it checks whether you have appropriate gear (rain jacket, base layers, etc.) and flags any gaps.",
+    "help.wxResultsTitle": "What you see",
+    "help.wxResultsBody": "The results modal shows a summary bar (TEMP RANGE, RAIN PROBABILITY, WIND MAX, UV MAX) followed by a 'Gaps' section (rust border, things you might want to add) and a 'Covered' section (forest border, conditions your gear handles). If everything's covered, you get an all-clear message.",
+    "help.wxGapsTitle": "Understanding gaps",
+    "help.wxGapsBody1": "A gap is a weather condition that's likely AND your packlist has no item matching that condition. Example: forecast shows 80% rain probability and your packlist has no rain jacket. PakMondo flags it.",
+    "help.wxGapsBody2": "Gaps are suggestions, not commands. PakMondo doesn't know everything you have — maybe your jacket is named 'shell' and PakMondo's keyword list doesn't include it. False positives happen. Use it as a sanity check.",
+    "help.wxLimitsTitle": "Limits",
+    "help.wxLimitsBody": "Forecasts are only reliable up to 16 days out. If your trip is further, the check uses today+7 as a fallback. Weather data is from Open-Meteo (free, accurate, no API key needed). Geocoding is also Open-Meteo. Both can occasionally return no result for obscure place names.",
+    "help.wxWarn": "The weather check is informational only. Always check official weather sources before high-risk activities (mountaineering, sailing, snow sports). PakMondo is a packing aid, not a weather authority.",
+    "help.wxNote": "Powered by open-meteo.com. Free, open-source, requires no API key. PakMondo passes nothing about you to the weather API beyond coordinates and dates.",
+
+    // === Section 08 — Sharing ===
+    "help.shIntro": "PakMondo has three ways to share kits and packlists with other people: by member name/ID, by share code, or by file export. Each suits different scenarios.",
+    "help.shThreeWaysTitle": "Three ways",
+    "help.shThreeWaysBody": "Member sharing is direct, peer-to-peer — they get an inbox notification. Share codes are anonymous and reusable — anyone with the code can import. Files (.json) work offline and can be sent via email, Airdrop, or any messenger.",
+    "help.shMemberTitle": "Sharing to a member",
+    "help.shMemberBody1": "From any kit or packlist, tap the share icon. Choose 'Send to member'. Type their username (case-insensitive) OR their member ID like '0001NA'. PakMondo finds them and sends a copy to their inbox.",
+    "help.shMemberBody2": "The recipient gets a notification on their dashboard and can review the share before importing. They can also reject it — your share doesn't pollute their inventory unless they accept.",
+    "help.shCodeTitle": "Share codes",
+    "help.shCodeBody1": "Tap the share icon → 'Generate code'. PakMondo creates a short alphanumeric code (e.g. 'TAHOE-OCT-2025'). Anyone who enters that code in their own PakMondo can import a copy of the shared kit or packlist.",
+    "help.shCodeBody2": "Share codes are reusable. Generate one for a kit you regularly share (e.g. your standard car-camping kit). Post the code in trip group chats. Anyone in your group imports it in seconds.",
+    "help.shFileTitle": "Export to file",
+    "help.shFileBody": "Tap the share icon → 'Export file'. Downloads a .json file you can send anywhere. Recipients open it in PakMondo (Inbox → Import file). Useful for sharing with people who don't yet have PakMondo accounts (you give them the file, they sign up later, they import).",
+    "help.shInboxTitle": "Your inbox",
+    "help.shInboxBody": "All incoming shares land in Inbox. Each share shows the sender, what was sent (kit / packlist / category), and Accept/Reject buttons. Accept = imported into your inventory. Reject = silently dismissed. Senders never see whether you accepted.",
+    "help.shTip": "When sharing to multiple people, share codes scale better than member-by-member. One code, post it once, anyone imports.",
+
+    // === Section 09 — The library ===
+    "help.libIntro": "The Library is a public repository of community-contributed kits and packlists. Browse, import any you like, and (if you have something good) contribute your own.",
+    "help.libBrowseTitle": "Browsing",
+    "help.libBrowseBody1": "Open Library from the dashboard. By default it shows the most recent approved submissions. Use filters to narrow: kind (kits / packlists / categories), activity (camping / hiking / travel / etc.), region (NA / EU / AS …).",
+    "help.libBrowseBody2": "Each item is a card showing the title, activity, region, description preview, and the publisher's credit name. Tap any card to view the full detail — the complete item list, the publisher's notes, and an Import button.",
+    "help.libCardsTitle": "What's on a card",
+    "help.libCardsBody": "Title + small region badge top-right. Activity tag below. A short description (first 3 lines, italic). At the bottom: the credit name (e.g. 'John from Barcelona') and import count (how many people have imported this — popularity signal).",
+    "help.libImportTitle": "Importing",
+    "help.libImportBody1": "Tap a library card → tap Import. PakMondo copies the kit/packlist + all its items into your inventory. Existing items with the same name are de-duplicated; new ones are added.",
+    "help.libImportBody2": "Imports are a copy. Editing the imported item later doesn't affect the original library entry, and vice versa. The original publisher won't know you imported their item — totally private to you.",
+    "help.libPublishTitle": "Publishing",
+    "help.libPublishBody1": "Built a kit you're proud of? From the kit detail, tap 'Publish to library'. The form asks for: title (defaults to kit name), activity (autocomplete from existing activities), description (what is this for, why is it useful), and your public credit name (defaults to your real name).",
+    "help.libPublishBody2": "Submissions go through admin review before appearing publicly. Most are approved within a day. You'll see status updates in Settings → My library submissions.",
+    "help.libCreditTitle": "Public credit",
+    "help.libCreditBody": "When you publish, the form pre-fills your real name as the public credit. You can change it ('John from Barcelona', 'Anonymous Wayfarer') or clear it (falls back to @username). Whatever you put becomes the visible byline on the library card.",
+    "help.libNote": "Publishing is permanent in the sense that other users can import your submission. You can delete it from your end (it disappears from the library) but anyone who already imported keeps their copy.",
+
+    // === Section 10 — Member IDs ===
+    "help.memIntro": "Every PakMondo member gets a unique member ID like 0001NA at signup. It's a permanent identifier — yours forever, even if you change your username later.",
+    "help.memFormatTitle": "Format",
+    "help.memFormatBody1": "Format is a 4-digit zero-padded number followed by a 2-letter region code: 0001NA, 0042EU, 0003AS. Numbers are sequential per region, so the first North American member is 0001NA, the second is 0002NA, etc. Each region starts its own count.",
+    "help.memFormatBody2": "Your member ID and the year you joined are shown on a small membership card in the top-right corner of your dashboard. Like a vintage adventure club: clean, understated, unmistakably yours.",
+    "help.memUseTitle": "What it's for",
+    "help.memUseBody": "Two main uses: (1) personal identity — early members get low numbers, building a sense of pioneership. (2) Sharing — when sending a kit to another member, you can search by their member ID OR their username. Either works.",
+    "help.memHistoryTitle": "Existing members",
+    "help.memHistoryBody": "Member IDs were retroactively assigned to all existing accounts in signup order. The very first PakMondo user got 0001 in their region. If you signed up before this feature existed, your ID was generated based on when your account was created.",
+    "help.memTip": "Members with low numbers in a region (under 0010) are pioneers. Sharing kits with them often gets you imported into their packlists, which boosts your visibility in the library.",
+
+    // === Section 11 — Submissions & review ===
+    "help.subIntro": "Anything you publish to the public library goes through a review process. This keeps content quality high and prevents spam.",
+    "help.subFlowTitle": "The flow",
+    "help.subFlowBody1": "You publish a kit or packlist. It goes to a 'pending' queue. An admin reviews it within 24-48 hours typically. Approved → appears in the public library. Rejected → you get a note explaining why and can resubmit after fixing.",
+    "help.subFlowBody2": "While pending, your submission is invisible to other users. You can edit a pending submission (edits reset it to pending). You can delete it at any stage.",
+    "help.subStatusTitle": "Tracking your submissions",
+    "help.subStatusBody": "Settings → 'My library submissions' (collapsible) shows everything you've submitted with a status badge: PENDING (gray, waiting), APPROVED (green, live), REJECTED (red, with reason if provided).",
+    "help.subRejectTitle": "If you're rejected",
+    "help.subRejectBody": "Common rejection reasons: title too generic, description too short to be useful, kit composition matches an existing approved submission too closely, or activity tag misuse. Read the rejection note, fix the issue, resubmit. No penalty for resubmitting.",
+    "help.subQualityTitle": "What gets approved",
+    "help.subQualityBody": "Submissions with: clear specific titles, real-world tested descriptions (not just lists), unique activities or use cases, sensible item counts (not just 2-3 items, not 100+ either). The bar is 'would another wayfarer find this useful?' If yes, approved.",
+    "help.subNote": "Admins are volunteers (currently the founders). Be patient with review times. If your submission is sitting longer than 5 days without a verdict, ping us via the contact email in the footer.",
+
+    // === Section 12 — Settings ===
+    "help.setIntro": "Settings is organized into five collapsible groups. Most users only adjust two or three things and never come back. Power users live here.",
+    "help.setProfileTitle": "01 — Profile",
+    "help.setProfileBody": "Shows your account email, username, real name, region, and member ID. None are editable here — to change profile details you'd need to update via Supabase admin (currently). Future versions will have inline editing.",
+    "help.setPrefsTitle": "02 — Preferences",
+    "help.setPrefsBody": "Language (English / Spanish), units (metric / imperial), location services toggle. Language change is instant. Unit change updates how weights are displayed everywhere — your data stays in canonical kg, only the display changes.",
+    "help.setSubsTitle": "03 — My library submissions",
+    "help.setSubsBody": "Collapsed by default to save space. Tap to expand → see every kit/packlist you've ever published with its current review status. Admins also get a 'Review all submissions' button here for moderation.",
+    "help.setDataTitle": "04 — Data",
+    "help.setDataBody": "Shows storage sync status (a colored dot: green=synced, yellow=saving, red=error). Has a Replay tutorial button (re-runs the first-run wizard) and a Read field manual button (opens this manual). At the bottom: a destructive Reset all saved data button.",
+    "help.setSignOutTitle": "05 — Sign out",
+    "help.setSignOutBody": "Signs you out of Supabase and the app. Your data stays on Supabase — when you sign back in on this or any other device, everything reappears. Sign-out clears the local session only.",
+    "help.setResetWarn": "Reset all saved data is destructive. It deletes every item, kit, packlist, and category from your account permanently. There is no undo. Use only if you want to start fresh.",
+
+    // === Section 13 — Data & sync ===
+    "help.dataIntro": "PakMondo stores most of your data in the cloud, with some preferences saved locally. Knowing what lives where helps when something seems out of sync.",
+    "help.dataWhereTitle": "Where things are saved",
+    "help.dataWhereBody1": "Cloud (Supabase): items, kits, categories, packlists, cart, library submissions, shares, your profile. This data syncs across all devices you sign into. Encrypted in transit, password-protected at rest.",
+    "help.dataWhereBody2": "Local (your device only): language preference, units, location toggle, the onboarding completion flag, your auth session token. None of these are sensitive — they're just preferences.",
+    "help.dataMultiTitle": "Multi-device sync",
+    "help.dataMultiBody1": "Sign in on iPhone with the same account → see all your computer items. Make a change on iPhone → it appears on computer next time you refresh (typically within 1-2 seconds).",
+    "help.dataMultiBody2": "There's no manual sync button. Sync is automatic. If something seems missing, the most likely cause is a stale browser cache — see the PWA section below.",
+    "help.dataPwaTitle": "iPhone PWA caching",
+    "help.dataPwaBody1": "When you 'Add to home screen' on iPhone, Safari creates a local app shortcut that aggressively caches the JavaScript bundle. This is great for offline use but can mean you keep seeing old code after PakMondo deploys updates.",
+    "help.dataPwaBody2": "If your iPhone PakMondo seems frozen on an old version: long-press the home icon → Remove App. Then iPhone Settings → Safari → Clear History and Website Data. Then re-open PakMondo from Safari and re-add to home screen. Forces a fresh download.",
+    "help.dataPwaTip": "If you ever see 'Session expired' on iPhone, just sign in again. The session token expired (normal). Your data is safe in the cloud.",
+    "help.dataPrivacyTitle": "Privacy",
+    "help.dataPrivacyBody": "Your inventory is private to you by default. Library submissions are public (that's the point). Member IDs are public. Email addresses and password hashes are private and never visible to other users. Anthropic does not store or read your PakMondo data — Supabase is hosted independently.",
+
+    // === Section 14 — Tips & shortcuts ===
+    "help.tipsIntro": "Practical things that make PakMondo faster and more useful but aren't obvious from the main UI.",
+    "help.tipsExcelTitle": "Excel import",
+    "help.tipsExcelBody1": "Got an existing gear list in a spreadsheet? Use the Excel import. The template has 9 columns: Category, Kit, Item Name, Weight, Quantity, Size, Consumable, Expiry, Notes. Fill rows for each item, save as .xlsx, drag onto the import screen.",
+    "help.tipsExcelBody2": "PakMondo auto-derives kits and categories from your spreadsheet. So 'Tent (kit: Shelter, category: Camping)' becomes a Tent item, a Shelter kit containing it, and a Camping category. Hundreds of items in seconds.",
+    "help.tipsLanguageTitle": "Switching languages mid-session",
+    "help.tipsLanguageBody": "Settings → Preferences → Language. Switches instantly across the entire app. Your data labels (item names, kit names) don't translate — those stay in whatever language you typed them. Only UI chrome translates.",
+    "help.tipsExpiryTitle": "Bulk expiry tracking",
+    "help.tipsExpiryBody": "Got 20+ items with expiry dates? Set them all up front when you import via Excel (the Expiry column accepts ISO dates like 2026-12-31). The dashboard will then surface them automatically as they approach the warning window.",
+    "help.tipsWeightTitle": "Total trip weight",
+    "help.tipsWeightBody": "Each packlist's footer shows total weight at the top. The number updates live as you add/remove kits. Useful for ultralight backpacking where every gram counts.",
+    "help.tipsLibrarySearchTitle": "Library by activity",
+    "help.tipsLibrarySearchBody": "If you're planning a specific trip type, set the activity filter in Library before browsing. 'Show me only thru-hiking packlists' or 'only ski touring kits' filters out irrelevant content fast.",
+    "help.tipsBackupTitle": "Backing up your data",
+    "help.tipsBackupBody": "Export individual kits/packlists as .json files (Share → Export file). Save them to Dropbox/Drive/wherever. Useful insurance against accidental Reset All Data clicks.",
+    "help.tipsFinalTip": "The single biggest power tip: build kits around real-world packing scenarios, not abstract categories. 'Cold camp essentials' is more useful than 'sleeping gear'. Specificity makes packing easier.",
+
+    // Section 4-14 screenshot captions
+    "help.shotKitCreate":      "New Kit form showing name, category, items section with picker buttons",
+    "help.shotKitEdit":        "Kit edit screen with items list, X-to-remove, and add-existing buttons",
+    "help.shotCatNew":         "Add Category form with name + icon picker",
+    "help.shotCatDetail":      "Category detail showing kits in this category + loose items",
+    "help.shotPlNew":          "Add Packlist form with name, date, destination, type fields",
+    "help.shotPlChecks":       "Packlist showing items with red WANT and green PACKED checkboxes",
+    "help.shotWxOpen":         "Packlist detail with the Weather check button highlighted",
+    "help.shotWxResults":      "Weather check modal showing temp range, gaps, and covered conditions",
+    "help.shotShMember":       "Share dialog with member search field and member ID example",
+    "help.shotShInbox":        "Inbox showing incoming shares with Accept/Reject buttons",
+    "help.shotLibBrowse":      "Library browse view with filter chips and a grid of cards",
+    "help.shotLibImport":      "Library detail page with item list and Import button",
+    "help.shotLibPublish":     "Publish form with title, activity autocomplete, description, credit",
+    "help.shotMemCard":        "Dashboard with the membership card visible top-right (MEMBER · 0001EU · SINCE 2025)",
+    "help.shotSubList":        "My library submissions section expanded showing pending/approved items",
+    "help.shotSet":            "Settings screen with the four collapsed groups visible",
+    "help.shotExcel":          "Excel template with example rows in the Category, Kit, Item Name columns",
+
+
     "onboard.skip": "Skip tour",
     "onboard.start": "Let's go",
     "onboard.continue": "Continue",
@@ -2340,6 +2527,193 @@ const TRANSLATIONS = {
     "help.shotInvKitsView":  "Pestaña Kits mostrando los banners de categoría y los kits colapsados debajo",
     "help.shotInvExpiry":    "Tabla de artículos con una o dos filas resaltadas en rojo porque están por caducar",
     "help.shotInvAddItem":   "Formulario Añadir Artículo con nombre, dropdown de categoría, peso, cantidad y otros campos visibles",
+
+    // === Sección 04 — Kits en profundidad ===
+    "help.kitsIntro": "Los kits son paquetes reutilizables de artículos. Una vez que creas un kit, puedes añadirlo a cualquier número de listas con un toque. La mayoría de usuarios acaban con 10–30 kits, organizados por actividad (camping, senderismo, viaje) o por propósito (sistema de dormir, cocina, primeros auxilios).",
+    "help.kitsCreatingTitle": "Crear un kit",
+    "help.kitsCreatingBody1": "Desde Inventario → pestaña Kits, toca '+ Añadir kit'. Dale un nombre (obligatorio) y opcionalmente elige una categoría. El formulario tiene una sección de artículos donde puedes elegir artículos existentes O crear nuevos artículos directamente desde el formulario del kit.",
+    "help.kitsCreatingBody2": "Cuando creas nuevos artículos desde dentro del formulario del kit, los nuevos artículos se añaden tanto a tu inventario COMO al kit que estás creando. Así 'crear un kit + 5 nuevos artículos' es una única acción guardada.",
+    "help.kitsEditingTitle": "Editar un kit existente",
+    "help.kitsEditingBody": "Desde la pestaña Kits, toca el nombre del kit (o el chevron + icono de editar). La pantalla de edición muestra cada artículo actualmente en el kit con una X para quitarlo, más '+ Añadir artículos existentes' (selector desde tu inventario) y '+ Crear un nuevo artículo' (formulario completo en un modal). Aquí también puedes renombrar el kit y cambiar su categoría.",
+    "help.kitsItemPickerTitle": "El selector de artículos",
+    "help.kitsItemPickerBody1": "Cuando tocas '+ Añadir artículos existentes', obtienes un selector deslizable de cada artículo NO actualmente en el kit. Cada fila tiene una casilla. Toca para seleccionar, toca de nuevo para deseleccionar. Añádelos en lote.",
+    "help.kitsItemPickerBody2": "Los artículos ya en el kit no aparecen en el selector — esto previene duplicados accidentales. Para añadir un artículo que ya está en el kit (ej. una segunda botella de agua), edita la cantidad del artículo existente en su lugar.",
+    "help.kitsCategoryTitle": "Categorías de kits",
+    "help.kitsCategoryBody": "Asignar una categoría a un kit hace que aparezca en el grupo de banner correcto en la pestaña Kits (ej. 'CATEGORÍA: REFUGIO · 4 KITS'). Es opcional — los kits sin categoría aparecen en un grupo 'sin categoría' al final.",
+    "help.kitsActionsTitle": "Qué puedes hacer con un kit",
+    "help.kitsActionsBody": "Cada kit tiene botones para: editar, compartir con otro miembro, publicar a la biblioteca de la comunidad, ver en detalle, eliminar. Compartir envía una copia a la bandeja de otro miembro. Publicar lo envía para revisión y una vez aprobado, cualquiera en la biblioteca puede importarlo.",
+    "help.kitsTip": "Los kits son más poderosos cuando los construyes alrededor de un ESCENARIO, no una categoría. 'Imprescindibles de camp frío' es más útil que 'equipo de dormir' porque el primero coincide con una decisión real de empaque.",
+
+    // === Sección 05 — Categorías ===
+    "help.catIntro": "Las categorías son etiquetas de nivel superior para organizar tu equipo. Tanto artículos como kits pueden tener una categoría. Son la agrupación más amplia en PakMondo — piensa en ellas como las secciones principales de un armario de equipo.",
+    "help.catVsKitsTitle": "Categorías vs Kits — ¿Cuál es la diferencia?",
+    "help.catVsKitsBody1": "Una categoría es un TIPO de cosa. Cada tienda está en 'Refugio'. Cada taza de café está en 'Cocina'. Un artículo tiene como mucho una categoría. Las categorías son taxonomía — responden '¿qué tipo de cosa es esto?'.",
+    "help.catVsKitsBody2": "Un kit es un AGRUPAMIENTO ESPECÍFICO para un caso de uso. Tu 'Kit de Camp Frío' contiene una tienda + saco + esterilla específicos. Un artículo puede estar en múltiples kits. Los kits responden '¿qué llevo para este escenario?'.",
+    "help.catCreatingTitle": "Crear una categoría",
+    "help.catCreatingBody": "Desde Inventario → pestaña Categorías, toca '+ Añadir categoría'. Cada categoría tiene un nombre y un icono (montaña, tienda, copo de nieve, etc.). Categorías iniciales comunes: Refugio, Cocina, Ropa, Higiene, Tecnología, Primeros Auxilios, Documentos.",
+    "help.catDetailTitle": "Dentro de una categoría",
+    "help.catDetailBody1": "Toca cualquier categoría desde la pestaña Categorías para entrar. Verás dos listas agrupadas: KITS en esta categoría (cada uno con conteo de artículos) y ARTÍCULOS SUELTOS en esta categoría pero no en ningún kit.",
+    "help.catDetailBody2": "Desde el detalle de la categoría puedes añadir nuevos artículos, añadir nuevos kits, editar la categoría misma, o quitar artículos/kits de la categoría (descategorizarlos).",
+    "help.catBestPracticeTitle": "Mejor práctica",
+    "help.catBestPracticeBody": "No le des muchas vueltas a las categorías. 5–10 amplias funcionan para la mayoría. Empacadores de expedición de montaña podrían dividir REFUGIO + DORMIR en dos; minimalistas podrían combinar ROPA + HIGIENE en una. Empieza amplio, refina cuando notes fricción.",
+    "help.catNote": "Eliminar una categoría descategoriza todo lo que hay en ella pero no elimina los artículos o kits reales. Seguro para experimentar.",
+
+    // === Sección 06 — Listas ===
+    "help.plIntro": "Una lista de empaque es la lista de cosas que llevas en un viaje específico. Puede incluir kits enteros, artículos individuales, o ambos. Las listas son donde viven las casillas LLEVAR/EMPACADO, donde sucede la revisión del tiempo, y donde imprimirías una lista de verificación para el camino.",
+    "help.plCreateTitle": "Crear una lista",
+    "help.plCreateBody1": "Desde la pantalla de Listas, toca '+ Añadir lista'. Dale un nombre (obligatorio, como 'Patagonia 2025' o 'Fin de semana en Tahoe'). Opcionalmente establece la fecha del viaje, destino, tipo (camping, senderismo, playa, etc.), y notas.",
+    "help.plCreateBody2": "Después de crearla, te lleva al detalle de la lista donde puedes añadir kits y artículos. Toca '+ Añadir kit' para elegir entre tus kits existentes. Toca '+ Añadir artículo' para añadir artículos individuales no parte de ningún kit (ej. medicamentos, documentos).",
+    "help.plMetaTitle": "Metadatos del viaje",
+    "help.plMetaBody": "La fecha y destino importan para la revisión del tiempo. Si ambos están rellenados, la revisión los usa automáticamente. El tipo de viaje se muestra como una pequeña insignia y ayuda a escanear visualmente tu biblioteca de listas — útil cuando tienes muchas.",
+    "help.plChecksTitle": "Las dos casillas — LLEVAR y EMPACADO",
+    "help.plChecksBody1": "Cada artículo en una lista tiene dos casillas. La caja roja LLEVAR: 'Quiero llevar esto en este viaje.' La caja verde EMPACADO: 'Ya está en mi mochila.' Ambas por defecto sin marcar en una lista nueva.",
+    "help.plChecksBody2": "El contador de progreso arriba muestra ej. 'LLEVAR 12/15 · EMPACADO 7/12' — doce de quince artículos quieren llevarse, siete de esos doce están empacados. Toca el chevron de un kit para ver sus artículos y marcarlos.",
+    "help.plChecksTip": "El patrón de dos casillas es intencional. LLEVAR te permite decidir tu intención de empaque primero (algunos artículos del kit no aplican a este viaje — déjalos sin marcar). EMPACADO te permite tacharlos cuando realmente empacas la mochila. Dos pasadas = sin artículos perdidos.",
+    "help.plEditTitle": "Editar una lista",
+    "help.plEditBody": "Toca el icono de lápiz en una lista guardada. La pantalla de edición te permite renombrar, cambiar fecha/destino/tipo, editar notas, añadir o quitar kits, añadir o quitar artículos individuales. Los cambios se guardan instantáneamente entre dispositivos.",
+    "help.plPdfTitle": "PDF imprimible",
+    "help.plPdfBody1": "Toca el icono de descarga en una lista guardada para generar un PDF. El PDF incluye cada artículo agrupado por kit, con dos casillas vacías por artículo — una para LLEVAR (pre-rellenada con marcas rojas según el estado de tu lista) y una para EMPACADO (siempre en blanco, para marcar a mano).",
+    "help.plPdfBody2": "Útil para llevar de viaje cuando no quieres abrir la app o no tienes señal. El PDF se genera en el cliente, así que sin viaje al servidor — debería descargar en 1–2 segundos.",
+    "help.plDeleteTitle": "Eliminar una lista",
+    "help.plDeleteBody": "Toca el icono de papelera. Recibirás una confirmación. Eliminar una lista NO elimina los kits o artículos dentro — se quedan en tu inventario. Solo se elimina la lista específica del viaje.",
+
+    // === Sección 07 — Revisión del tiempo ===
+    "help.wxIntro": "La Revisión del Tiempo es una de las funciones más útiles de PakMondo. Abre cualquier lista guardada, toca el icono de nube, y PakMondo busca el pronóstico para tu destino + fechas y te dice si tu equipo coincide.",
+    "help.wxHowTitle": "Cómo funciona",
+    "help.wxHowBody1": "PakMondo geocodifica tu destino (convierte 'Tahoe' en latitud/longitud) usando la API gratuita de geocodificación de Open-Meteo. Luego busca el pronóstico diario para las fechas de tu viaje — rango de temperatura, precipitación, viento, UV, nieve.",
+    "help.wxHowBody2": "Luego analiza los artículos y kits de tu lista contra una lista incorporada de condiciones meteorológicas: ¿frío? ¿lluvia? ¿viento? ¿nieve? ¿sol? ¿calor alto? ¿congelación? Para cada condición disparada, comprueba si tienes equipo apropiado (chubasquero, capas base, etc.) y marca cualquier hueco.",
+    "help.wxResultsTitle": "Lo que ves",
+    "help.wxResultsBody": "El modal de resultados muestra una barra resumen (RANGO TEMP, PROBABILIDAD LLUVIA, VIENTO MAX, UV MAX) seguida por una sección 'Huecos' (borde óxido, cosas que podrías querer añadir) y una sección 'Cubierto' (borde bosque, condiciones que tu equipo maneja). Si todo está cubierto, recibes un mensaje 'todo bien'.",
+    "help.wxGapsTitle": "Entender los huecos",
+    "help.wxGapsBody1": "Un hueco es una condición meteorológica probable Y tu lista no tiene artículo coincidente con esa condición. Ejemplo: el pronóstico muestra 80% probabilidad de lluvia y tu lista no tiene chubasquero. PakMondo lo marca.",
+    "help.wxGapsBody2": "Los huecos son sugerencias, no órdenes. PakMondo no sabe todo lo que tienes — quizás tu chaqueta se llama 'shell' y la lista de palabras clave de PakMondo no la incluye. Falsos positivos suceden. Úsalo como verificación de cordura.",
+    "help.wxLimitsTitle": "Límites",
+    "help.wxLimitsBody": "Los pronósticos solo son fiables hasta 16 días. Si tu viaje es más lejano, la revisión usa hoy+7 como respaldo. Los datos del tiempo son de Open-Meteo (gratis, precisos, sin necesidad de API key). La geocodificación también es Open-Meteo. Ambas pueden ocasionalmente no devolver resultados para nombres de lugares oscuros.",
+    "help.wxWarn": "La revisión del tiempo es solo informativa. Siempre verifica fuentes oficiales antes de actividades de alto riesgo (montañismo, vela, deportes de nieve). PakMondo es una ayuda de empaque, no una autoridad meteorológica.",
+    "help.wxNote": "Impulsado por open-meteo.com. Gratuito, código abierto, no requiere API key. PakMondo no pasa nada sobre ti a la API del tiempo más allá de coordenadas y fechas.",
+
+    // === Sección 08 — Compartir ===
+    "help.shIntro": "PakMondo tiene tres maneras de compartir kits y listas con otra gente: por nombre/ID de miembro, por código de compartir, o por exportación de archivo. Cada uno se adapta a diferentes escenarios.",
+    "help.shThreeWaysTitle": "Tres maneras",
+    "help.shThreeWaysBody": "Compartir a miembro es directo, peer-to-peer — reciben una notificación en su bandeja. Los códigos de compartir son anónimos y reutilizables — cualquiera con el código puede importar. Los archivos (.json) funcionan offline y pueden enviarse por email, AirDrop, o cualquier mensajero.",
+    "help.shMemberTitle": "Compartir a un miembro",
+    "help.shMemberBody1": "Desde cualquier kit o lista, toca el icono de compartir. Elige 'Enviar a miembro'. Escribe su usuario (insensible a mayúsculas) O su ID de miembro como '0001NA'. PakMondo los encuentra y envía una copia a su bandeja.",
+    "help.shMemberBody2": "El receptor recibe una notificación en su dashboard y puede revisar el envío antes de importar. También pueden rechazarlo — tu envío no contamina su inventario a menos que acepten.",
+    "help.shCodeTitle": "Códigos de compartir",
+    "help.shCodeBody1": "Toca el icono de compartir → 'Generar código'. PakMondo crea un código alfanumérico corto (ej. 'TAHOE-OCT-2025'). Cualquiera que introduzca ese código en su propio PakMondo puede importar una copia del kit o lista compartido.",
+    "help.shCodeBody2": "Los códigos de compartir son reutilizables. Genera uno para un kit que compartes regularmente (ej. tu kit estándar de camping en coche). Publica el código en chats de grupo de viaje. Cualquiera del grupo lo importa en segundos.",
+    "help.shFileTitle": "Exportar a archivo",
+    "help.shFileBody": "Toca el icono de compartir → 'Exportar archivo'. Descarga un archivo .json que puedes enviar a cualquier sitio. Los receptores lo abren en PakMondo (Bandeja → Importar archivo). Útil para compartir con gente que aún no tiene cuenta de PakMondo (les das el archivo, se registran después, lo importan).",
+    "help.shInboxTitle": "Tu bandeja",
+    "help.shInboxBody": "Todos los envíos entrantes aterrizan en Bandeja. Cada envío muestra el remitente, qué se envió (kit / lista / categoría), y botones Aceptar/Rechazar. Aceptar = importado a tu inventario. Rechazar = descartado silenciosamente. Los remitentes nunca ven si aceptaste.",
+    "help.shTip": "Cuando compartes a múltiples personas, los códigos de compartir escalan mejor que miembro-por-miembro. Un código, publícalo una vez, cualquiera lo importa.",
+
+    // === Sección 09 — La biblioteca ===
+    "help.libIntro": "La Biblioteca es un repositorio público de kits y listas contribuidos por la comunidad. Navega, importa los que te gusten, y (si tienes algo bueno) contribuye los tuyos.",
+    "help.libBrowseTitle": "Navegando",
+    "help.libBrowseBody1": "Abre Biblioteca desde el dashboard. Por defecto muestra los envíos aprobados más recientes. Usa filtros para acotar: tipo (kits / listas / categorías), actividad (camping / senderismo / viaje / etc.), región (NA / EU / AS …).",
+    "help.libBrowseBody2": "Cada elemento es una tarjeta mostrando el título, actividad, región, vista previa de descripción, y el nombre de crédito del publicador. Toca cualquier tarjeta para ver el detalle completo — la lista de artículos completa, las notas del publicador, y un botón Importar.",
+    "help.libCardsTitle": "Lo que hay en una tarjeta",
+    "help.libCardsBody": "Título + pequeña insignia de región arriba a la derecha. Etiqueta de actividad debajo. Una breve descripción (primeras 3 líneas, cursiva). Abajo: el nombre de crédito (ej. 'Juan de Barcelona') y conteo de importaciones (cuánta gente lo ha importado — señal de popularidad).",
+    "help.libImportTitle": "Importar",
+    "help.libImportBody1": "Toca una tarjeta de biblioteca → toca Importar. PakMondo copia el kit/lista + todos sus artículos a tu inventario. Artículos existentes con el mismo nombre son deduplicados; los nuevos se añaden.",
+    "help.libImportBody2": "Las importaciones son una copia. Editar el artículo importado después no afecta la entrada original de la biblioteca, ni viceversa. El publicador original no sabrá que importaste su artículo — totalmente privado para ti.",
+    "help.libPublishTitle": "Publicar",
+    "help.libPublishBody1": "¿Construiste un kit del que estás orgulloso? Desde el detalle del kit, toca 'Publicar a la biblioteca'. El formulario pide: título (por defecto el nombre del kit), actividad (autocompletar de actividades existentes), descripción (¿para qué sirve, por qué es útil?), y tu nombre de crédito público (por defecto tu nombre real).",
+    "help.libPublishBody2": "Los envíos pasan por revisión administrativa antes de aparecer públicamente. La mayoría se aprueban en un día. Verás actualizaciones de estado en Ajustes → Mis envíos a la biblioteca.",
+    "help.libCreditTitle": "Crédito público",
+    "help.libCreditBody": "Cuando publicas, el formulario pre-rellena tu nombre real como crédito público. Puedes cambiarlo ('Juan de Barcelona', 'Wayfarer Anónimo') o limpiarlo (vuelve a @usuario). Lo que pongas se convierte en la firma visible en la tarjeta de biblioteca.",
+    "help.libNote": "Publicar es permanente en el sentido de que otros usuarios pueden importar tu envío. Puedes eliminarlo desde tu lado (desaparece de la biblioteca) pero quien ya importó mantiene su copia.",
+
+    // === Sección 10 — IDs de miembro ===
+    "help.memIntro": "Cada miembro de PakMondo recibe un ID único como 0001NA al registrarse. Es un identificador permanente — tuyo para siempre, incluso si cambias tu nombre de usuario más tarde.",
+    "help.memFormatTitle": "Formato",
+    "help.memFormatBody1": "El formato es un número de 4 dígitos con ceros a la izquierda seguido por un código de región de 2 letras: 0001NA, 0042EU, 0003AS. Los números son secuenciales por región, así que el primer miembro de Norteamérica es 0001NA, el segundo es 0002NA, etc. Cada región empieza su propio conteo.",
+    "help.memFormatBody2": "Tu ID de miembro y el año en que te uniste se muestran en una pequeña tarjeta de membresía en la esquina superior derecha de tu dashboard. Como un club de aventura vintage: limpia, discreta, inconfundiblemente tuya.",
+    "help.memUseTitle": "Para qué sirve",
+    "help.memUseBody": "Dos usos principales: (1) identidad personal — los miembros tempranos obtienen números bajos, construyendo una sensación de pioneros. (2) Compartir — al enviar un kit a otro miembro, puedes buscar por su ID O su usuario. Cualquiera funciona.",
+    "help.memHistoryTitle": "Miembros existentes",
+    "help.memHistoryBody": "Los IDs de miembro fueron asignados retroactivamente a todas las cuentas existentes en orden de registro. El primer usuario de PakMondo obtuvo 0001 en su región. Si te registraste antes de que esta función existiera, tu ID se generó basado en cuándo se creó tu cuenta.",
+    "help.memTip": "Los miembros con números bajos en una región (bajo 0010) son pioneros. Compartir kits con ellos a menudo te hace ser importado a sus listas, lo que aumenta tu visibilidad en la biblioteca.",
+
+    // === Sección 11 — Envíos y revisión ===
+    "help.subIntro": "Cualquier cosa que publiques a la biblioteca pública pasa por un proceso de revisión. Esto mantiene la calidad del contenido alta y previene spam.",
+    "help.subFlowTitle": "El flujo",
+    "help.subFlowBody1": "Publicas un kit o lista. Va a una cola 'pendiente'. Un admin revisa típicamente dentro de 24-48 horas. Aprobado → aparece en la biblioteca pública. Rechazado → recibes una nota explicando por qué y puedes reenviar después de arreglar.",
+    "help.subFlowBody2": "Mientras está pendiente, tu envío es invisible para otros usuarios. Puedes editar un envío pendiente (las ediciones lo restablecen a pendiente). Puedes eliminarlo en cualquier etapa.",
+    "help.subStatusTitle": "Rastrear tus envíos",
+    "help.subStatusBody": "Ajustes → 'Mis envíos a la biblioteca' (colapsable) muestra todo lo que has enviado con una insignia de estado: PENDIENTE (gris, esperando), APROBADO (verde, en vivo), RECHAZADO (rojo, con razón si se proporcionó).",
+    "help.subRejectTitle": "Si eres rechazado",
+    "help.subRejectBody": "Razones comunes de rechazo: título demasiado genérico, descripción demasiado corta para ser útil, composición del kit coincide demasiado con un envío aprobado existente, o mal uso de la etiqueta de actividad. Lee la nota de rechazo, arregla el problema, reenvía. Sin penalización por reenviar.",
+    "help.subQualityTitle": "Lo que se aprueba",
+    "help.subQualityBody": "Envíos con: títulos específicos claros, descripciones probadas en mundo real (no solo listas), actividades únicas o casos de uso, conteos de artículos sensatos (no solo 2-3 artículos, no más de 100 tampoco). El listón es '¿otro wayfarer encontraría esto útil?' Si sí, aprobado.",
+    "help.subNote": "Los admins son voluntarios (actualmente los fundadores). Sé paciente con los tiempos de revisión. Si tu envío está sentado más de 5 días sin veredicto, contáctanos via el email de contacto en el pie.",
+
+    // === Sección 12 — Ajustes ===
+    "help.setIntro": "Ajustes está organizado en cinco grupos colapsables. La mayoría de usuarios solo ajustan dos o tres cosas y nunca vuelven. Los usuarios poderosos viven aquí.",
+    "help.setProfileTitle": "01 — Perfil",
+    "help.setProfileBody": "Muestra tu email de cuenta, usuario, nombre real, región, e ID de miembro. Ninguno es editable aquí — para cambiar detalles del perfil necesitarías actualizar via Supabase admin (actualmente). Versiones futuras tendrán edición inline.",
+    "help.setPrefsTitle": "02 — Preferencias",
+    "help.setPrefsBody": "Idioma (Inglés / Español), unidades (métrico / imperial), toggle de servicios de ubicación. El cambio de idioma es instantáneo. El cambio de unidad actualiza cómo se muestran los pesos en todas partes — tus datos se quedan en kg canónico, solo la visualización cambia.",
+    "help.setSubsTitle": "03 — Mis envíos a la biblioteca",
+    "help.setSubsBody": "Colapsado por defecto para ahorrar espacio. Toca para expandir → ver cada kit/lista que has publicado con su estado de revisión actual. Los admins también obtienen un botón 'Revisar todos los envíos' aquí para moderación.",
+    "help.setDataTitle": "04 — Datos",
+    "help.setDataBody": "Muestra el estado de sincronización del almacenamiento (un punto de color: verde=sincronizado, amarillo=guardando, rojo=error). Tiene un botón Repetir tutorial (re-ejecuta el asistente inicial) y un botón Leer manual de campo (abre este manual). Abajo: un botón destructivo Borrar todos los datos guardados.",
+    "help.setSignOutTitle": "05 — Cerrar sesión",
+    "help.setSignOutBody": "Te cierra sesión de Supabase y la app. Tus datos quedan en Supabase — cuando vuelves a iniciar sesión en este o cualquier otro dispositivo, todo reaparece. Cerrar sesión solo limpia la sesión local.",
+    "help.setResetWarn": "Borrar todos los datos guardados es destructivo. Elimina cada artículo, kit, lista y categoría de tu cuenta permanentemente. No hay deshacer. Úsalo solo si quieres empezar de cero.",
+
+    // === Sección 13 — Datos y sincronización ===
+    "help.dataIntro": "PakMondo almacena la mayoría de tus datos en la nube, con algunas preferencias guardadas localmente. Saber qué vive dónde ayuda cuando algo parece desincronizado.",
+    "help.dataWhereTitle": "Dónde se guardan las cosas",
+    "help.dataWhereBody1": "Nube (Supabase): artículos, kits, categorías, listas, carrito, envíos a biblioteca, compartidos, tu perfil. Estos datos se sincronizan en todos los dispositivos donde inicias sesión. Encriptado en tránsito, protegido por contraseña en reposo.",
+    "help.dataWhereBody2": "Local (solo tu dispositivo): preferencia de idioma, unidades, toggle de ubicación, el flag de completado del onboarding, tu token de sesión de auth. Ninguno es sensible — son solo preferencias.",
+    "help.dataMultiTitle": "Sincronización multi-dispositivo",
+    "help.dataMultiBody1": "Inicia sesión en iPhone con la misma cuenta → ve todos tus artículos del ordenador. Haz un cambio en iPhone → aparece en el ordenador la próxima vez que actualices (típicamente en 1-2 segundos).",
+    "help.dataMultiBody2": "No hay botón de sincronización manual. La sincronización es automática. Si algo parece faltar, la causa más probable es una caché de navegador obsoleta — ver la sección PWA debajo.",
+    "help.dataPwaTitle": "Caché PWA de iPhone",
+    "help.dataPwaBody1": "Cuando 'Añades a pantalla de inicio' en iPhone, Safari crea un atajo de app local que cachea agresivamente el bundle de JavaScript. Esto es genial para uso offline pero puede significar que sigues viendo código viejo después de que PakMondo despliega actualizaciones.",
+    "help.dataPwaBody2": "Si tu PakMondo de iPhone parece congelado en una versión vieja: pulsación larga en el icono de inicio → Eliminar App. Luego Ajustes de iPhone → Safari → Borrar Historial y Datos de Sitios Web. Luego re-abre PakMondo desde Safari y re-añade a pantalla de inicio. Fuerza una descarga fresca.",
+    "help.dataPwaTip": "Si ves 'Sesión expirada' en iPhone, simplemente inicia sesión de nuevo. El token de sesión expiró (normal). Tus datos están seguros en la nube.",
+    "help.dataPrivacyTitle": "Privacidad",
+    "help.dataPrivacyBody": "Tu inventario es privado para ti por defecto. Los envíos a biblioteca son públicos (ese es el punto). Los IDs de miembro son públicos. Las direcciones de email y hashes de contraseñas son privados y nunca visibles a otros usuarios. Anthropic no almacena ni lee tus datos de PakMondo — Supabase está alojado independientemente.",
+
+    // === Sección 14 — Consejos y atajos ===
+    "help.tipsIntro": "Cosas prácticas que hacen PakMondo más rápido y útil pero no son obvias desde la UI principal.",
+    "help.tipsExcelTitle": "Importación de Excel",
+    "help.tipsExcelBody1": "¿Tienes una lista de equipo existente en una hoja de cálculo? Usa la importación de Excel. La plantilla tiene 9 columnas: Categoría, Kit, Nombre del Artículo, Peso, Cantidad, Tamaño, Consumible, Caducidad, Notas. Rellena filas para cada artículo, guarda como .xlsx, arrastra a la pantalla de importación.",
+    "help.tipsExcelBody2": "PakMondo deriva automáticamente kits y categorías de tu hoja de cálculo. Así que 'Tienda (kit: Refugio, categoría: Camping)' se convierte en un artículo Tienda, un kit Refugio conteniéndolo, y una categoría Camping. Cientos de artículos en segundos.",
+    "help.tipsLanguageTitle": "Cambiar idiomas a mitad de sesión",
+    "help.tipsLanguageBody": "Ajustes → Preferencias → Idioma. Cambia instantáneamente en toda la app. Las etiquetas de tus datos (nombres de artículos, nombres de kits) no se traducen — quedan en cualquier idioma que escribiste. Solo el chrome de UI se traduce.",
+    "help.tipsExpiryTitle": "Rastreo masivo de caducidad",
+    "help.tipsExpiryBody": "¿Tienes 20+ artículos con fechas de caducidad? Configúralos todos por adelantado al importar via Excel (la columna Caducidad acepta fechas ISO como 2026-12-31). El dashboard luego los emergerá automáticamente cuando se acerquen a la ventana de aviso.",
+    "help.tipsWeightTitle": "Peso total del viaje",
+    "help.tipsWeightBody": "El pie de cada lista muestra el peso total arriba. El número se actualiza en vivo mientras añades/quitas kits. Útil para mochileo ultraligero donde cada gramo cuenta.",
+    "help.tipsLibrarySearchTitle": "Biblioteca por actividad",
+    "help.tipsLibrarySearchBody": "Si planeas un tipo específico de viaje, establece el filtro de actividad en Biblioteca antes de navegar. 'Muéstrame solo listas de thru-hiking' o 'solo kits de esquí de travesía' filtra el contenido irrelevante rápido.",
+    "help.tipsBackupTitle": "Respaldando tus datos",
+    "help.tipsBackupBody": "Exporta kits/listas individuales como archivos .json (Compartir → Exportar archivo). Guárdalos en Dropbox/Drive/donde sea. Seguro útil contra clics accidentales en Borrar Todos los Datos.",
+    "help.tipsFinalTip": "El consejo más poderoso: construye kits alrededor de escenarios reales de empaque, no categorías abstractas. 'Imprescindibles de camp frío' es más útil que 'equipo de dormir'. La especificidad hace el empaque más fácil.",
+
+    // Capturas sección 4-14
+    "help.shotKitCreate":      "Formulario Nuevo Kit mostrando nombre, categoría, sección de artículos con botones de selector",
+    "help.shotKitEdit":        "Pantalla de edición de kit con lista de artículos, X-para-quitar, y botones de añadir-existente",
+    "help.shotCatNew":         "Formulario Añadir Categoría con nombre + selector de icono",
+    "help.shotCatDetail":      "Detalle de categoría mostrando kits en esta categoría + artículos sueltos",
+    "help.shotPlNew":          "Formulario Añadir Lista con nombre, fecha, destino, campos de tipo",
+    "help.shotPlChecks":       "Lista mostrando artículos con casillas LLEVAR rojas y EMPACADO verdes",
+    "help.shotWxOpen":         "Detalle de lista con el botón Revisión del Tiempo destacado",
+    "help.shotWxResults":      "Modal de revisión del tiempo mostrando rango de temp, huecos, y condiciones cubiertas",
+    "help.shotShMember":       "Diálogo de compartir con campo de búsqueda de miembro y ejemplo de ID de miembro",
+    "help.shotShInbox":        "Bandeja mostrando envíos entrantes con botones Aceptar/Rechazar",
+    "help.shotLibBrowse":      "Vista de navegación de Biblioteca con chips de filtro y una rejilla de tarjetas",
+    "help.shotLibImport":      "Página de detalle de Biblioteca con lista de artículos y botón Importar",
+    "help.shotLibPublish":     "Formulario de publicación con título, autocompletar de actividad, descripción, crédito",
+    "help.shotMemCard":        "Dashboard con la tarjeta de membresía visible arriba a la derecha (MIEMBRO · 0001EU · DESDE 2025)",
+    "help.shotSubList":        "Sección Mis envíos a la biblioteca expandida mostrando elementos pendientes/aprobados",
+    "help.shotSet":            "Pantalla de Ajustes con los cuatro grupos colapsados visibles",
+    "help.shotExcel":          "Plantilla de Excel con filas de ejemplo en las columnas Categoría, Kit, Nombre del Artículo",
+
 
     "onboard.skip": "Saltar",
     "onboard.start": "Empezar",
@@ -14493,16 +14867,251 @@ function HelpPage({ go }) {
           <Para>{t("help.invDeletingBody")}</Para>
           <CallOut kind="warn">{t("help.invDeleteWarn")}</CallOut>
 
-          {/* === SECTIONS 04-14 — placeholders so TOC works === */}
-          {sections.slice(3).map((s) => (
-            <div key={s.id}>
-              <SectionHeading id={s.id} num={s.num} title={s.title} />
-              <Para>{t("help.comingSoon")}</Para>
-              <CallOut kind="note">
-                {t("help.sectionPending")}
-              </CallOut>
-            </div>
-          ))}
+          {/* === SECTION 04 — KITS IN DEPTH === */}
+          <SectionHeading id="kits" num="04" title={t("help.tocKits")} />
+          <Para>{t("help.kitsIntro")}</Para>
+
+          <SubHeading>{t("help.kitsCreatingTitle")}</SubHeading>
+          <Para>{t("help.kitsCreatingBody1")}</Para>
+          <Para>{t("help.kitsCreatingBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotKitCreate")} />
+
+          <SubHeading>{t("help.kitsEditingTitle")}</SubHeading>
+          <Para>{t("help.kitsEditingBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotKitEdit")} />
+
+          <SubHeading>{t("help.kitsItemPickerTitle")}</SubHeading>
+          <Para>{t("help.kitsItemPickerBody1")}</Para>
+          <Para>{t("help.kitsItemPickerBody2")}</Para>
+
+          <SubHeading>{t("help.kitsCategoryTitle")}</SubHeading>
+          <Para>{t("help.kitsCategoryBody")}</Para>
+
+          <SubHeading>{t("help.kitsActionsTitle")}</SubHeading>
+          <Para>{t("help.kitsActionsBody")}</Para>
+          <CallOut kind="tip">{t("help.kitsTip")}</CallOut>
+
+          {/* === SECTION 05 — CATEGORIES === */}
+          <SectionHeading id="categories" num="05" title={t("help.tocCategories")} />
+          <Para>{t("help.catIntro")}</Para>
+
+          <SubHeading>{t("help.catVsKitsTitle")}</SubHeading>
+          <Para>{t("help.catVsKitsBody1")}</Para>
+          <Para>{t("help.catVsKitsBody2")}</Para>
+
+          <SubHeading>{t("help.catCreatingTitle")}</SubHeading>
+          <Para>{t("help.catCreatingBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotCatNew")} />
+
+          <SubHeading>{t("help.catDetailTitle")}</SubHeading>
+          <Para>{t("help.catDetailBody1")}</Para>
+          <Para>{t("help.catDetailBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotCatDetail")} />
+
+          <SubHeading>{t("help.catBestPracticeTitle")}</SubHeading>
+          <Para>{t("help.catBestPracticeBody")}</Para>
+          <CallOut kind="note">{t("help.catNote")}</CallOut>
+
+          {/* === SECTION 06 — PACKLISTS === */}
+          <SectionHeading id="packlists" num="06" title={t("help.tocPacklists")} />
+          <Para>{t("help.plIntro")}</Para>
+
+          <SubHeading>{t("help.plCreateTitle")}</SubHeading>
+          <Para>{t("help.plCreateBody1")}</Para>
+          <Para>{t("help.plCreateBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotPlNew")} />
+
+          <SubHeading>{t("help.plMetaTitle")}</SubHeading>
+          <Para>{t("help.plMetaBody")}</Para>
+
+          <SubHeading>{t("help.plChecksTitle")}</SubHeading>
+          <Para>{t("help.plChecksBody1")}</Para>
+          <Para>{t("help.plChecksBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotPlChecks")} />
+          <CallOut kind="tip">{t("help.plChecksTip")}</CallOut>
+
+          <SubHeading>{t("help.plEditTitle")}</SubHeading>
+          <Para>{t("help.plEditBody")}</Para>
+
+          <SubHeading>{t("help.plPdfTitle")}</SubHeading>
+          <Para>{t("help.plPdfBody1")}</Para>
+          <Para>{t("help.plPdfBody2")}</Para>
+
+          <SubHeading>{t("help.plDeleteTitle")}</SubHeading>
+          <Para>{t("help.plDeleteBody")}</Para>
+
+          {/* === SECTION 07 — WEATHER CHECK === */}
+          <SectionHeading id="weather" num="07" title={t("help.tocWeather")} />
+          <Para>{t("help.wxIntro")}</Para>
+
+          <SubHeading>{t("help.wxHowTitle")}</SubHeading>
+          <Para>{t("help.wxHowBody1")}</Para>
+          <Para>{t("help.wxHowBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotWxOpen")} />
+
+          <SubHeading>{t("help.wxResultsTitle")}</SubHeading>
+          <Para>{t("help.wxResultsBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotWxResults")} />
+
+          <SubHeading>{t("help.wxGapsTitle")}</SubHeading>
+          <Para>{t("help.wxGapsBody1")}</Para>
+          <Para>{t("help.wxGapsBody2")}</Para>
+
+          <SubHeading>{t("help.wxLimitsTitle")}</SubHeading>
+          <Para>{t("help.wxLimitsBody")}</Para>
+          <CallOut kind="warn">{t("help.wxWarn")}</CallOut>
+          <CallOut kind="note">{t("help.wxNote")}</CallOut>
+
+          {/* === SECTION 08 — SHARING === */}
+          <SectionHeading id="sharing" num="08" title={t("help.tocSharing")} />
+          <Para>{t("help.shIntro")}</Para>
+
+          <SubHeading>{t("help.shThreeWaysTitle")}</SubHeading>
+          <Para>{t("help.shThreeWaysBody")}</Para>
+
+          <SubHeading>{t("help.shMemberTitle")}</SubHeading>
+          <Para>{t("help.shMemberBody1")}</Para>
+          <Para>{t("help.shMemberBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotShMember")} />
+
+          <SubHeading>{t("help.shCodeTitle")}</SubHeading>
+          <Para>{t("help.shCodeBody1")}</Para>
+          <Para>{t("help.shCodeBody2")}</Para>
+
+          <SubHeading>{t("help.shFileTitle")}</SubHeading>
+          <Para>{t("help.shFileBody")}</Para>
+
+          <SubHeading>{t("help.shInboxTitle")}</SubHeading>
+          <Para>{t("help.shInboxBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotShInbox")} />
+          <CallOut kind="tip">{t("help.shTip")}</CallOut>
+
+          {/* === SECTION 09 — THE LIBRARY === */}
+          <SectionHeading id="library" num="09" title={t("help.tocLibrary")} />
+          <Para>{t("help.libIntro")}</Para>
+
+          <SubHeading>{t("help.libBrowseTitle")}</SubHeading>
+          <Para>{t("help.libBrowseBody1")}</Para>
+          <Para>{t("help.libBrowseBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotLibBrowse")} />
+
+          <SubHeading>{t("help.libCardsTitle")}</SubHeading>
+          <Para>{t("help.libCardsBody")}</Para>
+
+          <SubHeading>{t("help.libImportTitle")}</SubHeading>
+          <Para>{t("help.libImportBody1")}</Para>
+          <Para>{t("help.libImportBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotLibImport")} />
+
+          <SubHeading>{t("help.libPublishTitle")}</SubHeading>
+          <Para>{t("help.libPublishBody1")}</Para>
+          <Para>{t("help.libPublishBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotLibPublish")} />
+
+          <SubHeading>{t("help.libCreditTitle")}</SubHeading>
+          <Para>{t("help.libCreditBody")}</Para>
+          <CallOut kind="note">{t("help.libNote")}</CallOut>
+
+          {/* === SECTION 10 — MEMBER IDs === */}
+          <SectionHeading id="members" num="10" title={t("help.tocMembers")} />
+          <Para>{t("help.memIntro")}</Para>
+
+          <SubHeading>{t("help.memFormatTitle")}</SubHeading>
+          <Para>{t("help.memFormatBody1")}</Para>
+          <Para>{t("help.memFormatBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotMemCard")} />
+
+          <SubHeading>{t("help.memUseTitle")}</SubHeading>
+          <Para>{t("help.memUseBody")}</Para>
+
+          <SubHeading>{t("help.memHistoryTitle")}</SubHeading>
+          <Para>{t("help.memHistoryBody")}</Para>
+          <CallOut kind="tip">{t("help.memTip")}</CallOut>
+
+          {/* === SECTION 11 — SUBMISSIONS & REVIEW === */}
+          <SectionHeading id="submissions" num="11" title={t("help.tocSubmissions")} />
+          <Para>{t("help.subIntro")}</Para>
+
+          <SubHeading>{t("help.subFlowTitle")}</SubHeading>
+          <Para>{t("help.subFlowBody1")}</Para>
+          <Para>{t("help.subFlowBody2")}</Para>
+
+          <SubHeading>{t("help.subStatusTitle")}</SubHeading>
+          <Para>{t("help.subStatusBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotSubList")} />
+
+          <SubHeading>{t("help.subRejectTitle")}</SubHeading>
+          <Para>{t("help.subRejectBody")}</Para>
+
+          <SubHeading>{t("help.subQualityTitle")}</SubHeading>
+          <Para>{t("help.subQualityBody")}</Para>
+          <CallOut kind="note">{t("help.subNote")}</CallOut>
+
+          {/* === SECTION 12 — SETTINGS === */}
+          <SectionHeading id="settings" num="12" title={t("help.tocSettings")} />
+          <Para>{t("help.setIntro")}</Para>
+
+          <SubHeading>{t("help.setProfileTitle")}</SubHeading>
+          <Para>{t("help.setProfileBody")}</Para>
+
+          <SubHeading>{t("help.setPrefsTitle")}</SubHeading>
+          <Para>{t("help.setPrefsBody")}</Para>
+
+          <SubHeading>{t("help.setSubsTitle")}</SubHeading>
+          <Para>{t("help.setSubsBody")}</Para>
+
+          <SubHeading>{t("help.setDataTitle")}</SubHeading>
+          <Para>{t("help.setDataBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotSet")} />
+
+          <SubHeading>{t("help.setSignOutTitle")}</SubHeading>
+          <Para>{t("help.setSignOutBody")}</Para>
+          <CallOut kind="warn">{t("help.setResetWarn")}</CallOut>
+
+          {/* === SECTION 13 — DATA & SYNC === */}
+          <SectionHeading id="data" num="13" title={t("help.tocData")} />
+          <Para>{t("help.dataIntro")}</Para>
+
+          <SubHeading>{t("help.dataWhereTitle")}</SubHeading>
+          <Para>{t("help.dataWhereBody1")}</Para>
+          <Para>{t("help.dataWhereBody2")}</Para>
+
+          <SubHeading>{t("help.dataMultiTitle")}</SubHeading>
+          <Para>{t("help.dataMultiBody1")}</Para>
+          <Para>{t("help.dataMultiBody2")}</Para>
+
+          <SubHeading>{t("help.dataPwaTitle")}</SubHeading>
+          <Para>{t("help.dataPwaBody1")}</Para>
+          <Para>{t("help.dataPwaBody2")}</Para>
+          <CallOut kind="tip">{t("help.dataPwaTip")}</CallOut>
+
+          <SubHeading>{t("help.dataPrivacyTitle")}</SubHeading>
+          <Para>{t("help.dataPrivacyBody")}</Para>
+
+          {/* === SECTION 14 — TIPS & SHORTCUTS === */}
+          <SectionHeading id="tips" num="14" title={t("help.tocTips")} />
+          <Para>{t("help.tipsIntro")}</Para>
+
+          <SubHeading>{t("help.tipsExcelTitle")}</SubHeading>
+          <Para>{t("help.tipsExcelBody1")}</Para>
+          <Para>{t("help.tipsExcelBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotExcel")} />
+
+          <SubHeading>{t("help.tipsLanguageTitle")}</SubHeading>
+          <Para>{t("help.tipsLanguageBody")}</Para>
+
+          <SubHeading>{t("help.tipsExpiryTitle")}</SubHeading>
+          <Para>{t("help.tipsExpiryBody")}</Para>
+
+          <SubHeading>{t("help.tipsWeightTitle")}</SubHeading>
+          <Para>{t("help.tipsWeightBody")}</Para>
+
+          <SubHeading>{t("help.tipsLibrarySearchTitle")}</SubHeading>
+          <Para>{t("help.tipsLibrarySearchBody")}</Para>
+
+          <SubHeading>{t("help.tipsBackupTitle")}</SubHeading>
+          <Para>{t("help.tipsBackupBody")}</Para>
+          <CallOut kind="tip">{t("help.tipsFinalTip")}</CallOut>
 
           <div style={{ marginTop: 64, paddingTop: 18, borderTop: `1.5px solid ${C.ink}`, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
             {t("help.endLabel")} · {t("brand.tagline")}
