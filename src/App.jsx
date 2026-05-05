@@ -12,16 +12,19 @@ import { createClient } from "@supabase/supabase-js";
 // in client code — Row Level Security policies in the database control what
 // each user can actually access.
 //
-// Using sessionStorage (not localStorage) so the user is logged out when the
-// browser tab closes. Change to localStorage to keep them logged in.
+// Use localStorage (not sessionStorage) so the user stays signed in across
+// browser tab closes and app switches. iOS Safari aggressively purges
+// sessionStorage when the PWA is backgrounded, which previously caused
+// data loss when switching apps.
 const SUPABASE_URL = "https://cqmdsbxccgxxznnhzoip.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yLnqUTGXr7UBkjeVufDliQ_50CQQM8E";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    storage: typeof window !== "undefined" ? window.sessionStorage : undefined,
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
   },
 });
 
@@ -13719,6 +13722,9 @@ export default function App() {
   // === SUPABASE: load personal data (items/cats/kits/packlists/cart) on login ===
   // Runs whenever the user changes (e.g. after login). Until this finishes,
   // personalDataLoaded is false — so the auto-sync effect below doesn't fire.
+  // IMPORTANT: We verify the user has a real authenticated Supabase session
+  // BEFORE loading. Without this, a cached user from localStorage could trigger
+  // an unauthenticated query, which RLS would silently return 0 rows for.
   useEffect(() => {
     if (!user?.id) {
       // No user signed in — clear personal data and mark as loaded
@@ -13734,6 +13740,24 @@ export default function App() {
     setPersonalDataLoaded(false);
     (async () => {
       try {
+        // First check: do we actually have a live Supabase session?
+        // If the user object came from localStorage cache but Supabase has no
+        // session (e.g. iOS Safari purged sessionStorage), the load query
+        // would return empty due to RLS. Bail out and prompt re-login instead.
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (!sessionData?.session?.user?.id) {
+          // No live session — clear cached user so they re-login
+          setUser({ name: "", email: "", username: "", region: "" });
+          setSyncError("Session expired. Please sign in again to see your data.");
+          setPersonalDataLoaded(true);
+          return;
+        }
+        // Session exists but for a different user? sync our user state to it.
+        if (sessionData.session.user.id !== user.id) {
+          // Reload from the actual session user — let the user effect re-run
+          return;
+        }
         const data = await supabaseService.loadPersonalData(user.id);
         if (cancelled) return;
         setItems(data.items || []);
