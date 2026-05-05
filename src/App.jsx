@@ -1042,6 +1042,10 @@ const TRANSLATIONS = {
     "pl.itemsCount_one": "1 item",
     "pl.itemsCount_many": "{n} items",
     "pl.totalUnique": "{n} total items",
+    "pl.wantedCount": "wanted",
+    "pl.packedCount": "packed",
+    "pl.wantToggle": "Want to take",
+    "pl.packedToggle": "Packed in bag",
     "pl.openBtn": "Open packlist",
     "pl.editBtn": "Edit",
     "pl.deleteBtn": "Delete",
@@ -1788,6 +1792,10 @@ const TRANSLATIONS = {
     "pl.itemsCount_one": "1 artículo",
     "pl.itemsCount_many": "{n} artículos",
     "pl.totalUnique": "{n} artículos en total",
+    "pl.wantedCount": "queridos",
+    "pl.packedCount": "empacados",
+    "pl.wantToggle": "Llevar",
+    "pl.packedToggle": "En la mochila",
     "pl.openBtn": "Abrir lista",
     "pl.editBtn": "Editar",
     "pl.deleteBtn": "Borrar",
@@ -8670,6 +8678,27 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
     ));
   };
 
+  // Toggle "want to take" state for an item on a specific packlist.
+  // Stores arrays of item IDs on the packlist itself so each trip has its
+  // own state independent of others.
+  const toggleWanted = (plId, itemId) => {
+    setPacklists(packlists.map((p) => {
+      if (p.id !== plId) return p;
+      const list = p.wantedItemIds || [];
+      const next = list.includes(itemId) ? list.filter((x) => x !== itemId) : [...list, itemId];
+      return { ...p, wantedItemIds: next };
+    }));
+  };
+  // Toggle "is packed" state for an item on a specific packlist.
+  const togglePackedOnPacklist = (plId, itemId) => {
+    setPacklists(packlists.map((p) => {
+      if (p.id !== plId) return p;
+      const list = p.packedItemIds || [];
+      const next = list.includes(itemId) ? list.filter((x) => x !== itemId) : [...list, itemId];
+      return { ...p, packedItemIds: next };
+    }));
+  };
+
   const startEdit = (id) => { setEditingId(id); setTab("edit"); setOpenId(null); };
   const editingPacklist = editingId ? packlists.find((p) => p.id === editingId) : null;
   const openPacklist = openId ? packlists.find((p) => p.id === openId) : null;
@@ -8695,6 +8724,8 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onEditItem={(id) => setDetailItemId(id)}
             onEditKit={(id) => setDetailKitId(id)}
             onEditCategory={(id) => setDetailCategoryId(id)}
+            onToggleWanted={(itemId) => toggleWanted(openPacklist.id, itemId)}
+            onTogglePacked={(itemId) => togglePackedOnPacklist(openPacklist.id, itemId)}
           />
         </div>
         <Footer />
@@ -10179,11 +10210,28 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
 
   const isSpanish = lang === "es";
 
-  // Item-row helper: renders the same way for items inside kits and standalone items
+  // Per-trip want/packed sets — pre-filled red ticks for wanted items.
+  // BACKWARDS COMPAT: legacy packlists default to "everything is wanted".
+  const wantedSet = new Set(packlist.wantedItemIds || null);
+  const hasWantedOverride = Array.isArray(packlist.wantedItemIds);
+  const packedSet = new Set(packlist.packedItemIds || []);
+  const isWanted = (id) => hasWantedOverride ? wantedSet.has(id) : true;
+  const isPacked = (id) => packedSet.has(id);
+
+  // Item-row helper: renders the same way for items inside kits and standalone items.
+  // Includes two boxes: WANT (red, ticked when wanted) and PACKED (green, blank for user to fill).
   const itemRow = (it) => {
     if (!it) return "";
+    const wantBox = isWanted(it.id)
+      ? `<span class="cb cb-want cb-checked">✓</span>`
+      : `<span class="cb cb-want"></span>`;
+    const packBox = isPacked(it.id)
+      ? `<span class="cb cb-packed cb-checked">✓</span>`
+      : `<span class="cb cb-packed"></span>`;
     return `
       <tr>
+        <td class="cell-cb">${wantBox}</td>
+        <td class="cell-cb">${packBox}</td>
         <td class="cell-name">${esc(it.name)}</td>
         <td class="cell-cat">${esc(it.category || "—")}</td>
         <td class="cell-w">${esc(it.weight || "—")}</td>
@@ -10207,6 +10255,8 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
             <table class="items-table">
               <thead>
                 <tr>
+                  <th class="cell-cb">${isSpanish ? "Llev" : "Want"}</th>
+                  <th class="cell-cb">${isSpanish ? "Emp" : "Pkd"}</th>
                   <th>${isSpanish ? "Artículo" : "Item"}</th>
                   <th>${isSpanish ? "Categoría" : "Category"}</th>
                   <th>${isSpanish ? "Peso" : "Weight"}</th>
@@ -10224,6 +10274,8 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
     <table class="items-table">
       <thead>
         <tr>
+          <th class="cell-cb">${isSpanish ? "Llev" : "Want"}</th>
+          <th class="cell-cb">${isSpanish ? "Emp" : "Pkd"}</th>
           <th>${isSpanish ? "Artículo" : "Item"}</th>
           <th>${isSpanish ? "Categoría" : "Category"}</th>
           <th>${isSpanish ? "Peso" : "Weight"}</th>
@@ -10247,6 +10299,8 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
             <table class="items-table">
               <thead>
                 <tr>
+                  <th class="cell-cb">${isSpanish ? "Llev" : "Want"}</th>
+                  <th class="cell-cb">${isSpanish ? "Emp" : "Pkd"}</th>
                   <th>${isSpanish ? "Artículo" : "Item"}</th>
                   <th>${isSpanish ? "Categoría" : "Category"}</th>
                   <th>${isSpanish ? "Peso" : "Weight"}</th>
@@ -10368,6 +10422,22 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
   .cell-name { font-weight: 500; color: #1A2421; }
   .cell-cat { color: #4A5550; font-style: italic; }
   .cell-w { color: #4A5550; white-space: nowrap; }
+  .cell-cb { width: 26px; padding: 4px 4px 4px 0; }
+  /* Two checkboxes per item: red WANT (pre-filled), green PACKED (blank).
+     Boxes render as small bordered squares; ticked ones get a colored fill. */
+  .cb {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid #1A2421;
+    text-align: center; line-height: 13px;
+    font-weight: 700; font-size: 13px;
+    vertical-align: middle;
+  }
+  .cb-want   { border-color: #B8451F; color: #B8451F; }
+  .cb-packed { border-color: #2D4A3E; color: #2D4A3E; }
+  .cb-checked { background-image: linear-gradient(transparent, transparent); }
+  .cb-want.cb-checked   { background: #B8451F; color: #FFFFFF; }
+  .cb-packed.cb-checked { background: #2D4A3E; color: #FFFFFF; }
   .footer {
     margin-top: 36px; padding-top: 14px;
     border-top: 1px dashed #C9BBA0;
@@ -11212,11 +11282,60 @@ function WeatherCheckModal({ packlist, items, kits, categories, onClose }) {
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
+
+  // Per-trip state arrays. Default: an item is "wanted" if it appears in
+  // the packlist at all. Once user touches the wanted toggle for any item,
+  // we record explicit state in `wantedItemIds`. Same for packed.
+  // BACKWARDS COMPAT: legacy packlists without these arrays default to
+  // "wanted = all items, packed = none".
+  const wantedSet = new Set(packlist.wantedItemIds || null);
+  const hasWantedOverride = Array.isArray(packlist.wantedItemIds);
+  const packedSet = new Set(packlist.packedItemIds || []);
+
+  // Helpers — `isWanted(id)` and `isPacked(id)` for any item ID
+  const isWanted = (id) => hasWantedOverride ? wantedSet.has(id) : true;
+  const isPacked = (id) => packedSet.has(id);
+
+  // Small checkbox component used twice per item row (red WANT, green PACKED).
+  // Stops click propagation so tapping doesn't open the item edit modal.
+  const Checkbox = ({ checked, color, onClick, title }) => (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick && onClick(); }}
+      title={title}
+      style={{
+        width: 22, height: 22, padding: 0, flexShrink: 0,
+        background: checked ? color : "transparent",
+        border: `2px solid ${color}`,
+        cursor: "pointer",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        color: C.paper,
+      }}
+      aria-label={title}
+    >
+      {checked && <Check size={14} strokeWidth={3} />}
+    </button>
+  );
+
+  // Render the two-checkbox group for an item id. Used inline in each row.
+  const ItemChecks = ({ itemId }) => (
+    <div style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+      <Checkbox
+        checked={isWanted(itemId)} color={C.rust}
+        onClick={() => onToggleWanted && onToggleWanted(itemId)}
+        title={t("pl.wantToggle")}
+      />
+      <Checkbox
+        checked={isPacked(itemId)} color={C.forest}
+        onClick={() => onTogglePacked && onTogglePacked(itemId)}
+        title={t("pl.packedToggle")}
+      />
+    </div>
+  );
 
   // Hydrate
   const includedKits = (packlist.kitIds || []).map((id) => kits.find((k) => k.id === id)).filter(Boolean);
@@ -11235,6 +11354,10 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
   const allUniqueItems = Array.from(idsInKits).map((id) => items.find((i) => i.id === id)).filter(Boolean);
   const totalKg = allUniqueItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
   const totalWeightStr = formatWeightFromKg(totalKg, units);
+
+  // Counts for the want/packed counter at the top
+  const wantedCount = allUniqueItems.filter((it) => isWanted(it.id)).length;
+  const packedCount = allUniqueItems.filter((it) => isPacked(it.id)).length;
 
   const isEmpty = includedKits.length === 0 && includedItems.length === 0 && includedCategories.length === 0;
   const hasMetadata = packlist.dest || packlist.date || packlist.type;
@@ -11279,6 +11402,20 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         <div style={{ marginTop: 12, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
           {t("pl.totalUnique", { n: totalUnique })}{totalUnique > 0 ? `  /  ${totalWeightStr}` : ""}
         </div>
+
+        {/* Want / Packed progress counter — only useful when there's items */}
+        {totalUnique > 0 && (
+          <div style={{ marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.rust, fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, border: `2px solid ${C.rust}`, display: "inline-block" }}></span>
+              {wantedCount}/{totalUnique} {t("pl.wantedCount")}
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.forest, fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, border: `2px solid ${C.forest}`, display: "inline-block" }}></span>
+              {packedCount}/{wantedCount} {t("pl.packedCount")}
+            </span>
+          </div>
+        )}
 
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn variant="rust" icon={Pencil} onClick={onEdit}>{t("pl.editBtn")}</Btn>
@@ -11353,14 +11490,15 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       {catItems.map((it) => (
-                        <button key={it.id}
+                        <div key={it.id}
                           onClick={() => onEditItem && onEditItem(it.id)}
                           style={{
                             display: "flex", alignItems: "center", gap: 10,
                             padding: "8px 12px 8px 28px",
-                            background: "transparent", border: "none", borderBottom: `1px solid ${C.line}`,
-                            cursor: onEditItem ? "pointer" : "default", textAlign: "left",
+                            borderBottom: `1px solid ${C.line}`,
+                            cursor: onEditItem ? "pointer" : "default",
                           }}>
+                          <ItemChecks itemId={it.id} />
                           <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
                             {it.name}
                           </span>
@@ -11369,7 +11507,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                               {formatWeight(it.weight, units)}
                             </span>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -11429,14 +11567,15 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       {kitItems.map((it) => (
-                        <button key={it.id}
+                        <div key={it.id}
                           onClick={() => onEditItem && onEditItem(it.id)}
                           style={{
                             display: "flex", alignItems: "center", gap: 10,
                             padding: "8px 12px 8px 12px",
-                            background: "transparent", border: "none", borderBottom: `1px solid ${C.line}`,
-                            cursor: onEditItem ? "pointer" : "default", textAlign: "left",
+                            borderBottom: `1px solid ${C.line}`,
+                            cursor: onEditItem ? "pointer" : "default",
                           }}>
+                          <ItemChecks itemId={it.id} />
                           <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
                             {it.name}
                           </span>
@@ -11450,7 +11589,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                               {formatWeight(it.weight, units)}
                             </span>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -11480,6 +11619,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                   display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
                   cursor: onEditItem ? "pointer" : "default",
                 }}>
+                <ItemChecks itemId={it.id} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em" }}>
                     {String(idx + 1).padStart(3, "0")}
