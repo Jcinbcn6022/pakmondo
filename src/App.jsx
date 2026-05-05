@@ -3938,6 +3938,16 @@ function SyncDot() {
 
   return (
     <div style={{ position: "relative" }}>
+      {/* Inline keyframes via a style tag — kept OUTSIDE the button to
+          avoid creating a text node inside it that can interfere with
+          click handling. */}
+      <style>{`
+        @keyframes pakmondo-pulse {
+          0%   { transform: scale(1);   opacity: 1;   }
+          50%  { transform: scale(1.4); opacity: 0.6; }
+          100% { transform: scale(1);   opacity: 1;   }
+        }
+      `}</style>
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={label}
@@ -3956,14 +3966,6 @@ function SyncDot() {
           boxShadow: status === "saving" ? `0 0 0 0 ${color}` : "none",
           display: "inline-block",
         }} />
-        {/* Inline keyframes via a style tag — declared once */}
-        <style>{`
-          @keyframes pakmondo-pulse {
-            0%   { transform: scale(1);   opacity: 1;   }
-            50%  { transform: scale(1.4); opacity: 0.6; }
-            100% { transform: scale(1);   opacity: 1;   }
-          }
-        `}</style>
       </button>
       {open && (
         <>
@@ -4049,9 +4051,9 @@ function Header({ go, active, onBack }) {
         </div>
 
         {!isMobile && (
-          <nav style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+          <nav style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
             {navItems.map(([k, l]) => (
-              <button key={k} onClick={() => go(k)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: active === k ? C.rust : C.ink, fontWeight: active === k ? 700 : 500 }}>
+              <button key={k} onClick={() => go(k)} style={{ background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: active === k ? C.rust : C.ink, fontWeight: active === k ? 700 : 500 }}>
                 {l}
               </button>
             ))}
