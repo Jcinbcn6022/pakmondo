@@ -582,6 +582,49 @@ const LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABLAAAAJHCAY
 // Reusable Logo component. Three sizes are dialed in for the places it
 // appears: hero (welcome / signin / dashboard top), header (persistent
 // navigation bar), and auth (signin / signup forms).
+// ============================================================
+// ManualIcon — custom SVG icon for the "Field Manual" button.
+// Open book in two-tone outline + a rust '?' on the right page.
+// Uses currentColor so the icon picks up the parent button's color
+// (forest ink by default, rust when active). Designed to read at
+// 18px (desktop) and 22px (mobile) where lucide-react icons are
+// used elsewhere. Replaces the previously-generic BookOpen icon.
+function ManualIcon({ size = 18, strokeWidth = 1.6 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
+      {/* Open book — two pages meeting at center spine */}
+      <path d="M 3 5.5 L 12 4.5 L 21 5.5 L 21 19 L 12 18 L 3 19 Z" />
+      <path d="M 12 4.5 L 12 18" />
+      {/* A few text lines on the left page (subtle) */}
+      <path d="M 5.5 8 L 9.5 7.6" strokeWidth={strokeWidth * 0.85} />
+      <path d="M 5.5 10.5 L 9 10.2" strokeWidth={strokeWidth * 0.85} />
+      <path d="M 5.5 13 L 8.5 12.7" strokeWidth={strokeWidth * 0.85} />
+      {/* Rust '?' on the right page */}
+      <text
+        x="16.5"
+        y="14.5"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontSize="9"
+        fontWeight="700"
+        fill="#B8451F"
+        stroke="none"
+        textAnchor="middle"
+      >?</text>
+    </svg>
+  );
+}
+
 function Logo({ size = 'header', onClick }) {
   // pickedHeight maps each size variant to a pixel height; width auto.
   const heights = { hero: 110, auth: 84, header: 38, headerMobile: 30 };
@@ -4119,7 +4162,7 @@ function Header({ go, active, onBack }) {
             <button onClick={() => go("cart")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: C.ink }} aria-label={t("nav.cart")}><ShoppingCart size={18} /></button>
           )}
           <button onClick={() => go("help")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: active === "help" ? C.rust : C.ink, minWidth: isMobile ? 44 : "auto", minHeight: isMobile ? 44 : "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("nav.help")} title={t("nav.help")}>
-            <BookOpen size={isMobile ? 22 : 18} />
+            <ManualIcon size={isMobile ? 22 : 18} />
           </button>
           <button onClick={() => go("settings")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("set.title")}>
             <Settings size={isMobile ? 22 : 18} />
