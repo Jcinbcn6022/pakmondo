@@ -5359,7 +5359,10 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
       <div style={{ padding: padX(isMobile), position: "relative" }}>
         <TopoBG opacity={0.08} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Membership card — appears top-right when user has a member_id. */}
+          {/* Membership card — appears top-right when user has a member_id.
+              The hero below uses paddingTop on mobile and a larger marginTop
+              elsewhere to ensure the card never overlaps the username/region
+              badge that sits below it. */}
           {user.member_id && (
             <div style={{
               position: "absolute",
@@ -5385,7 +5388,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
             </div>
           )}
 
-          <div style={{ marginTop: isMobile ? 24 : 40 }}>
+          <div style={{ marginTop: user.member_id ? (isMobile ? 80 : 100) : (isMobile ? 24 : 40) }}>
             <Coord>{t("dash.basecamp")}</Coord>
             <h1 style={{ margin: "12px 0 6px", fontFamily: F.display, fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 700, lineHeight: 0.95, letterSpacing: "-0.03em", fontStyle: "italic", color: C.forest, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span>
