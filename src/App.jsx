@@ -5682,17 +5682,19 @@ function AddPanel({ title, children, onSave, onCancel, saveLabel }) {
   );
 }
 
-function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory, uncategorizedDefault }) {
+function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory }) {
   const { t, lang, units } = useI18n();
   const editMode = !!initial;
   const [name, setName] = useState(initial?.name || "");
-  // When uncategorizedDefault is true (e.g. when this form is opened from
-  // inside the Add Kit flow), leave category empty so the item is filed as
-  // "Uncategorized". Otherwise default to provided defaultCategory or first.
+  // For NEW items: always default to "Uncategorized" (empty string).
+  // The user can pick a real category from the dropdown if they want.
+  // For EDIT mode: keep the item's current category as the starting value.
+  // The defaultCategory prop is used only as a hint (e.g. when adding inside
+  // a specific category page) but Uncategorized still wins if no hint given.
   const [category, setCategory] = useState(
-    initial?.category
-    || defaultCategory
-    || (uncategorizedDefault ? "" : (categories[0] ? categories[0].name : ""))
+    initial?.category != null
+      ? initial.category
+      : (defaultCategory || "")
   );
   const [quantity, setQuantity] = useState(initial?.quantity || 1);
   const [size, setSize] = useState(initial?.size || "");
@@ -6767,10 +6769,7 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
         <Modal title={t("form.addItemTitle")} onClose={() => setShowCreateItem(false)}>
           <AddItemForm
             categories={categories}
-            // Pass empty string so the form treats this item as Uncategorized
-            // by default (the user can still pick a category from the dropdown).
-            defaultCategory={category || ""}
-            uncategorizedDefault={true}
+            // No defaultCategory passed — falls back to Uncategorized.
             onAdd={(data) => {
               // onAddItem (wired to addItemSilent at the top level) handles
               // the id assignment and global state update. It returns the
