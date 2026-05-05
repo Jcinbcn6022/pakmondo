@@ -353,7 +353,7 @@ const supabaseService = {
   fetchLibrary: async ({ kind, activity, region, limit = 60 } = {}) => {
     let q = supabase
       .from("library_items")
-      .select("id, publisher_user_id, publisher_username, publisher_credit, publisher_region, kind, title, description, activity, view_count, import_count, created_at")
+      .select("id, publisher_user_id, publisher_username, publisher_credit, publisher_region, kind, title, description, title_es, description_es, activity, view_count, import_count, created_at")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(limit);
