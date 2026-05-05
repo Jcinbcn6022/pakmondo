@@ -273,7 +273,11 @@ const supabaseService = {
   },
 
   // Submit content to the library (status starts as 'pending', awaiting admin review)
-  publishToLibrary: async ({ kind, title, description, activity, payload, publisher, credit }) => {
+  // Accepts both English (title, description) and optional Spanish
+  // (title_es, description_es) versions. The library will display the
+  // appropriate language based on the viewer's preference, falling back
+  // to English when Spanish is missing.
+  publishToLibrary: async ({ kind, title, description, title_es, description_es, activity, payload, publisher, credit }) => {
     const { data, error } = await supabase
       .from("library_items")
       .insert({
@@ -284,6 +288,8 @@ const supabaseService = {
         kind,
         title: title.trim(),
         description: (description || "").trim() || null,
+        title_es: (title_es || "").trim() || null,
+        description_es: (description_es || "").trim() || null,
         activity: activity.trim(),
         payload,
         status: "pending",
@@ -829,6 +835,14 @@ const TRANSLATIONS = {
     "lib.fieldTitle": "Title",
     "lib.optionalSuffix": "(optional)",
     "lib.fieldTitleHint": "How should this appear in the library?",
+    "lib.fieldTitleEsHint": "Spanish version of the title — leave blank if you prefer English-only.",
+    "lib.titleEsPh": "Mi kit de camp frío",
+    "lib.descriptionEsPh": "Tres semanas en la cordillera Darwin. Húmedo, frío, expuesto.",
+    "lib.langEN": "(EN)",
+    "lib.langES": "(ES)",
+    "lib.addEs": "Add Spanish translation",
+    "lib.removeEs": "Remove Spanish translation",
+    "lib.bilingualHint": "Add a Spanish version so Spanish-speaking explorers can find it too.",
     "lib.fieldActivity": "Activity",
     "lib.fieldActivityHint": "Pick the closest match, or type a new one.",
     "lib.activityPh": "Trekking, Camping, …",
@@ -895,6 +909,13 @@ const TRANSLATIONS = {
     "libBrowse.filterAll": "All",
     "libBrowse.filterRegion": "Region",
     "libBrowse.filterActivity": "Activity",
+    "libBrowse.filterLanguage": "Language",
+    "libBrowse.langAll": "All languages",
+    "libBrowse.langEsFirst": "Spanish first, then all",
+    "libBrowse.langEnOnly": "English available",
+    "libBrowse.langEsOnly": "Spanish available",
+    "libBrowse.emptyLang": "Nothing in this language yet.",
+    "libBrowse.emptyLangHint": "Try a different language filter.",
     "libBrowse.empty": "Nothing here yet.",
     "libBrowse.emptyHint": "Be the first to publish a {kind} for this filter.",
     "libBrowse.emptyAll": "The library is empty for now.",
@@ -1996,6 +2017,14 @@ const TRANSLATIONS = {
     "lib.fieldTitle": "Título",
     "lib.optionalSuffix": "(opcional)",
     "lib.fieldTitleHint": "¿Cómo debería aparecer en la biblioteca?",
+    "lib.fieldTitleEsHint": "Versión en español del título — déjalo en blanco si prefieres solo inglés.",
+    "lib.titleEsPh": "Mi kit de camp frío",
+    "lib.descriptionEsPh": "Tres semanas en la cordillera Darwin. Húmedo, frío, expuesto.",
+    "lib.langEN": "(EN)",
+    "lib.langES": "(ES)",
+    "lib.addEs": "Añadir traducción al español",
+    "lib.removeEs": "Quitar traducción al español",
+    "lib.bilingualHint": "Añade una versión en español para que los exploradores hispanohablantes también la encuentren.",
     "lib.fieldActivity": "Actividad",
     "lib.fieldActivityHint": "Elige la mejor opción, o escribe una nueva.",
     "lib.activityPh": "Trekking, Acampar, …",
@@ -2060,6 +2089,13 @@ const TRANSLATIONS = {
     "libBrowse.filterAll": "Todo",
     "libBrowse.filterRegion": "Región",
     "libBrowse.filterActivity": "Actividad",
+    "libBrowse.filterLanguage": "Idioma",
+    "libBrowse.langAll": "Todos los idiomas",
+    "libBrowse.langEsFirst": "Español primero, luego todo",
+    "libBrowse.langEnOnly": "Disponible en inglés",
+    "libBrowse.langEsOnly": "Disponible en español",
+    "libBrowse.emptyLang": "Nada en este idioma todavía.",
+    "libBrowse.emptyLangHint": "Prueba con otro filtro de idioma.",
     "libBrowse.empty": "Nada aquí todavía.",
     "libBrowse.emptyHint": "Sé el primero en publicar un {kind} para este filtro.",
     "libBrowse.emptyAll": "La biblioteca está vacía por ahora.",
@@ -8156,9 +8192,14 @@ function PublishDialog({
   const { isMobile } = useViewport();
 
   const [title, setTitle] = useState(entity?.name || "");
+  const [titleEs, setTitleEs] = useState("");
   const [activity, setActivity] = useState("");
   const [activityFocused, setActivityFocused] = useState(false);
   const [description, setDescription] = useState("");
+  const [descriptionEs, setDescriptionEs] = useState("");
+  // Whether to show the Spanish fields. Hidden by default to keep the form
+  // simple — publishers tap "Add Spanish translation" to expand them.
+  const [showEs, setShowEs] = useState(false);
   // Optional public credit name shown on the library card. Defaults to the
   // user's real name from their profile (falls back to username if no name set).
   const [credit, setCredit] = useState(currentUser?.name || currentUser?.username || "");
@@ -8227,6 +8268,8 @@ function PublishDialog({
       kind,
       title,
       description,
+      title_es: titleEs,
+      description_es: descriptionEs,
       activity: activityName,
       payload,
       publisher: {
@@ -8273,11 +8316,25 @@ function PublishDialog({
 
             <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 18 }}>
 
-              {/* Title */}
+              {/* Title (English) */}
               <div>
-                <Field label={t("lib.fieldTitle")} icon={Tag} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={entity?.name || ""} />
+                <Field label={`${t("lib.fieldTitle")} ${t("lib.langEN")}`} icon={Tag} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={entity?.name || ""} />
                 <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldTitleHint")}</div>
               </div>
+
+              {/* Title (Spanish) — only shown when ES section is expanded */}
+              {showEs && (
+                <div>
+                  <Field
+                    label={`${t("lib.fieldTitle")} ${t("lib.langES")}`}
+                    icon={Tag}
+                    value={titleEs}
+                    onChange={(e) => setTitleEs(e.target.value)}
+                    placeholder={t("lib.titleEsPh")}
+                  />
+                  <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldTitleEsHint")}</div>
+                </div>
+              )}
 
               {/* Activity with autocomplete */}
               <div style={{ position: "relative" }}>
@@ -8325,10 +8382,10 @@ function PublishDialog({
                 )}
               </div>
 
-              {/* Description */}
+              {/* Description (English) */}
               <label style={{ display: "block" }}>
                 <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                  {t("lib.fieldDescription")} {t("lib.optionalSuffix")}
+                  {t("lib.fieldDescription")} {t("lib.langEN")} {t("lib.optionalSuffix")}
                 </div>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                   placeholder={t("lib.descriptionPh")} rows={4}
@@ -8339,6 +8396,43 @@ function PublishDialog({
                   }} />
                 <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>{t("lib.fieldDescriptionHint")}</div>
               </label>
+
+              {/* Description (Spanish) — only shown when ES section is expanded */}
+              {showEs && (
+                <label style={{ display: "block" }}>
+                  <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                    {t("lib.fieldDescription")} {t("lib.langES")} {t("lib.optionalSuffix")}
+                  </div>
+                  <textarea value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)}
+                    placeholder={t("lib.descriptionEsPh")} rows={4}
+                    style={{
+                      width: "100%", padding: "10px 0", background: "transparent", border: "none",
+                      borderBottom: `1.5px solid ${C.ink}`, outline: "none",
+                      fontFamily: F.body, fontSize: 16, color: C.ink, resize: "vertical",
+                    }} />
+                </label>
+              )}
+
+              {/* Toggle button to add/remove the Spanish translation section */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowEs((v) => !v)}
+                  style={{
+                    background: "transparent", border: `1px dashed ${C.forest}`,
+                    padding: "10px 16px", cursor: "pointer",
+                    fontFamily: F.mono, fontSize: 11,
+                    letterSpacing: "0.18em", textTransform: "uppercase",
+                    color: C.forest, fontWeight: 700,
+                  }}>
+                  {showEs ? `− ${t("lib.removeEs")}` : `+ ${t("lib.addEs")}`}
+                </button>
+                {!showEs && (
+                  <div style={{ marginTop: 6, fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: C.muted }}>
+                    {t("lib.bilingualHint")}
+                  </div>
+                )}
+              </div>
 
               {/* Published-by credit — optional, defaults to user's real name.
                   Shown publicly on the library card so contributors get credit. */}
@@ -14704,6 +14798,10 @@ function Library({
   const [kind, setKind] = useState("kit");
   const [activity, setActivity] = useState("");
   const [region, setRegion] = useState("");
+  // Language availability filter — "all" | "EN" | "ES" | "EN_ES"
+  // Default: when user is browsing in Spanish, prefer Spanish-available
+  // content first; English users default to seeing everything.
+  const [langFilter, setLangFilter] = useState(lang === "es" ? "ES_PREF" : "all");
   const [list, setList] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14836,6 +14934,23 @@ function Library({
               ))}
             </select>
           </label>
+          <label style={{ flex: "1 1 200px", minWidth: 180 }}>
+            <div style={{ marginBottom: 4, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("libBrowse.filterLanguage")}
+            </div>
+            <select value={langFilter} onChange={(e) => setLangFilter(e.target.value)} style={{
+              width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+              borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+              appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+              backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+              backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+            }}>
+              <option value="all">{t("libBrowse.langAll")}</option>
+              {lang === "es" && <option value="ES_PREF">{t("libBrowse.langEsFirst")}</option>}
+              <option value="EN">{t("libBrowse.langEnOnly")}</option>
+              <option value="ES">{t("libBrowse.langEsOnly")}</option>
+            </select>
+          </label>
           {(region || activity) && (
             <Btn variant="ghost" icon={X} onClick={() => { setRegion(""); setActivity(""); }}>
               Clear filters
@@ -14858,13 +14973,45 @@ function Library({
                 {region || activity ? t("libBrowse.emptyHint", { kind }) : t("libBrowse.emptyAllHint")}
               </div>
             </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
-              {list.map((it) => (
-                <LibraryCard key={it.id} item={it} onOpen={() => setOpenItemId(it.id)} />
-              ))}
-            </div>
-          )}
+          ) : (() => {
+            // Apply language filter client-side. The fetch returned ALL items;
+            // here we narrow to those matching the current langFilter setting.
+            //   "all"    → show everything
+            //   "EN"     → show only items where English title is present
+            //   "ES"     → show only items where Spanish title is present
+            //   "ES_PREF"→ show items with Spanish first, English fallback after
+            const filtered = list.filter((it) => {
+              const hasEs = !!(it.title_es && it.title_es.trim());
+              const hasEn = !!(it.title && it.title.trim());
+              if (langFilter === "EN") return hasEn;
+              if (langFilter === "ES") return hasEs;
+              return hasEn || hasEs; // "all" or "ES_PREF"
+            });
+            // For ES_PREF, sort items with ES available before EN-only
+            const sorted = langFilter === "ES_PREF"
+              ? [...filtered].sort((a, b) => {
+                  const aEs = !!(a.title_es && a.title_es.trim());
+                  const bEs = !!(b.title_es && b.title_es.trim());
+                  return (aEs === bEs) ? 0 : aEs ? -1 : 1;
+                })
+              : filtered;
+            return sorted.length === 0 ? (
+              <div style={{ padding: isMobile ? 32 : 48, textAlign: "center", border: `1.5px dashed ${C.line}`, background: C.paperDeep }}>
+                <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 20 : 24, color: C.inkSoft }}>
+                  {t("libBrowse.emptyLang")}
+                </div>
+                <div style={{ marginTop: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", color: C.muted, textTransform: "uppercase" }}>
+                  {t("libBrowse.emptyLangHint")}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
+                {sorted.map((it) => (
+                  <LibraryCard key={it.id} item={it} onOpen={() => setOpenItemId(it.id)} />
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
       <Footer go={go} />
@@ -14873,12 +15020,33 @@ function Library({
 }
 
 // One card in the library list
+// Helper: pick the title/description in the viewer's preferred language,
+// falling back to the other language if the preferred one is missing.
+// Returns { title, description, availableLangs } where availableLangs is
+// "EN", "ES", or "EN_ES" depending on which fields are populated.
+function getLibraryItemLocalized(item, lang) {
+  const hasEn = !!(item.title && item.title.trim());
+  const hasEs = !!(item.title_es && item.title_es.trim());
+  const wantEs = lang === "es";
+  const title = wantEs && hasEs ? item.title_es
+              : hasEn ? item.title
+              : item.title_es || item.title || "";
+  const description = wantEs && (item.description_es && item.description_es.trim())
+                    ? item.description_es
+                    : item.description || item.description_es || "";
+  const availableLangs = hasEs && hasEn ? "EN_ES" : hasEs ? "ES" : "EN";
+  return { title, description, availableLangs };
+}
+
 function LibraryCard({ item, onOpen }) {
   const { t, lang } = useI18n();
   const { isMobile } = useViewport();
   const importsLabel = item.import_count === 1
     ? t("libBrowse.imports_one")
     : t("libBrowse.imports_many", { n: item.import_count || 0 });
+
+  // Resolve title + description in viewer's language with fallback
+  const { title, description, availableLangs } = getLibraryItemLocalized(item, lang);
 
   return (
     <button onClick={onOpen} style={{
@@ -14888,17 +15056,29 @@ function LibraryCard({ item, onOpen }) {
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
         <Coord>{item.kind.toUpperCase()}</Coord>
-        {item.publisher_region && <RegionBadge code={item.publisher_region} />}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {/* Language availability badge — shows EN, ES, or EN/ES */}
+          <span style={{
+            fontFamily: F.mono, fontSize: 9,
+            letterSpacing: "0.15em",
+            padding: "2px 6px",
+            border: `1px solid ${C.line}`,
+            color: C.muted, fontWeight: 700,
+          }}>
+            {availableLangs === "EN_ES" ? "EN/ES" : availableLangs}
+          </span>
+          {item.publisher_region && <RegionBadge code={item.publisher_region} />}
+        </div>
       </div>
       <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 4 }}>
-        {item.title}
+        {title}
       </div>
       <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
         {item.activity}
       </div>
-      {item.description && (
+      {description && (
         <div style={{ marginTop: 10, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          {item.description}
+          {description}
         </div>
       )}
       <div style={{ flex: 1 }} />
@@ -15072,11 +15252,11 @@ function LibraryDetail({
         </button>
         <Coord>{item.kind.toUpperCase()}  ·  {item.activity}</Coord>
         <h2 style={{ margin: "8px 0 8px", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>
-          {item.title}<span style={{ color: C.rust }}>.</span>
+          {getLibraryItemLocalized(item, lang).title}<span style={{ color: C.rust }}>.</span>
         </h2>
-        {item.description && (
+        {getLibraryItemLocalized(item, lang).description && (
           <div style={{ marginTop: 10, fontFamily: F.display, fontStyle: "italic", color: C.inkSoft, fontSize: isMobile ? 15 : 17, lineHeight: 1.5 }}>
-            {item.description}
+            {getLibraryItemLocalized(item, lang).description}
           </div>
         )}
         <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
