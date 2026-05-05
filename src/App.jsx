@@ -3,7 +3,7 @@ import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
   ArrowLeft, Plus, Check, X, ChevronRight, ChevronDown, User, Lock, Mail, CreditCard,
   Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil, Download, Cloud,
-  Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu, BookOpen
+  Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu, BookOpen, Search
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -627,6 +627,7 @@ const TRANSLATIONS = {
     "common.save": "Save",
     "common.yes": "Yes",
     "common.no": "No",
+    "common.clear": "Clear",
     "common.done": "Done",
     "common.dismiss": "Dismiss",
     "common.loading": "Breaking camp...",
@@ -652,6 +653,8 @@ const TRANSLATIONS = {
     "kitDetail.addExisting": "Add existing items",
     "kitDetail.tickToAdd": "Tap an item to add it to the kit",
     "kitDetail.noOthersToAdd": "No other items in your inventory to add.",
+    "kitDetail.searchPh": "Search items by name or category…",
+    "kitDetail.searchEmpty": "No items match \"{q}\".",
     "kitDetail.createNew": "Create a new item",
 
     "catDetail.itemsInCategory": "Items in this category",
@@ -1104,6 +1107,7 @@ const TRANSLATIONS = {
     "inv.emptyFilterHint": "All your dated items are still safe",
     "inv.emptyItems": "No items catalogued yet",
     "inv.emptyItemsHint": "Add an item to begin",
+    "inv.searchPh": "Search items by name or category…",
     "inv.emptyCats": "No categories yet",
     "inv.emptyCatsHint": "Add one to start sorting",
     "inv.emptyTypes": "No ADV Styles yet",
@@ -1823,6 +1827,7 @@ const TRANSLATIONS = {
     "common.yes": "Sí",
     "common.no": "No",
     "common.done": "Listo",
+    "common.clear": "Limpiar",
     "common.dismiss": "Cerrar",
     "common.loading": "Levantando el campamento...",
     "common.loadingSub": "Cargando el diario de campo",
@@ -1847,6 +1852,8 @@ const TRANSLATIONS = {
     "kitDetail.addExisting": "Añadir artículos existentes",
     "kitDetail.tickToAdd": "Toca un artículo para añadirlo al kit",
     "kitDetail.noOthersToAdd": "No hay otros artículos en tu inventario para añadir.",
+    "kitDetail.searchPh": "Buscar artículos por nombre o categoría…",
+    "kitDetail.searchEmpty": "Ningún artículo coincide con \"{q}\".",
     "kitDetail.createNew": "Crear un nuevo artículo",
 
     "catDetail.itemsInCategory": "Artículos en esta categoría",
@@ -2279,6 +2286,7 @@ const TRANSLATIONS = {
     "inv.emptyFilterHint": "Todos tus artículos con fecha están a salvo",
     "inv.emptyItems": "Sin artículos catalogados",
     "inv.emptyItemsHint": "Añade un artículo para empezar",
+    "inv.searchPh": "Buscar artículos por nombre o categoría…",
     "inv.emptyCats": "Sin categorías todavía",
     "inv.emptyCatsHint": "Añade una para empezar a clasificar",
     "inv.emptyTypes": "Sin Estilos ADV todavía",
@@ -6609,9 +6617,22 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
   const [showAddItems, setShowAddItems] = useState(false);
   // Toggle for the full "Create new item" modal (uses AddItemForm — same as Items page)
   const [showCreateItem, setShowCreateItem] = useState(false);
+  // Search query for filtering the existing-items picker. With many items in
+  // inventory, scrolling becomes painful — search makes finding items quick.
+  const [searchQuery, setSearchQuery] = useState("");
 
   const inKit       = (items || []).filter((it) => itemIds.includes(it.id));
   const notInKit    = (items || []).filter((it) => !itemIds.includes(it.id));
+  // Apply search filter to notInKit. Case-insensitive match on name OR
+  // category. Empty query shows everything.
+  const visibleToAdd = searchQuery.trim()
+    ? notInKit.filter((it) => {
+        const q = searchQuery.trim().toLowerCase();
+        const name = (it.name || "").toLowerCase();
+        const cat  = (it.category || "").toLowerCase();
+        return name.includes(q) || cat.includes(q);
+      })
+    : notInKit;
   const removeItem  = (id) => setItemIds(itemIds.filter((x) => x !== id));
   const addItem     = (id) => setItemIds([...itemIds, id]);
 
@@ -6712,17 +6733,53 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
                 <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
                   {t("kitDetail.tickToAdd")}
                 </span>
-                <button type="button" onClick={() => setShowAddItems(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
+                <button type="button" onClick={() => { setShowAddItems(false); setSearchQuery(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
                   <X size={14} />
                 </button>
               </div>
+
+              {/* Search input — appears whenever there are items to filter.
+                  Filters by item name OR category, case-insensitive. */}
+              {notInKit.length > 0 && (
+                <div style={{ position: "relative", marginBottom: 10 }}>
+                  <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t("kitDetail.searchPh")}
+                    style={{
+                      width: "100%",
+                      padding: "8px 32px 8px 32px",
+                      background: C.paper,
+                      border: `1px solid ${C.line}`,
+                      outline: "none",
+                      fontFamily: F.body,
+                      fontSize: 14,
+                      color: C.ink,
+                    }}
+                  />
+                  {searchQuery && (
+                    <button type="button" onClick={() => setSearchQuery("")}
+                      style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                      aria-label={t("common.clear")}>
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
+
               {notInKit.length === 0 ? (
                 <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
                   {t("kitDetail.noOthersToAdd")}
                 </div>
+              ) : visibleToAdd.length === 0 ? (
+                <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                  {t("kitDetail.searchEmpty", { q: searchQuery })}
+                </div>
               ) : (
                 <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-                  {notInKit.map((it) => (
+                  {visibleToAdd.map((it) => (
                     <button key={it.id} type="button"
                       onClick={() => addItem(it.id)}
                       style={{
@@ -8830,6 +8887,8 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   const [tab, setTab] = useState("items");
   const [adding, setAdding] = useState(false);
   const [openCategoryId, setOpenCategoryId] = useState(null);
+  // Search query for the items tab — filters inventory items by name/category
+  const [searchQuery, setSearchQuery] = useState("");
   // Share dialog state — { kind, entity } or null
   const [sharing, setSharing] = useState(null);
   // Publish dialog state — { kind, entity } or null
@@ -8890,8 +8949,17 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
   const switchTab = (k) => { setTab(k); setAdding(false); setOpenCategoryId(null); };
   const addLabel = tab === "items" ? t("inv.addItem") : tab === "categories" ? t("inv.addCategory") : tab === "cart" ? t("cart.add") : t("inv.addKit");
 
-  const filteredItems = filter === "expiring" ? getExpiryAlerts(items) : items;
-  const filterActive = filter === "expiring" && tab === "items";
+  // Apply expiry filter first (if active), then narrow further by search query.
+  let filteredItems = filter === "expiring" ? getExpiryAlerts(items) : items;
+  if (searchQuery.trim()) {
+    const q = searchQuery.trim().toLowerCase();
+    filteredItems = filteredItems.filter((it) => {
+      const name = (it.name || "").toLowerCase();
+      const cat  = (it.category || "").toLowerCase();
+      return name.includes(q) || cat.includes(q);
+    });
+  }
+  const filterActive = (filter === "expiring" || searchQuery.trim().length > 0) && tab === "items";
   const filterSubKey = filteredItems.length === 1 ? "inv.filterSub_one" : "inv.filterSub_many";
 
   return (
@@ -8952,7 +9020,39 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           )}
         </div>
         <div style={{ marginTop: isMobile ? 20 : 32 }}>
-          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}<ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} onEdit={(id) => setEditingItemId(id)} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} categories={categories} kits={kits} /></>}
+          {tab === "items" && <>{adding && <AddItemForm categories={categories} onAdd={addItem} onCancel={() => setAdding(false)} />}
+            {/* Search bar — filters inventory items by name OR category. Only
+                shown when there are items to filter (otherwise empty state
+                is more useful than an empty search box). */}
+            {items.length > 0 && (
+              <div style={{ position: "relative", marginBottom: 14 }}>
+                <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("inv.searchPh")}
+                  style={{
+                    width: "100%",
+                    padding: "10px 36px 10px 38px",
+                    background: C.paper,
+                    border: `1.5px solid ${C.ink}`,
+                    outline: "none",
+                    fontFamily: F.body,
+                    fontSize: 15,
+                    color: C.ink,
+                  }}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery("")}
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    aria-label={t("common.clear")}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+            <ItemsView items={filteredItems} onToggle={togglePacked} onDelete={deleteItem} onEdit={(id) => setEditingItemId(id)} emptyLabel={filterActive ? t("inv.emptyFilter") : undefined} emptyHint={filterActive ? t("inv.emptyFilterHint") : undefined} packlists={packlists} setPacklists={setPacklists} categories={categories} kits={kits} /></>}
           {tab === "categories" && (() => {
             const openCategory = openCategoryId ? categories.find((c) => c.id === openCategoryId) : null;
             if (openCategory) {
@@ -12513,11 +12613,22 @@ function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onA
   const [showCreate, setShowCreate] = useState(false);
   const [showAddExisting, setShowAddExisting] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", weight: "", category: "" });
+  // Search query for filtering existing items in the picker.
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Items currently in the kit
   const kitItems = (kit.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
   // Items in inventory NOT currently in the kit — candidates for "add"
   const otherItems = items.filter((it) => !(kit.itemIds || []).includes(it.id));
+  // Filter the candidates by search query (name or category, case-insensitive).
+  const visibleOthers = searchQuery.trim()
+    ? otherItems.filter((it) => {
+        const q = searchQuery.trim().toLowerCase();
+        const name = (it.name || "").toLowerCase();
+        const cat  = (it.category || "").toLowerCase();
+        return name.includes(q) || cat.includes(q);
+      })
+    : otherItems;
   // Total weight summary
   const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
   const kitWeightStr = formatWeightFromKg(kitKg, units);
@@ -12617,17 +12728,52 @@ function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onA
               <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
                 {t("kitDetail.tickToAdd")}
               </span>
-              <button onClick={() => setShowAddExisting(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
+              <button onClick={() => { setShowAddExisting(false); setSearchQuery(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
                 <X size={14} />
               </button>
             </div>
+
+            {/* Search input — appears when there are items to filter */}
+            {otherItems.length > 0 && (
+              <div style={{ position: "relative", marginBottom: 10 }}>
+                <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("kitDetail.searchPh")}
+                  style={{
+                    width: "100%",
+                    padding: "8px 32px 8px 32px",
+                    background: C.paper,
+                    border: `1px solid ${C.line}`,
+                    outline: "none",
+                    fontFamily: F.body,
+                    fontSize: 14,
+                    color: C.ink,
+                  }}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery("")}
+                    style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    aria-label={t("common.clear")}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+
             {otherItems.length === 0 ? (
               <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
                 {t("kitDetail.noOthersToAdd")}
               </div>
+            ) : visibleOthers.length === 0 ? (
+              <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("kitDetail.searchEmpty", { q: searchQuery })}
+              </div>
             ) : (
               <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-                {otherItems.map((it) => (
+                {visibleOthers.map((it) => (
                   <button key={it.id}
                     onClick={() => toggleExisting(it.id)}
                     style={{
@@ -12701,10 +12847,22 @@ function CategoryDetailModal({ category, items, kits, categories, onUpdateItem, 
   const [showCreate, setShowCreate] = useState(false);
   const [showAddExisting, setShowAddExisting] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", weight: "" });
+  // Search query for filtering existing items in the picker.
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Items currently in this category
   const inCategory = items.filter((i) => i.category === category.name);
   const otherItems = items.filter((i) => i.category !== category.name);
+  // Filter the candidates by search query (name only — they all have a
+  // category that's NOT this one, so filtering by category isn't useful here).
+  const visibleOthers = searchQuery.trim()
+    ? otherItems.filter((it) => {
+        const q = searchQuery.trim().toLowerCase();
+        const name = (it.name || "").toLowerCase();
+        const cat  = (it.category || "").toLowerCase();
+        return name.includes(q) || cat.includes(q);
+      })
+    : otherItems;
 
   // Group items by kit. Each item only counts once even if (theoretically)
   // it ends up in multiple kits — first match wins.
@@ -12895,17 +13053,52 @@ function CategoryDetailModal({ category, items, kits, categories, onUpdateItem, 
               <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
                 {t("catDetail.tickToAdd")}
               </span>
-              <button onClick={() => setShowAddExisting(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
+              <button onClick={() => { setShowAddExisting(false); setSearchQuery(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }} aria-label="Close">
                 <X size={14} />
               </button>
             </div>
+
+            {/* Search input — appears when there are items to filter */}
+            {otherItems.length > 0 && (
+              <div style={{ position: "relative", marginBottom: 10 }}>
+                <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("kitDetail.searchPh")}
+                  style={{
+                    width: "100%",
+                    padding: "8px 32px 8px 32px",
+                    background: C.paper,
+                    border: `1px solid ${C.line}`,
+                    outline: "none",
+                    fontFamily: F.body,
+                    fontSize: 14,
+                    color: C.ink,
+                  }}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery("")}
+                    style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    aria-label={t("common.clear")}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+
             {otherItems.length === 0 ? (
               <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
                 {t("catDetail.noOthersToAdd")}
               </div>
+            ) : visibleOthers.length === 0 ? (
+              <div style={{ padding: "10px 0", fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                {t("kitDetail.searchEmpty", { q: searchQuery })}
+              </div>
             ) : (
               <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-                {otherItems.map((it) => (
+                {visibleOthers.map((it) => (
                   <button key={it.id}
                     onClick={() => addExisting(it.id)}
                     style={{
