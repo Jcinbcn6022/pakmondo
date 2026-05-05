@@ -1335,51 +1335,6 @@ const TRANSLATIONS = {
     "set.storageError": "Storage unavailable",
     "set.storageInit": "Initializing",
     "set.resetData": "Reset all saved data",
-    "set.replayTutorial": "Replay first-run tutorial",
-    "onboard.skip": "Skip tour",
-    "onboard.start": "Let's go",
-    "onboard.continue": "Continue",
-    "onboard.done": "Start using PakMondo",
-    "onboard.viewGear": "Show me my gear",
-    "onboard.welcomeKicker": "WELCOME · BASECAMP",
-    "onboard.welcomeTitle": "PakMondo helps you pack smarter",
-    "onboard.welcomeBody": "In about a minute, we'll set up your first piece of gear, group it into a kit, and create a packlist for a trip. You'll end up with a working starter setup. You can skip at any point.",
-    "onboard.step1Kicker": "STEP 1 · ITEMS",
-    "onboard.step1Title": "Add your first piece of gear",
-    "onboard.step1Body": "Items are individual things you might pack — a tent, a headlamp, a water bottle. Each item can have weight, expiry, notes. Let's add one to get started.",
-    "onboard.step2Kicker": "STEP 2 · KITS",
-    "onboard.step2Title": "Group items into a kit",
-    "onboard.step2Body": "A kit bundles related items so you can grab them together. Examples: 'Cold Camp Essentials' (sleeping bag + base layers) or 'Day Hike Light' (snacks + first aid).",
-    "onboard.step3Kicker": "STEP 3 · PACKLISTS",
-    "onboard.step3Title": "Make a packlist for a trip",
-    "onboard.step3Body": "A packlist is what you take on a specific trip. Add kits to it (or individual items). You can check the weather forecast against your gear, print a checklist, and tick items as packed.",
-    "onboard.step4Kicker": "STEP 4 · NAVIGATION",
-    "onboard.step4Title": "Where to find things",
-    "onboard.step4Body": "Quick tour of the four main areas you'll use:",
-    "onboard.tourInvTitle": "Inventory",
-    "onboard.tourInvBody": "All your gear — items, kits, and categories. The home of your stuff.",
-    "onboard.tourPlTitle": "Packlists",
-    "onboard.tourPlBody": "One list per trip. Tick items as packed, check weather, print checklists.",
-    "onboard.tourLibTitle": "Library",
-    "onboard.tourLibBody": "Browse community-curated kits and packlists. Import any you like into your own.",
-    "onboard.tourWeatherTitle": "Weather check",
-    "onboard.tourWeatherBody": "On any saved packlist, the weather button compares the forecast against your gear and flags gaps.",
-    "onboard.doneKicker": "READY · MMXXV",
-    "onboard.doneTitle": "You're packed and ready",
-    "onboard.doneBody": "You've got a starter setup. Add more items, build out kits for different activities, and make a packlist before each trip. The Library has community templates to get you going faster.",
-    "onboard.itemNameLabel": "Item name",
-    "onboard.kitNameLabel": "Kit name",
-    "onboard.packlistNameLabel": "Packlist name",
-    "onboard.fileItem": "File the item",
-    "onboard.fileKit": "File the kit",
-    "onboard.filePacklist": "File the packlist",
-    "onboard.justCreatedItem": "Just created",
-    "onboard.justCreatedKit": "Just created",
-    "onboard.starterKit": "Your starter setup",
-    "onboard.itemSingular": "item",
-    "onboard.defaultItem": "Tent",
-    "onboard.defaultKit": "Camping Essentials",
-    "onboard.defaultPacklist": "Weekend Trip",
     "set.strikeCamp": "Strike camp?",
     "set.strikeNote": "All items, categories, ADV styles, kits, trips, and cart contents will be wiped and replaced with the default sample log. This cannot be undone.",
     "set.confirmWipe": "Yes, wipe data",
@@ -2134,51 +2089,6 @@ const TRANSLATIONS = {
     "set.storageError": "Almacenamiento no disponible",
     "set.storageInit": "Inicializando",
     "set.resetData": "Borrar todos los datos",
-    "set.replayTutorial": "Repetir tutorial inicial",
-    "onboard.skip": "Saltar",
-    "onboard.start": "Empezar",
-    "onboard.continue": "Continuar",
-    "onboard.done": "Empezar a usar PakMondo",
-    "onboard.viewGear": "Ver mi equipo",
-    "onboard.welcomeKicker": "BIENVENIDA · BASECAMP",
-    "onboard.welcomeTitle": "PakMondo te ayuda a empacar mejor",
-    "onboard.welcomeBody": "En aproximadamente un minuto, configuraremos tu primer artículo, lo agruparemos en un kit y crearemos una lista para un viaje. Terminarás con una configuración inicial funcional. Puedes saltar en cualquier momento.",
-    "onboard.step1Kicker": "PASO 1 · ARTÍCULOS",
-    "onboard.step1Title": "Añade tu primer artículo",
-    "onboard.step1Body": "Los artículos son cosas individuales que puedes empacar — una tienda, una linterna, una botella de agua. Cada artículo puede tener peso, caducidad, notas. Añadamos uno para empezar.",
-    "onboard.step2Kicker": "PASO 2 · KITS",
-    "onboard.step2Title": "Agrupa artículos en un kit",
-    "onboard.step2Body": "Un kit agrupa artículos relacionados para que puedas tomarlos juntos. Ejemplos: 'Imprescindibles de Frío' (saco de dormir + capas base) o 'Senderismo Ligero' (snacks + botiquín).",
-    "onboard.step3Kicker": "PASO 3 · LISTAS",
-    "onboard.step3Title": "Crea una lista para un viaje",
-    "onboard.step3Body": "Una lista de empaque es lo que llevas en un viaje específico. Añade kits (o artículos individuales). Puedes consultar el pronóstico del tiempo, imprimir una lista de verificación y marcar artículos como empacados.",
-    "onboard.step4Kicker": "PASO 4 · NAVEGACIÓN",
-    "onboard.step4Title": "Dónde encontrar las cosas",
-    "onboard.step4Body": "Tour rápido de las cuatro áreas principales que usarás:",
-    "onboard.tourInvTitle": "Inventario",
-    "onboard.tourInvBody": "Todo tu equipo — artículos, kits y categorías. El hogar de tus cosas.",
-    "onboard.tourPlTitle": "Listas",
-    "onboard.tourPlBody": "Una lista por viaje. Marca artículos empacados, consulta el tiempo, imprime listas.",
-    "onboard.tourLibTitle": "Biblioteca",
-    "onboard.tourLibBody": "Explora kits y listas curadas por la comunidad. Importa las que te gusten.",
-    "onboard.tourWeatherTitle": "Revisar el tiempo",
-    "onboard.tourWeatherBody": "En cualquier lista guardada, el botón del tiempo compara el pronóstico con tu equipo y marca huecos.",
-    "onboard.doneKicker": "LISTO · MMXXV",
-    "onboard.doneTitle": "Estás listo para empacar",
-    "onboard.doneBody": "Tienes una configuración inicial. Añade más artículos, construye kits para diferentes actividades y crea una lista antes de cada viaje. La Biblioteca tiene plantillas de la comunidad para empezar más rápido.",
-    "onboard.itemNameLabel": "Nombre del artículo",
-    "onboard.kitNameLabel": "Nombre del kit",
-    "onboard.packlistNameLabel": "Nombre de la lista",
-    "onboard.fileItem": "Archivar el artículo",
-    "onboard.fileKit": "Archivar el kit",
-    "onboard.filePacklist": "Archivar la lista",
-    "onboard.justCreatedItem": "Recién creado",
-    "onboard.justCreatedKit": "Recién creado",
-    "onboard.starterKit": "Tu configuración inicial",
-    "onboard.itemSingular": "artículo",
-    "onboard.defaultItem": "Tienda de campaña",
-    "onboard.defaultKit": "Imprescindibles de Camping",
-    "onboard.defaultPacklist": "Viaje de Fin de Semana",
     "set.strikeCamp": "¿Levantar campamento?",
     "set.strikeNote": "Todos los artículos, categorías, Estilos ADV, kits, viajes y carrito se borrarán y se reemplazarán con el diario de muestra por defecto. Esto no se puede deshacer.",
     "set.confirmWipe": "Sí, borrar datos",
@@ -3831,309 +3741,7 @@ function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, badge
   );
 }
 
-/* ============================================================
-   OnboardingWizard — first-run walkthrough.
-   Shown automatically on the dashboard for users who:
-     - have no items yet, AND
-     - haven't dismissed the wizard before (localStorage flag)
-   Walks the user through one full loop: add an item, group into
-   a kit, make a packlist, learn the navigation. Each step
-   creates real data so they end with a working starter setup.
-   ============================================================ */
-const ONBOARDING_KEY = "pakmondo:onboardingComplete";
-
-function OnboardingWizard({ user, items, setItems, kits, setKits, packlists, setPacklists, categories, setCategories, onClose, onGo }) {
-  const { t, lang, units } = useI18n();
-  const { isMobile } = useViewport();
-  const [step, setStep] = useState(0);
-  const [createdItemId, setCreatedItemId] = useState(null);
-  const [createdKitId, setCreatedKitId] = useState(null);
-  const [createdPacklistId, setCreatedPacklistId] = useState(null);
-  // Editable defaults — pre-filled but the user can change them
-  const [itemName, setItemName] = useState(t("onboard.defaultItem"));
-  const [kitName, setKitName] = useState(t("onboard.defaultKit"));
-  const [packlistName, setPacklistName] = useState(t("onboard.defaultPacklist"));
-
-  const finish = () => {
-    try { localStorage.setItem(ONBOARDING_KEY, "true"); } catch (e) { /* ignore */ }
-    onClose();
-  };
-
-  const skip = () => finish();
-
-  // Step actions — each creates a real piece of data + advances
-  const handleAddItem = () => {
-    const trimmed = itemName.trim();
-    if (!trimmed) return;
-    const newItem = {
-      id: uid("it"),
-      name: trimmed,
-      category: null,
-      weight: null,
-      quantity: 1,
-      packed: false,
-    };
-    setItems([newItem, ...items]);
-    setCreatedItemId(newItem.id);
-    setStep(2);
-  };
-
-  const handleAddKit = () => {
-    const trimmed = kitName.trim();
-    if (!trimmed) return;
-    const newKit = {
-      id: uid("kit"),
-      name: trimmed,
-      category: null,
-      itemIds: createdItemId ? [createdItemId] : [],
-    };
-    setKits([newKit, ...kits]);
-    setCreatedKitId(newKit.id);
-    setStep(3);
-  };
-
-  const handleAddPacklist = () => {
-    const trimmed = packlistName.trim();
-    if (!trimmed) return;
-    const newPacklist = {
-      id: uid("pl"),
-      name: trimmed,
-      kitIds: createdKitId ? [createdKitId] : [],
-      itemIds: [],
-      categoryIds: [],
-      type: null,
-      dest: null,
-      date: null,
-      notes: null,
-    };
-    setPacklists([newPacklist, ...packlists]);
-    setCreatedPacklistId(newPacklist.id);
-    setStep(4);
-  };
-
-  // Decorative step indicator dots
-  const totalSteps = 6;
-  const StepDots = () => (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 18 }}>
-      {Array.from({ length: totalSteps }).map((_, i) => (
-        <span key={i} style={{
-          width: i === step ? 22 : 8, height: 8,
-          background: i <= step ? C.rust : C.line,
-          borderRadius: 0,
-          transition: "width 0.2s",
-        }} />
-      ))}
-    </div>
-  );
-
-  // === STEP CONTENT ===
-  const renderStep = () => {
-    switch (step) {
-      case 0: // Welcome
-        return (
-          <>
-            <Coord>{t("onboard.welcomeKicker")}</Coord>
-            <h2 style={{ margin: "8px 0 12px", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
-              {t("onboard.welcomeTitle")}<span style={{ color: C.rust }}>.</span>
-            </h2>
-            <div style={{ marginBottom: 18, fontFamily: F.body, fontSize: 15, color: C.inkSoft, lineHeight: 1.55 }}>
-              {t("onboard.welcomeBody")}
-            </div>
-            <div style={{ marginTop: 22, display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
-              <Btn variant="ghost" onClick={skip} fullWidth={isMobile}>{t("onboard.skip")}</Btn>
-              <Btn variant="rust" icon={ChevronRight} onClick={() => setStep(1)} fullWidth={isMobile}>{t("onboard.start")}</Btn>
-            </div>
-          </>
-        );
-      case 1: // Add first item
-        return (
-          <>
-            <Coord>{t("onboard.step1Kicker")}</Coord>
-            <h2 style={{ margin: "8px 0 12px", fontFamily: F.display, fontSize: isMobile ? 26 : 34, fontWeight: 700, letterSpacing: "-0.02em" }}>
-              {t("onboard.step1Title")}<span style={{ color: C.rust }}>.</span>
-            </h2>
-            <div style={{ marginBottom: 18, fontFamily: F.body, fontSize: 15, color: C.inkSoft, lineHeight: 1.55 }}>
-              {t("onboard.step1Body")}
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: C.muted }}>
-                {t("onboard.itemNameLabel")}
-              </div>
-              <input
-                type="text"
-                value={itemName}
-                onChange={(e) => setItemName(e.target.value)}
-                style={{
-                  width: "100%", padding: "10px 0", background: "transparent",
-                  border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none",
-                  fontFamily: F.body, fontSize: 18, color: C.ink,
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
-              <Btn variant="ghost" onClick={skip} fullWidth={isMobile}>{t("onboard.skip")}</Btn>
-              <Btn variant="rust" icon={Plus} onClick={handleAddItem} fullWidth={isMobile} disabled={!itemName.trim()}>{t("onboard.fileItem")}</Btn>
-            </div>
-          </>
-        );
-      case 2: // Make a kit
-        return (
-          <>
-            <Coord>{t("onboard.step2Kicker")}</Coord>
-            <h2 style={{ margin: "8px 0 12px", fontFamily: F.display, fontSize: isMobile ? 26 : 34, fontWeight: 700, letterSpacing: "-0.02em" }}>
-              {t("onboard.step2Title")}<span style={{ color: C.rust }}>.</span>
-            </h2>
-            <div style={{ marginBottom: 18, fontFamily: F.body, fontSize: 15, color: C.inkSoft, lineHeight: 1.55 }}>
-              {t("onboard.step2Body")}
-            </div>
-            {/* Show what they just created */}
-            <div style={{ padding: 12, marginBottom: 18, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
-              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase" }}>{t("onboard.justCreatedItem")}</div>
-              <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 17, fontWeight: 700 }}>✓ {itemName}</div>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: C.muted }}>
-                {t("onboard.kitNameLabel")}
-              </div>
-              <input
-                type="text"
-                value={kitName}
-                onChange={(e) => setKitName(e.target.value)}
-                style={{
-                  width: "100%", padding: "10px 0", background: "transparent",
-                  border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none",
-                  fontFamily: F.body, fontSize: 18, color: C.ink,
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
-              <Btn variant="ghost" onClick={skip} fullWidth={isMobile}>{t("onboard.skip")}</Btn>
-              <Btn variant="rust" icon={Plus} onClick={handleAddKit} fullWidth={isMobile} disabled={!kitName.trim()}>{t("onboard.fileKit")}</Btn>
-            </div>
-          </>
-        );
-      case 3: // Make a packlist
-        return (
-          <>
-            <Coord>{t("onboard.step3Kicker")}</Coord>
-            <h2 style={{ margin: "8px 0 12px", fontFamily: F.display, fontSize: isMobile ? 26 : 34, fontWeight: 700, letterSpacing: "-0.02em" }}>
-              {t("onboard.step3Title")}<span style={{ color: C.rust }}>.</span>
-            </h2>
-            <div style={{ marginBottom: 18, fontFamily: F.body, fontSize: 15, color: C.inkSoft, lineHeight: 1.55 }}>
-              {t("onboard.step3Body")}
-            </div>
-            <div style={{ padding: 12, marginBottom: 18, background: C.paperDeep, borderLeft: `3px solid ${C.forest}` }}>
-              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase" }}>{t("onboard.justCreatedKit")}</div>
-              <div style={{ marginTop: 4, fontFamily: F.display, fontSize: 17, fontWeight: 700 }}>✓ {kitName}</div>
-              <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                KIT · 1 {t("onboard.itemSingular")}
-              </div>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ marginBottom: 6, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: C.muted }}>
-                {t("onboard.packlistNameLabel")}
-              </div>
-              <input
-                type="text"
-                value={packlistName}
-                onChange={(e) => setPacklistName(e.target.value)}
-                style={{
-                  width: "100%", padding: "10px 0", background: "transparent",
-                  border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none",
-                  fontFamily: F.body, fontSize: 18, color: C.ink,
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
-              <Btn variant="ghost" onClick={skip} fullWidth={isMobile}>{t("onboard.skip")}</Btn>
-              <Btn variant="rust" icon={Plus} onClick={handleAddPacklist} fullWidth={isMobile} disabled={!packlistName.trim()}>{t("onboard.filePacklist")}</Btn>
-            </div>
-          </>
-        );
-      case 4: // Tour the navigation
-        return (
-          <>
-            <Coord>{t("onboard.step4Kicker")}</Coord>
-            <h2 style={{ margin: "8px 0 12px", fontFamily: F.display, fontSize: isMobile ? 26 : 34, fontWeight: 700, letterSpacing: "-0.02em" }}>
-              {t("onboard.step4Title")}<span style={{ color: C.rust }}>.</span>
-            </h2>
-            <div style={{ marginBottom: 18, fontFamily: F.body, fontSize: 15, color: C.inkSoft, lineHeight: 1.55 }}>
-              {t("onboard.step4Body")}
-            </div>
-            {/* Visual key — the four main areas */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-              {[
-                { key: "inventory",  title: t("onboard.tourInvTitle"),  body: t("onboard.tourInvBody") },
-                { key: "packlists", title: t("onboard.tourPlTitle"),   body: t("onboard.tourPlBody") },
-                { key: "library",   title: t("onboard.tourLibTitle"),  body: t("onboard.tourLibBody") },
-                { key: "weather",   title: t("onboard.tourWeatherTitle"), body: t("onboard.tourWeatherBody") },
-              ].map((row, i) => (
-                <div key={row.key} style={{ padding: 10, background: C.paper, border: `1px solid ${C.line}`, display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ width: 28, flexShrink: 0, fontFamily: F.mono, fontSize: 9, color: C.rust, fontWeight: 700, letterSpacing: "0.15em", paddingTop: 2 }}>
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: F.display, fontSize: 15, fontWeight: 700 }}>{row.title}</div>
-                    <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft, lineHeight: 1.4 }}>{row.body}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
-              <Btn variant="ghost" onClick={skip} fullWidth={isMobile}>{t("onboard.skip")}</Btn>
-              <Btn variant="rust" icon={ChevronRight} onClick={() => setStep(5)} fullWidth={isMobile}>{t("onboard.continue")}</Btn>
-            </div>
-          </>
-        );
-      case 5: // Done
-        return (
-          <>
-            <Coord>{t("onboard.doneKicker")}</Coord>
-            <h2 style={{ margin: "8px 0 12px", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
-              {t("onboard.doneTitle")}<span style={{ color: C.rust }}>.</span>
-            </h2>
-            <div style={{ marginBottom: 18, fontFamily: F.body, fontSize: 15, color: C.inkSoft, lineHeight: 1.55 }}>
-              {t("onboard.doneBody")}
-            </div>
-            <div style={{ padding: 14, marginBottom: 18, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
-              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>{t("onboard.starterKit")}</div>
-              <div style={{ marginTop: 6, fontFamily: F.body, fontSize: 14, lineHeight: 1.5 }}>
-                ✓ <b>{itemName}</b><br/>
-                ✓ <b>{kitName}</b> ({t("onboard.itemSingular")} 1)<br/>
-                ✓ <b>{packlistName}</b>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexDirection: isMobile ? "column-reverse" : "row" }}>
-              <Btn variant="ghost" onClick={() => { finish(); onGo("inventory"); }} fullWidth={isMobile}>{t("onboard.viewGear")}</Btn>
-              <Btn variant="rust" icon={Check} onClick={finish} fullWidth={isMobile}>{t("onboard.done")}</Btn>
-            </div>
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(26,36,33,0.65)",
-      zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 16, overflowY: "auto",
-    }}>
-      <div style={{
-        width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto",
-        background: C.paper, border: `1.5px solid ${C.ink}`,
-        padding: isMobile ? 22 : 32,
-        position: "relative",
-      }}>
-        <StepDots />
-        {renderStep()}
-      </div>
-    </div>
-  );
-}
-
-function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], setPacklists, kits = [], setKits, categories = [], setCategories, locationEnabled, shareService }) {
+function Dashboard({ go, user, trips, cart, items, packlists = [], kits = [], locationEnabled, shareService }) {
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const totalKgRaw = items.filter((i) => i.packed).reduce((s, i) => s + parseKg(i.weight || ""), 0);
@@ -4203,27 +3811,6 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(locale, { month: "short", day: "2-digit", year: "numeric" });
   };
-
-  // ── Onboarding wizard trigger ────────────────────────────────────────────
-  // Show on first signed-in dashboard visit when:
-  //   - the user is signed in (has a user.id)
-  //   - they have zero items
-  //   - they haven't completed/skipped the wizard before (localStorage flag)
-  // Once dismissed, the flag prevents the wizard from coming back even if
-  // the user later deletes everything. If they want it again they can clear
-  // local storage.
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  useEffect(() => {
-    if (!user?.id) return;
-    if (items.length > 0) return;
-    let alreadyDone = false;
-    try { alreadyDone = localStorage.getItem(ONBOARDING_KEY) === "true"; } catch (e) { /* ignore */ }
-    if (!alreadyDone) {
-      // Tiny delay so the dashboard renders first, then the modal appears on top.
-      const timer = setTimeout(() => setShowOnboarding(true), 400);
-      return () => clearTimeout(timer);
-    }
-  }, [user?.id, items.length]);
 
   return (
     <div>
@@ -4480,19 +4067,6 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
         </div>
         <Footer />
       </div>
-
-      {/* First-run onboarding wizard. Auto-shown by the effect above. */}
-      {showOnboarding && (
-        <OnboardingWizard
-          user={user}
-          items={items} setItems={setItems}
-          kits={kits} setKits={setKits}
-          packlists={packlists} setPacklists={setPacklists}
-          categories={categories} setCategories={setCategories}
-          onClose={() => setShowOnboarding(false)}
-          onGo={(screen) => { setShowOnboarding(false); go(screen); }}
-        />
-      )}
     </div>
   );
 }
@@ -14120,18 +13694,6 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
                 <span style={{ color: statusColor }}>{statusLabel}</span>
               </span>
             } />
-            {/* Replay first-run tutorial. Clears the localStorage flag and
-                bounces the user to dashboard, where the wizard will trigger
-                if they have no items. (If they have items, it won't re-trigger
-                — the user can clear them first if they really want it.) */}
-            <div style={{ marginTop: 16 }}>
-              <Btn variant="ghost" icon={Compass} onClick={() => {
-                try { localStorage.removeItem(ONBOARDING_KEY); } catch (e) { /* ignore */ }
-                go("dashboard");
-              }}>
-                {t("set.replayTutorial")}
-              </Btn>
-            </div>
             <div style={{ marginTop: 24, padding: 20, background: confirming ? C.paperDeep : "transparent", border: confirming ? `1.5px dashed ${C.rust}` : "none" }}>
               {confirming ? (
                 <>
@@ -14496,7 +14058,7 @@ export default function App() {
     screen === "signup" ? <Signup go={go} setUser={setUser} takenUsernames={takenUsernames} setTakenUsernames={setTakenUsernames} /> :
     screen === "forgot" ? <ForgotPassword go={go} /> :
     screen === "reset" ? <ResetPassword go={go} /> :
-    screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} setItems={setItemsSynced} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} locationEnabled={locationEnabled} shareService={shareService} /> :
+    screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} packlists={packlists} kits={kits} locationEnabled={locationEnabled} shareService={shareService} /> :
     screen === "inventory" ? <Inventory go={go} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKitsSynced} packlists={packlists} setPacklists={setPacklistsSynced} cart={cart} setCart={setCartSynced} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
     screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} packlists={packlists} setPacklists={setPacklistsSynced} /> :
     screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} /> :
