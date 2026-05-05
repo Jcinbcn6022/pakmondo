@@ -3,7 +3,7 @@ import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
   ArrowLeft, Plus, Check, X, ChevronRight, ChevronDown, User, Lock, Mail, CreditCard,
   Tag, Layers, Globe, Calendar, Trash2, LogOut, Map as MapIcon, Pencil, Download, Cloud,
-  Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu
+  Tent, Snowflake, Waves, TreePine, Flame, Mountain, AlertTriangle, Menu, BookOpen
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -611,6 +611,9 @@ const TRANSLATIONS = {
     "brand.fieldTested": "Field-Tested",
     "footer.fieldEd": "FIELD ED. MMXXV",
     "footer.contact": "CONTACT: pakmondoapp@gmail.com",
+    "footer.fieldManual": "FIELD MANUAL",
+    "nav.help": "Help",
+    "set.fieldManual": "Read the field manual",
     "common.back": "Back",
     "common.cancel": "Cancel",
     "common.add": "Add",
@@ -1336,6 +1339,108 @@ const TRANSLATIONS = {
     "set.storageInit": "Initializing",
     "set.resetData": "Reset all saved data",
     "set.replayTutorial": "Replay first-run tutorial",
+
+    // === FIELD MANUAL — Help page strings ===
+    "help.kicker": "FIELD MANUAL · MMXXV",
+    "help.titleA": "The PakMondo",
+    "help.titleB": "field manual",
+    "help.intro": "Everything PakMondo can do, explained in plain English. Skip to whatever you need using the table of contents on the left, or read straight through.",
+    "help.tocLabel": "CONTENTS",
+    "help.fieldManual": "Field manual",
+    "help.backToApp": "Back to the app",
+    "help.endLabel": "END OF MANUAL",
+    "help.tipLabel": "TIP",
+    "help.warnLabel": "WARNING",
+    "help.noteLabel": "NOTE",
+    "help.screenshotPending": "Screenshot pending",
+    "help.comingSoon": "Detailed content coming in a future update.",
+    "help.sectionPending": "This section will be filled in next. The structure is here so the table of contents stays accurate.",
+
+    // TOC titles (shared across heading + sidebar)
+    "help.tocQuickstart":   "Quick start",
+    "help.tocBlocks":       "The three building blocks",
+    "help.tocInventory":    "Inventory",
+    "help.tocKits":         "Kits in depth",
+    "help.tocCategories":   "Categories",
+    "help.tocPacklists":    "Packlists",
+    "help.tocWeather":      "Weather check",
+    "help.tocSharing":      "Sharing",
+    "help.tocLibrary":      "The library",
+    "help.tocMembers":      "Member IDs",
+    "help.tocSubmissions":  "Submissions & review",
+    "help.tocSettings":     "Settings",
+    "help.tocData":         "Data & sync",
+    "help.tocTips":         "Tips & shortcuts",
+
+    // === Section 01 — Quick start ===
+    "help.qsIntro": "PakMondo is built around three simple ideas: items (your gear), kits (groups of related items), and packlists (what you take on a specific trip). If you're brand new, here's the fastest path from zero to a working setup.",
+    "help.qsStep1": "Step 1 — Sign up or sign in",
+    "help.qsStep1Body": "From the welcome screen, choose 'Sign up' if you're new. You'll need an email, a password, a username, your real name (used for credit when you publish kits to the community library), and your region (a two-letter code like NA, EU, AS — used for your member ID and to filter library content). Existing users tap 'Sign in' instead. Your data syncs across every device you sign into.",
+    "help.qsStep2": "Step 2 — The first-run wizard",
+    "help.qsStep2Body": "On your first dashboard visit with no items, a six-screen wizard pops up automatically. It walks you through adding one item, grouping it into a kit, and creating a packlist for a trip. By the end you have a working starter setup. You can skip at any point — the Replay tutorial button in Settings brings it back later.",
+    "help.qsStep3": "Step 3 — The dashboard",
+    "help.qsStep3Body": "After signup you land on Basecamp — your dashboard. Top-right shows your member ID (e.g. 0001NA) and the year you joined. Below the title there are five large cards: Inventory, Packlists, Library, Inbox, Cart. Tap any to dive in.",
+    "help.qsTip": "If you're impatient, the fastest way to a packlist is: Inventory → Items → add 5–10 items → Inventory → Kits → make a kit with those items → Packlists → make a packlist with that kit. About two minutes.",
+
+    // Quick-start screenshot captions
+    "help.shotSignup":   "Signup form showing email, username, name, region fields with the create-account button",
+    "help.shotWizard":   "First step of the onboarding wizard with the welcome message and 'Let's go' button",
+    "help.shotDashboard":"Dashboard hero showing the user's name, region badge, member card top-right, and the five nav cards below",
+
+    // === Section 02 — The three building blocks ===
+    "help.blocksIntro": "Almost everything you do in PakMondo is built from three core types of data. Understanding how they fit together makes the rest of the app obvious.",
+    "help.blocksItemsTitle": "Items — your individual gear",
+    "help.blocksItemsBody1": "An item is one specific piece of gear. A tent. A headlamp. A water bottle. Each item has a name, an optional category, an optional weight (in grams or pounds), an optional quantity (default 1), an optional size, an optional consumable flag, an optional expiry date, and notes.",
+    "help.blocksItemsBody2": "Items are the most granular thing PakMondo knows about. Everything else groups them in different ways. You'll typically have 50-300 items if you're a serious traveler, sometimes 1000+ if you're meticulous.",
+    "help.blocksKitsTitle": "Kits — groups of related items",
+    "help.blocksKitsBody1": "A kit is a curated bundle of items that go together. Examples: 'Cold Camp Essentials' (sleeping bag + base layers + warm hat), 'Day Hike Light' (snacks + first aid + water filter), 'Tropical Travel' (sunscreen + DEET + light cotton clothes).",
+    "help.blocksKitsBody2": "Kits give you reusable bundles. Once you've built a kit, you can drop it into any packlist with one tap. They also help you think systematically: instead of remembering 30 individual items for a trip, you remember 4 or 5 kits.",
+    "help.blocksCategoriesTitle": "Categories — taxonomy for your gear",
+    "help.blocksCategoriesBody1": "Categories are labels you assign to items so you can browse, filter, and organize them. Common categories: Shelter, Cooking, Apparel, Hygiene, Tech, First Aid, Documents.",
+    "help.blocksCatVsKit": "Category vs Kit — what's the difference? A category is a TYPE of thing (every tent is in 'Shelter'). A kit is a SPECIFIC GROUPING for a use case (your 'Cold Camp Kit' contains a particular tent + sleeping bag + pad). One item can have one category but be in many kits.",
+    "help.blocksPacklistsTitle": "Packlists — what you take on a specific trip",
+    "help.blocksPacklistsBody1": "A packlist is the actual list of stuff you're bringing on one specific trip. It can contain whole kits (e.g. 'Cold Camp Kit') and individual items added separately. Trip metadata: name, date, destination, travel type, notes.",
+    "help.blocksPacklistsBody2": "Each packlist has two checkboxes per item: a red WANT box (do I want to take this?) and a green PACKED box (is it actually in my bag?). The progress counter at the top shows how many items you've decided to take, and how many you've actually packed.",
+    "help.blocksFlowTitle": "The flow",
+    "help.blocksFlow": "Items roll up into kits. Kits roll up into packlists. Each layer adds context: items are gear, kits are groupings, packlists are trips. You'll spend most of your time at the packlist level — that's where the action is.",
+    "help.blocksDiagramCaption": "ITEMS COMPOSE KITS · KITS COMPOSE PACKLISTS",
+
+    // Building blocks screenshot captions
+    "help.shotItem":     "Item edit form showing name, category, weight, quantity, expiry date fields",
+    "help.shotKit":      "Kit detail view showing several items grouped together",
+    "help.shotPacklist": "Packlist detail showing kits + items with WANT/PACKED checkboxes",
+
+    // === Section 03 — Inventory ===
+    "help.invIntro": "The Inventory screen is where all your gear lives. It has three tabs at the top: Items, Kits, and Categories. Each tab is a different view of the same data.",
+    "help.invTabsTitle": "The three tabs",
+    "help.invTabsBody": "Items shows every individual piece of gear in a table. Kits shows your kits, grouped by category. Categories shows top-level categories with a count of items in each. They're three different lenses on the same inventory.",
+    "help.invItemsTitle": "Items tab — the master list",
+    "help.invItemsBody1": "The Items tab is a sortable table. Columns: row number, item name, kit (which kit(s) contain this item), category, expiry. Items in multiple kits show 'N kits' in the kit column. Items expiring within 30 days highlight in red.",
+    "help.invItemsBody2": "Tap any row to edit the item. The edit screen lets you change every field, see which kits include it, and delete it. Use the search box at the top to filter the list as you type.",
+    "help.invKitsTitle": "Kits tab — your bundles",
+    "help.invKitsBody1": "The Kits tab groups your kits by category, so you see a banner like 'CATEGORY: GALLEY · 7 KITS' followed by the kits inside. Each kit collapses by default — tap the chevron to expand and see its items.",
+    "help.invKitsBody2": "Inside each kit you can rename it, change its category, add or remove items, share it with another member, or publish it to the community library.",
+    "help.invCategoriesTitle": "Categories tab — taxonomy",
+    "help.invCategoriesBody": "The Categories tab shows top-level categories, each with a count of items. Tap a category to see all items in it AND all kits assigned to that category. Useful for finding 'where did I put that?' style searches.",
+    "help.invExpiryTitle": "Expiry alerts",
+    "help.invExpiryBody1": "Some items have a shelf life: medications, sunscreen, insect repellent, freeze-dried meals. Set an expiry date when you add the item and PakMondo will warn you when it's close to expiring.",
+    "help.invExpiryBody2": "Items expiring within 30 days show in red on the Items table. The dashboard shows a red alert badge with a count if you have any expiring items. Tap the badge to filter Inventory to expiring items only.",
+    "help.invExpiryTip": "You can change the warning window per-item via 'remind days'. Default is 30. For things you replace yearly (like sunscreen), 60-90 might make more sense.",
+    "help.invFiltersTitle": "Filters and search",
+    "help.invFiltersBody": "The search box at the top of each tab filters live as you type. The 'expiring' badge on the dashboard sets a filter that shows only soon-to-expire items. Clear the filter via the visible 'X' or by tapping search-clear.",
+    "help.invAddingTitle": "Adding items, kits, and categories",
+    "help.invAddingBody": "Each tab has its own '+ Add' button at the top. The Add Item form has every field; you only have to fill in the name. The Add Kit form lets you pick existing items OR create new ones from inside the kit form. The Add Category form is just a name + icon.",
+    "help.invDeletingTitle": "Deleting things",
+    "help.invDeletingBody": "Tap the trash icon next to any item, kit, or category. You'll get a confirmation prompt. Deletes are permanent — if a kit is deleted, items in it are NOT deleted, just freed from the kit.",
+    "help.invDeleteWarn": "Deleting a category un-categorizes any items + kits assigned to it. Deleting a kit doesn't delete its items. Deleting an item removes it from every kit and packlist that contained it. None of these can be undone.",
+
+    // Inventory screenshot captions
+    "help.shotInvTabs":      "Inventory header showing the three tabs (Items, Kits, Categories) with the active tab highlighted",
+    "help.shotInvItemsTable":"Items tab showing the table with row numbers, item names, kit column, category, and expiry",
+    "help.shotInvKitsView":  "Kits tab showing the category banners and collapsed kits beneath",
+    "help.shotInvExpiry":    "Items table with one or two rows highlighted in red because they're expiring soon",
+    "help.shotInvAddItem":   "Add Item form with name, category dropdown, weight, quantity, and other fields visible",
+
     "onboard.skip": "Skip tour",
     "onboard.start": "Let's go",
     "onboard.continue": "Continue",
@@ -1430,6 +1535,9 @@ const TRANSLATIONS = {
     "brand.fieldTested": "Probado en Campo",
     "footer.fieldEd": "ED. CAMPO MMXXV",
     "footer.contact": "CONTACTO: pakmondoapp@gmail.com",
+    "footer.fieldManual": "MANUAL DE CAMPO",
+    "nav.help": "Ayuda",
+    "set.fieldManual": "Leer el manual de campo",
     "common.back": "Atrás",
     "common.cancel": "Cancelar",
     "common.add": "Añadir",
@@ -2135,6 +2243,104 @@ const TRANSLATIONS = {
     "set.storageInit": "Inicializando",
     "set.resetData": "Borrar todos los datos",
     "set.replayTutorial": "Repetir tutorial inicial",
+
+    // === MANUAL DE CAMPO — strings de la página de ayuda ===
+    "help.kicker": "MANUAL DE CAMPO · MMXXV",
+    "help.titleA": "El manual",
+    "help.titleB": "de campo de PakMondo",
+    "help.intro": "Todo lo que PakMondo puede hacer, explicado en lenguaje claro. Salta a lo que necesites usando el índice de la izquierda, o léelo de principio a fin.",
+    "help.tocLabel": "ÍNDICE",
+    "help.fieldManual": "Manual de campo",
+    "help.backToApp": "Volver a la app",
+    "help.endLabel": "FIN DEL MANUAL",
+    "help.tipLabel": "CONSEJO",
+    "help.warnLabel": "ADVERTENCIA",
+    "help.noteLabel": "NOTA",
+    "help.screenshotPending": "Captura pendiente",
+    "help.comingSoon": "Contenido detallado en una próxima actualización.",
+    "help.sectionPending": "Esta sección se completará a continuación. La estructura está aquí para que el índice se mantenga preciso.",
+
+    "help.tocQuickstart":   "Inicio rápido",
+    "help.tocBlocks":       "Los tres bloques de construcción",
+    "help.tocInventory":    "Inventario",
+    "help.tocKits":         "Kits en profundidad",
+    "help.tocCategories":   "Categorías",
+    "help.tocPacklists":    "Listas",
+    "help.tocWeather":      "Revisión del tiempo",
+    "help.tocSharing":      "Compartir",
+    "help.tocLibrary":      "La biblioteca",
+    "help.tocMembers":      "IDs de miembro",
+    "help.tocSubmissions":  "Envíos y revisión",
+    "help.tocSettings":     "Ajustes",
+    "help.tocData":         "Datos y sincronización",
+    "help.tocTips":         "Consejos y atajos",
+
+    // Sección 01 — Inicio rápido
+    "help.qsIntro": "PakMondo se construye sobre tres ideas simples: artículos (tu equipo), kits (grupos de artículos relacionados) y listas de empaque (lo que llevas en un viaje específico). Si eres nuevo, este es el camino más rápido de cero a una configuración funcional.",
+    "help.qsStep1": "Paso 1 — Regístrate o inicia sesión",
+    "help.qsStep1Body": "Desde la pantalla de bienvenida, elige 'Registrarse' si eres nuevo. Necesitarás un email, contraseña, nombre de usuario, tu nombre real (usado para crédito al publicar kits a la biblioteca de la comunidad), y tu región (un código de dos letras como NA, EU, AS — usado para tu ID de miembro y para filtrar contenido de la biblioteca). Los usuarios existentes tocan 'Iniciar sesión'. Tus datos se sincronizan en cada dispositivo donde inicies sesión.",
+    "help.qsStep2": "Paso 2 — El tutorial inicial",
+    "help.qsStep2Body": "En tu primera visita al dashboard sin artículos, un asistente de seis pantallas aparece automáticamente. Te guía a añadir un artículo, agruparlo en un kit, y crear una lista de empaque para un viaje. Al final tienes una configuración inicial funcional. Puedes saltar en cualquier momento — el botón 'Repetir tutorial' en Ajustes lo trae de vuelta más tarde.",
+    "help.qsStep3": "Paso 3 — El dashboard",
+    "help.qsStep3Body": "Después del registro aterrizas en Basecamp — tu dashboard. Arriba a la derecha se muestra tu ID de miembro (ej. 0001NA) y el año en que te uniste. Debajo del título hay cinco tarjetas grandes: Inventario, Listas, Biblioteca, Bandeja, Carrito. Toca cualquiera para entrar.",
+    "help.qsTip": "Si tienes prisa, el camino más rápido a una lista es: Inventario → Artículos → añade 5–10 artículos → Inventario → Kits → crea un kit con esos artículos → Listas → crea una lista con ese kit. Unos dos minutos.",
+
+    "help.shotSignup":   "Formulario de registro mostrando los campos de email, usuario, nombre, región y el botón de crear cuenta",
+    "help.shotWizard":   "Primer paso del tutorial mostrando el mensaje de bienvenida y el botón 'Empezar'",
+    "help.shotDashboard":"Hero del dashboard mostrando el nombre del usuario, badge de región, tarjeta de miembro arriba a la derecha y las cinco tarjetas de navegación debajo",
+
+    // Sección 02 — Los tres bloques
+    "help.blocksIntro": "Casi todo lo que haces en PakMondo se construye a partir de tres tipos de datos. Entender cómo encajan hace que el resto de la app sea obvio.",
+    "help.blocksItemsTitle": "Artículos — tu equipo individual",
+    "help.blocksItemsBody1": "Un artículo es una pieza específica de equipo. Una tienda. Una linterna. Una botella de agua. Cada artículo tiene un nombre, una categoría opcional, un peso opcional (en gramos o libras), una cantidad opcional (por defecto 1), un tamaño opcional, una marca de consumible opcional, una fecha de caducidad opcional, y notas.",
+    "help.blocksItemsBody2": "Los artículos son lo más granular que conoce PakMondo. Todo lo demás los agrupa de diferentes maneras. Normalmente tendrás 50–300 artículos si eres viajero serio, a veces más de 1000 si eres meticuloso.",
+    "help.blocksKitsTitle": "Kits — grupos de artículos relacionados",
+    "help.blocksKitsBody1": "Un kit es un paquete curado de artículos que van juntos. Ejemplos: 'Imprescindibles de Frío' (saco de dormir + capas base + gorro), 'Senderismo Ligero' (snacks + botiquín + filtro de agua), 'Viaje Tropical' (protector solar + DEET + ropa de algodón ligera).",
+    "help.blocksKitsBody2": "Los kits te dan paquetes reutilizables. Una vez creado, puedes añadirlo a cualquier lista con un toque. También te ayudan a pensar de forma sistemática: en lugar de recordar 30 artículos individuales para un viaje, recuerdas 4 o 5 kits.",
+    "help.blocksCategoriesTitle": "Categorías — taxonomía para tu equipo",
+    "help.blocksCategoriesBody1": "Las categorías son etiquetas que asignas a los artículos para poder navegar, filtrar y organizarlos. Categorías comunes: Refugio, Cocina, Ropa, Higiene, Tecnología, Primeros Auxilios, Documentos.",
+    "help.blocksCatVsKit": "¿Categoría vs Kit? — ¿Cuál es la diferencia? Una categoría es un TIPO de cosa (cada tienda está en 'Refugio'). Un kit es un AGRUPAMIENTO ESPECÍFICO para un caso de uso (tu 'Kit de Camp Frío' contiene una tienda + saco de dormir + esterilla particulares). Un artículo puede tener una categoría pero estar en muchos kits.",
+    "help.blocksPacklistsTitle": "Listas — lo que llevas en un viaje específico",
+    "help.blocksPacklistsBody1": "Una lista de empaque es la lista real de cosas que llevas en un viaje específico. Puede contener kits enteros (ej. 'Kit de Camp Frío') y artículos individuales añadidos por separado. Metadatos: nombre, fecha, destino, tipo de viaje, notas.",
+    "help.blocksPacklistsBody2": "Cada lista tiene dos casillas por artículo: una roja LLEVAR (¿quiero llevar esto?) y una verde EMPACADO (¿está realmente en mi mochila?). El contador arriba muestra cuántos artículos has decidido llevar y cuántos has empacado.",
+    "help.blocksFlowTitle": "El flujo",
+    "help.blocksFlow": "Los artículos se agrupan en kits. Los kits se agrupan en listas. Cada capa añade contexto: los artículos son equipo, los kits son agrupaciones, las listas son viajes. Pasarás la mayor parte del tiempo a nivel de lista — ahí está la acción.",
+    "help.blocksDiagramCaption": "ARTÍCULOS COMPONEN KITS · KITS COMPONEN LISTAS",
+
+    "help.shotItem":     "Formulario de edición de artículo mostrando los campos de nombre, categoría, peso, cantidad, fecha de caducidad",
+    "help.shotKit":      "Vista de detalle de un kit mostrando varios artículos agrupados",
+    "help.shotPacklist": "Detalle de lista mostrando kits + artículos con casillas LLEVAR/EMPACADO",
+
+    // Sección 03 — Inventario
+    "help.invIntro": "La pantalla de Inventario es donde vive todo tu equipo. Tiene tres pestañas arriba: Artículos, Kits y Categorías. Cada pestaña es una vista diferente de los mismos datos.",
+    "help.invTabsTitle": "Las tres pestañas",
+    "help.invTabsBody": "Artículos muestra cada pieza individual en una tabla. Kits muestra tus kits, agrupados por categoría. Categorías muestra las categorías con un conteo de artículos en cada una. Son tres lentes diferentes sobre el mismo inventario.",
+    "help.invItemsTitle": "Pestaña Artículos — la lista maestra",
+    "help.invItemsBody1": "La pestaña Artículos es una tabla ordenable. Columnas: número de fila, nombre del artículo, kit (qué kit(s) contienen este artículo), categoría, caducidad. Los artículos en múltiples kits muestran 'N kits' en la columna de kit. Los artículos que caducan en 30 días se resaltan en rojo.",
+    "help.invItemsBody2": "Toca cualquier fila para editar el artículo. La pantalla de edición te permite cambiar cada campo, ver qué kits lo incluyen, y eliminarlo. Usa la caja de búsqueda arriba para filtrar la lista mientras escribes.",
+    "help.invKitsTitle": "Pestaña Kits — tus paquetes",
+    "help.invKitsBody1": "La pestaña Kits agrupa tus kits por categoría, mostrando un banner como 'CATEGORÍA: COCINA · 7 KITS' seguido por los kits dentro. Cada kit se colapsa por defecto — toca el chevron para expandir y ver sus artículos.",
+    "help.invKitsBody2": "Dentro de cada kit puedes renombrarlo, cambiar su categoría, añadir o quitar artículos, compartirlo con otro miembro, o publicarlo a la biblioteca de la comunidad.",
+    "help.invCategoriesTitle": "Pestaña Categorías — taxonomía",
+    "help.invCategoriesBody": "La pestaña Categorías muestra las categorías de nivel superior, cada una con un conteo de artículos. Toca una categoría para ver todos los artículos en ella Y todos los kits asignados a esa categoría. Útil para búsquedas tipo '¿dónde puse eso?'.",
+    "help.invExpiryTitle": "Alertas de caducidad",
+    "help.invExpiryBody1": "Algunos artículos tienen vida útil: medicamentos, protector solar, repelente de insectos, comidas liofilizadas. Establece una fecha de caducidad al añadir el artículo y PakMondo te avisará cuando esté cerca de caducar.",
+    "help.invExpiryBody2": "Los artículos que caducan en 30 días aparecen en rojo en la tabla de Artículos. El dashboard muestra una insignia de alerta roja con un conteo si tienes artículos por caducar. Toca la insignia para filtrar el Inventario solo a artículos por caducar.",
+    "help.invExpiryTip": "Puedes cambiar la ventana de aviso por artículo via 'días de aviso'. Por defecto es 30. Para cosas que reemplazas anualmente (como protector solar), 60–90 puede tener más sentido.",
+    "help.invFiltersTitle": "Filtros y búsqueda",
+    "help.invFiltersBody": "La caja de búsqueda arriba de cada pestaña filtra en vivo mientras escribes. La insignia 'expiring' en el dashboard establece un filtro que muestra solo artículos próximos a caducar. Limpia el filtro via la 'X' visible o tocando borrar-búsqueda.",
+    "help.invAddingTitle": "Añadir artículos, kits y categorías",
+    "help.invAddingBody": "Cada pestaña tiene su propio botón '+ Añadir' arriba. El formulario Añadir Artículo tiene cada campo; solo necesitas rellenar el nombre. El formulario Añadir Kit te permite elegir artículos existentes O crear nuevos desde dentro del formulario del kit. El formulario Añadir Categoría es solo nombre + icono.",
+    "help.invDeletingTitle": "Eliminar cosas",
+    "help.invDeletingBody": "Toca el icono de papelera junto a cualquier artículo, kit o categoría. Recibirás una confirmación. Las eliminaciones son permanentes — si se elimina un kit, los artículos dentro NO se eliminan, solo se liberan del kit.",
+    "help.invDeleteWarn": "Eliminar una categoría des-categoriza cualquier artículo + kit asignado a ella. Eliminar un kit no elimina sus artículos. Eliminar un artículo lo quita de cada kit y lista que lo contenía. Ninguna de estas se puede deshacer.",
+
+    "help.shotInvTabs":      "Cabecera de Inventario mostrando las tres pestañas (Artículos, Kits, Categorías) con la pestaña activa resaltada",
+    "help.shotInvItemsTable":"Pestaña Artículos mostrando la tabla con números de fila, nombres de artículos, columna de kit, categoría y caducidad",
+    "help.shotInvKitsView":  "Pestaña Kits mostrando los banners de categoría y los kits colapsados debajo",
+    "help.shotInvExpiry":    "Tabla de artículos con una o dos filas resaltadas en rojo porque están por caducar",
+    "help.shotInvAddItem":   "Formulario Añadir Artículo con nombre, dropdown de categoría, peso, cantidad y otros campos visibles",
+
     "onboard.skip": "Saltar",
     "onboard.start": "Empezar",
     "onboard.continue": "Continuar",
@@ -3154,7 +3360,7 @@ function Header({ go, active, onBack }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const [menuOpen, setMenuOpen] = useState(false);
-  const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["packlists", t("nav.packlists")], ["library", t("nav.library")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")]];
+  const navItems = [["dashboard", t("nav.camp")], ["inventory", t("nav.inventory")], ["packlists", t("nav.packlists")], ["library", t("nav.library")], ["inbox", t("nav.inbox")], ["cart", t("nav.cart")], ["help", t("nav.help")]];
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [active]);
@@ -3204,6 +3410,11 @@ function Header({ go, active, onBack }) {
         <div style={{ display: "flex", gap: isMobile ? 4 : 12, alignItems: "center" }}>
           {!isMobile && (
             <button onClick={() => go("cart")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: C.ink }} aria-label={t("nav.cart")}><ShoppingCart size={18} /></button>
+          )}
+          {!isMobile && (
+            <button onClick={() => go("help")} style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: active === "help" ? C.rust : C.ink }} aria-label={t("nav.help")} title={t("nav.help")}>
+              <BookOpen size={18} />
+            </button>
           )}
           <button onClick={() => go("settings")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("set.title")}>
             <Settings size={isMobile ? 22 : 18} />
@@ -3309,7 +3520,7 @@ function Header({ go, active, onBack }) {
   );
 }
 
-function Footer() {
+function Footer({ go }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   return (
@@ -3325,6 +3536,22 @@ function Footer() {
       borderTop: `1.5px dashed ${C.line}`,
     }}>
       <Coord>PAKMONDO PMD 47.6062N 122.3321W</Coord>
+      {/* Optional Field Manual link — only renders when a go() callback is
+          provided (i.e. from screens that pass it through). */}
+      {go && (
+        <button
+          onClick={() => go("help")}
+          style={{
+            background: "transparent", border: "none", padding: 0,
+            fontFamily: F.mono, fontSize: 11, color: C.muted,
+            letterSpacing: "0.05em", cursor: "pointer",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = C.rust; e.currentTarget.style.textDecoration = "underline"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.textDecoration = "none"; }}
+        >
+          {t("footer.fieldManual")}
+        </button>
+      )}
       <a
         href="mailto:pakmondoapp@gmail.com"
         style={{
@@ -4500,7 +4727,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
             </Btn>
           </div>
         </div>
-        <Footer />
+        <Footer go={go} />
       </div>
 
       {/* First-run onboarding wizard. Auto-shown by the effect above. */}
@@ -7616,7 +7843,7 @@ function Inventory({ go, items, setItems, categories, setCategories, travelTypes
           {tab === "cart" && <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />}
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
       {sharing && shareService && (
         <ShareDialog
           kind={sharing.kind}
@@ -8982,7 +9209,7 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
           />}
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
       {sharing && shareService && (
         <ShareDialog
           kind={sharing.kind}
@@ -9148,7 +9375,7 @@ function Cart({ go, cart, setCart }) {
           <CartPanel cart={cart} setCart={setCart} adding={adding} setAdding={setAdding} />
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
     </div>
   );
 }
@@ -9337,7 +9564,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onTogglePacked={(itemId) => togglePackedOnPacklist(openPacklist.id, itemId)}
           />
         </div>
-        <Footer />
+        <Footer go={go} />
         {editorPacklist && (
           <PacklistEditorDialog
             packlist={editorPacklist}
@@ -9485,7 +9712,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
           )}
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
       {editorOpenId && (() => {
         const editorPacklist = packlists.find((p) => p.id === editorOpenId);
         if (!editorPacklist) return null;
@@ -12467,7 +12694,7 @@ function Inbox({
             />
           )}
         </div>
-        <Footer />
+        <Footer go={go} />
       </div>
     );
   }
@@ -12592,7 +12819,7 @@ function Inbox({
           )}
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
     </div>
   );
 }
@@ -13489,7 +13716,7 @@ function Library({
             onBack={() => setOpenItemId(null)}
           />
         </div>
-        <Footer />
+        <Footer go={go} />
       </div>
     );
   }
@@ -13595,7 +13822,7 @@ function Library({
           )}
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
     </div>
   );
 }
@@ -13956,6 +14183,338 @@ function LibraryDetail({
   );
 }
 
+/* ============================================================
+   HelpPage — comprehensive in-app field manual.
+   Sticky table of contents + long scrolling content with anchor IDs.
+   Same Field Journal aesthetic as the rest of the app.
+   Print-friendly so users can save as PDF locally.
+   ============================================================ */
+function HelpPage({ go }) {
+  const { t } = useI18n();
+  const { isMobile } = useViewport();
+  const [activeSection, setActiveSection] = useState("quickstart");
+
+  // Section metadata — used for both TOC and the heading inside each section.
+  const sections = [
+    { id: "quickstart",   num: "01", title: t("help.tocQuickstart") },
+    { id: "blocks",       num: "02", title: t("help.tocBlocks") },
+    { id: "inventory",    num: "03", title: t("help.tocInventory") },
+    { id: "kits",         num: "04", title: t("help.tocKits") },
+    { id: "categories",   num: "05", title: t("help.tocCategories") },
+    { id: "packlists",    num: "06", title: t("help.tocPacklists") },
+    { id: "weather",      num: "07", title: t("help.tocWeather") },
+    { id: "sharing",      num: "08", title: t("help.tocSharing") },
+    { id: "library",      num: "09", title: t("help.tocLibrary") },
+    { id: "members",      num: "10", title: t("help.tocMembers") },
+    { id: "submissions",  num: "11", title: t("help.tocSubmissions") },
+    { id: "settings",     num: "12", title: t("help.tocSettings") },
+    { id: "data",         num: "13", title: t("help.tocData") },
+    { id: "tips",         num: "14", title: t("help.tocTips") },
+  ];
+
+  // IntersectionObserver to highlight the current section in the TOC.
+  // We watch each section's heading; whichever is closest to top wins.
+  useEffect(() => {
+    const handler = () => {
+      // Pick whichever heading is just past the top of the viewport
+      let current = sections[0].id;
+      for (const s of sections) {
+        const el = document.getElementById("help-" + s.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < 100) current = s.id;
+      }
+      setActiveSection(current);
+    };
+    window.addEventListener("scroll", handler, { passive: true });
+    handler();
+    return () => window.removeEventListener("scroll", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Smooth-scroll to an anchored heading when the TOC is clicked.
+  const scrollTo = (id) => {
+    const el = document.getElementById("help-" + id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 24;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  // Reusable building blocks for the manual content
+  const SectionHeading = ({ id, num, title }) => (
+    <div id={"help-" + id} style={{ marginTop: 56, paddingBottom: 12, borderBottom: `1.5px solid ${C.ink}`, scrollMarginTop: 24 }}>
+      <Coord>SECTION {num}</Coord>
+      <h2 style={{ margin: "8px 0", fontFamily: F.display, fontSize: isMobile ? 28 : 38, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+        {title}<span style={{ color: C.rust }}>.</span>
+      </h2>
+    </div>
+  );
+
+  const SubHeading = ({ children }) => (
+    <h3 style={{ marginTop: 28, marginBottom: 10, fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+      {children}
+    </h3>
+  );
+
+  const Para = ({ children }) => (
+    <p style={{ margin: "10px 0", fontFamily: F.body, fontSize: 15, lineHeight: 1.65, color: C.inkSoft }}>
+      {children}
+    </p>
+  );
+
+  // Bordered call-out box for tips, warnings, etc.
+  const CallOut = ({ kind = "tip", children }) => {
+    const colors = {
+      tip:     { border: C.forest, label: t("help.tipLabel"),     bg: C.paperDeep },
+      warn:    { border: C.rust,   label: t("help.warnLabel"),    bg: C.paperDeep },
+      note:    { border: C.muted,  label: t("help.noteLabel"),    bg: C.paperDeep },
+    }[kind];
+    return (
+      <div style={{ margin: "16px 0", padding: 14, background: colors.bg, borderLeft: `3px solid ${colors.border}` }}>
+        <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: colors.border, fontWeight: 700, marginBottom: 6 }}>
+          {colors.label}
+        </div>
+        <div style={{ fontFamily: F.body, fontSize: 14, lineHeight: 1.55, color: C.ink }}>
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  // Screenshot placeholder. When you have a real image, replace with:
+  //   <img src="/screenshots/<filename>.png" alt="..." style={{ ... }} />
+  const ScreenshotPlaceholder = ({ caption }) => (
+    <div style={{
+      margin: "16px 0", padding: "32px 18px",
+      background: C.paperDeep, border: `1.5px dashed ${C.line}`,
+      textAlign: "center",
+    }}>
+      <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>
+        {t("help.screenshotPending")}
+      </div>
+      <div style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
+        {caption}
+      </div>
+    </div>
+  );
+
+  // Two-column layout helper
+  const TwoCol = ({ left, right }) => (
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 10 : 24, margin: "14px 0" }}>
+      <div>{left}</div>
+      <div>{right}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <Header go={go} active="help" />
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "260px 1fr",
+        gap: isMobile ? 0 : 32,
+        padding: padX(isMobile),
+        position: "relative",
+      }}>
+        <TopoBG opacity={0.05} />
+
+        {/* === Left: sticky table of contents === */}
+        <aside style={{
+          position: "relative", zIndex: 1,
+          ...(isMobile ? {
+            marginTop: 16, paddingBottom: 16,
+            borderBottom: `1px dashed ${C.line}`,
+          } : {
+            position: "sticky",
+            top: 16,
+            alignSelf: "start",
+            maxHeight: "calc(100vh - 32px)",
+            overflowY: "auto",
+            paddingTop: 32,
+          }),
+        }}>
+          <Coord>{t("help.tocLabel")}</Coord>
+          <h3 style={{ margin: "8px 0 14px", fontFamily: F.display, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>
+            {t("help.fieldManual")}
+          </h3>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+            {sections.map((s) => (
+              <li key={s.id} style={{ margin: 0 }}>
+                <button
+                  onClick={() => scrollTo(s.id)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 0",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: `1px dashed ${C.line}`,
+                    cursor: "pointer",
+                    fontFamily: F.body,
+                    fontSize: 13,
+                    color: activeSection === s.id ? C.rust : C.inkSoft,
+                    fontWeight: activeSection === s.id ? 700 : 400,
+                    display: "flex",
+                    gap: 10,
+                  }}>
+                  <span style={{ fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em", flexShrink: 0, paddingTop: 2 }}>{s.num}</span>
+                  <span>{s.title}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div style={{ marginTop: 18 }}>
+            <Btn variant="ghost" icon={ArrowLeft} onClick={() => go("dashboard")}>
+              {t("help.backToApp")}
+            </Btn>
+          </div>
+        </aside>
+
+        {/* === Right: long-form content === */}
+        <main style={{ position: "relative", zIndex: 1, paddingTop: isMobile ? 16 : 32, paddingBottom: 48, maxWidth: 760 }}>
+          {/* Hero */}
+          <Coord>{t("help.kicker")}</Coord>
+          <h1 style={{
+            margin: "12px 0",
+            fontFamily: F.display,
+            fontSize: isMobile ? 38 : 56,
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            lineHeight: 0.95,
+          }}>
+            {t("help.titleA")} <span style={{ fontStyle: "italic", color: C.forest }}>{t("help.titleB")}</span><span style={{ color: C.rust }}>.</span>
+          </h1>
+          <Para>{t("help.intro")}</Para>
+
+          {/* === SECTION 01 — QUICK START === */}
+          <SectionHeading id="quickstart" num="01" title={t("help.tocQuickstart")} />
+          <Para>
+            {t("help.qsIntro")}
+          </Para>
+          <SubHeading>{t("help.qsStep1")}</SubHeading>
+          <Para>{t("help.qsStep1Body")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotSignup")} />
+          <SubHeading>{t("help.qsStep2")}</SubHeading>
+          <Para>{t("help.qsStep2Body")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotWizard")} />
+          <SubHeading>{t("help.qsStep3")}</SubHeading>
+          <Para>{t("help.qsStep3Body")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotDashboard")} />
+          <CallOut kind="tip">{t("help.qsTip")}</CallOut>
+
+          {/* === SECTION 02 — THE THREE BUILDING BLOCKS === */}
+          <SectionHeading id="blocks" num="02" title={t("help.tocBlocks")} />
+          <Para>{t("help.blocksIntro")}</Para>
+
+          <SubHeading>{t("help.blocksItemsTitle")}</SubHeading>
+          <Para>{t("help.blocksItemsBody1")}</Para>
+          <Para>{t("help.blocksItemsBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotItem")} />
+
+          <SubHeading>{t("help.blocksKitsTitle")}</SubHeading>
+          <Para>{t("help.blocksKitsBody1")}</Para>
+          <Para>{t("help.blocksKitsBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotKit")} />
+
+          <SubHeading>{t("help.blocksCategoriesTitle")}</SubHeading>
+          <Para>{t("help.blocksCategoriesBody1")}</Para>
+          <CallOut kind="note">{t("help.blocksCatVsKit")}</CallOut>
+
+          <SubHeading>{t("help.blocksPacklistsTitle")}</SubHeading>
+          <Para>{t("help.blocksPacklistsBody1")}</Para>
+          <Para>{t("help.blocksPacklistsBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotPacklist")} />
+
+          <SubHeading>{t("help.blocksFlowTitle")}</SubHeading>
+          <Para>{t("help.blocksFlow")}</Para>
+          {/* Visual flow diagram — same Field Journal SVG style */}
+          <div style={{ margin: "16px 0", padding: 18, background: C.paperDeep, border: `1px solid ${C.line}` }}>
+            <svg viewBox="0 0 480 180" style={{ width: "100%", height: "auto" }} xmlns="http://www.w3.org/2000/svg">
+              {/* Item box */}
+              <rect x="10" y="60" width="100" height="60" fill="none" stroke={C.ink} strokeWidth="1.5" />
+              <text x="60" y="85" textAnchor="middle" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>ITEM</text>
+              <text x="60" y="102" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted}>e.g. tent</text>
+              {/* Arrow */}
+              <line x1="115" y1="90" x2="155" y2="90" stroke={C.rust} strokeWidth="1.5" />
+              <polygon points="150,85 160,90 150,95" fill={C.rust} />
+              {/* Kit box */}
+              <rect x="160" y="60" width="100" height="60" fill="none" stroke={C.ink} strokeWidth="1.5" />
+              <text x="210" y="85" textAnchor="middle" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>KIT</text>
+              <text x="210" y="102" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted}>e.g. shelter</text>
+              {/* Arrow */}
+              <line x1="265" y1="90" x2="305" y2="90" stroke={C.rust} strokeWidth="1.5" />
+              <polygon points="300,85 310,90 300,95" fill={C.rust} />
+              {/* Packlist box */}
+              <rect x="310" y="60" width="100" height="60" fill="none" stroke={C.ink} strokeWidth="1.5" />
+              <text x="360" y="85" textAnchor="middle" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill={C.ink}>PACKLIST</text>
+              <text x="360" y="102" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted}>e.g. weekend trip</text>
+              {/* Caption */}
+              <text x="240" y="160" textAnchor="middle" fontFamily="ui-monospace" fontSize="9" fill={C.muted} letterSpacing="2">
+                {t("help.blocksDiagramCaption")}
+              </text>
+            </svg>
+          </div>
+
+          {/* === SECTION 03 — INVENTORY === */}
+          <SectionHeading id="inventory" num="03" title={t("help.tocInventory")} />
+          <Para>{t("help.invIntro")}</Para>
+
+          <SubHeading>{t("help.invTabsTitle")}</SubHeading>
+          <Para>{t("help.invTabsBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotInvTabs")} />
+
+          <SubHeading>{t("help.invItemsTitle")}</SubHeading>
+          <Para>{t("help.invItemsBody1")}</Para>
+          <Para>{t("help.invItemsBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotInvItemsTable")} />
+
+          <SubHeading>{t("help.invKitsTitle")}</SubHeading>
+          <Para>{t("help.invKitsBody1")}</Para>
+          <Para>{t("help.invKitsBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotInvKitsView")} />
+
+          <SubHeading>{t("help.invCategoriesTitle")}</SubHeading>
+          <Para>{t("help.invCategoriesBody")}</Para>
+
+          <SubHeading>{t("help.invExpiryTitle")}</SubHeading>
+          <Para>{t("help.invExpiryBody1")}</Para>
+          <Para>{t("help.invExpiryBody2")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotInvExpiry")} />
+          <CallOut kind="tip">{t("help.invExpiryTip")}</CallOut>
+
+          <SubHeading>{t("help.invFiltersTitle")}</SubHeading>
+          <Para>{t("help.invFiltersBody")}</Para>
+
+          <SubHeading>{t("help.invAddingTitle")}</SubHeading>
+          <Para>{t("help.invAddingBody")}</Para>
+          <ScreenshotPlaceholder caption={t("help.shotInvAddItem")} />
+
+          <SubHeading>{t("help.invDeletingTitle")}</SubHeading>
+          <Para>{t("help.invDeletingBody")}</Para>
+          <CallOut kind="warn">{t("help.invDeleteWarn")}</CallOut>
+
+          {/* === SECTIONS 04-14 — placeholders so TOC works === */}
+          {sections.slice(3).map((s) => (
+            <div key={s.id}>
+              <SectionHeading id={s.id} num={s.num} title={s.title} />
+              <Para>{t("help.comingSoon")}</Para>
+              <CallOut kind="note">
+                {t("help.sectionPending")}
+              </CallOut>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 64, paddingTop: 18, borderTop: `1.5px solid ${C.ink}`, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            {t("help.endLabel")} · {t("brand.tagline")}
+          </div>
+        </main>
+      </div>
+      <Footer go={go} />
+    </div>
+  );
+}
+
+
 function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, setLocationEnabled, language, setLanguage, units, setUnits }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
@@ -14146,7 +14705,7 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
             {/* Replay first-run tutorial. Sets a one-shot "force" flag that
                 the dashboard consumes to re-open the wizard, regardless of
                 whether the user has items already. */}
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Btn variant="ghost" icon={Compass} onClick={() => {
                 try {
                   localStorage.setItem(ONBOARDING_FORCE_KEY, "true");
@@ -14156,6 +14715,9 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
                 go("dashboard");
               }}>
                 {t("set.replayTutorial")}
+              </Btn>
+              <Btn variant="ghost" icon={BookOpen} onClick={() => go("help")}>
+                {t("set.fieldManual")}
               </Btn>
             </div>
             <div style={{ marginTop: 24, padding: 20, background: confirming ? C.paperDeep : "transparent", border: confirming ? `1.5px dashed ${C.rust}` : "none" }}>
@@ -14180,7 +14742,7 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
           </div>
         </div>
       </div>
-      <Footer />
+      <Footer go={go} />
     </div>
   );
 }
@@ -14530,6 +15092,7 @@ export default function App() {
     screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} shareService={shareService} /> :
     screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} /> :
     screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} /> :
+    screen === "help" ? <HelpPage go={go} /> :
     <Welcome go={go} />;
 
   const i18nValue = {
