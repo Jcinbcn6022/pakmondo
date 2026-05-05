@@ -1065,8 +1065,8 @@ const TRANSLATIONS = {
 
     // Inventory
     "inv.section": "SECTION INVENTORY",
-    "inv.titleA": "The",
-    "inv.titleB": "roster",
+    "inv.titleA": "My",
+    "inv.titleB": "gear",
     "inv.tabItems": "Items",
     "inv.tabCategories": "Categories",
     "inv.tabTravel": "ADV Style",
@@ -2225,8 +2225,8 @@ const TRANSLATIONS = {
     "dash.reviewExpiring": "Revisar artículos por caducar",
 
     "inv.section": "SECCIÓN INVENTARIO",
-    "inv.titleA": "La",
-    "inv.titleB": "lista",
+    "inv.titleA": "Mi",
+    "inv.titleB": "equipo",
     "inv.tabItems": "Artículos",
     "inv.tabCategories": "Categorías",
     "inv.tabTravel": "Estilo ADV",
