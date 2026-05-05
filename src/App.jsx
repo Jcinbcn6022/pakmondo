@@ -569,6 +569,7 @@ const TRANSLATIONS = {
     "brand.subline": "Inventory  /  Trip Planning  /  Provisioning",
     "brand.fieldTested": "Field-Tested",
     "footer.fieldEd": "FIELD ED. MMXXV",
+    "footer.contact": "CONTACT: pakmondoapp@gmail.com",
     "common.back": "Back",
     "common.cancel": "Cancel",
     "common.add": "Add",
@@ -1337,6 +1338,7 @@ const TRANSLATIONS = {
     "brand.subline": "Inventario  /  Planificación de Viajes  /  Aprovisionamiento",
     "brand.fieldTested": "Probado en Campo",
     "footer.fieldEd": "ED. CAMPO MMXXV",
+    "footer.contact": "CONTACTO: pakmondoapp@gmail.com",
     "common.back": "Atrás",
     "common.cancel": "Cancelar",
     "common.add": "Añadir",
@@ -3182,7 +3184,17 @@ function Footer() {
       borderTop: `1.5px dashed ${C.line}`,
     }}>
       <Coord>PAKMONDO PMD 47.6062N 122.3321W</Coord>
-      <Coord>{t("footer.fieldEd")}</Coord>
+      <a
+        href="mailto:pakmondoapp@gmail.com"
+        style={{
+          fontFamily: F.mono, fontSize: 11, color: C.muted,
+          letterSpacing: "0.05em", textDecoration: "none",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = C.rust; e.currentTarget.style.textDecoration = "underline"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.textDecoration = "none"; }}
+      >
+        {t("footer.contact")}
+      </a>
       <Coord>{t("brand.tagline")}</Coord>
     </footer>
   );
