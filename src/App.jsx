@@ -7388,20 +7388,108 @@ function CategoryDetail({
             hint={t("catDetail.empty.kitsHint")}
           />
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
-            {filteredKits.map((kit) => (
-              <KitCard
-                key={kit.id}
-                kit={kit}
-                items={items}
-                categories={categories}
-                onUpdate={onUpdateKit}
-                onDelete={onDeleteKit}
-              />
-            ))}
-          </div>
+          <CollapsibleKitsList
+            kits={filteredKits}
+            items={items}
+            onDeleteKit={onDeleteKit}
+            onUpdateKit={onUpdateKit}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CollapsibleKitsList — used inside CategoryDetail to render
+   the kits in a category as collapsible rows (matches the visual
+   style of KitsView/CategoriesView), instead of as a grid of
+   small cards. Each row: chevron + kit name + meta. Tap the row
+   to expand and reveal the items inside the kit.
+   ============================================================ */
+function CollapsibleKitsList({ kits, items, onDeleteKit, onUpdateKit }) {
+  const { t, lang, units } = useI18n();
+  const [expanded, setExpanded] = useState({});
+  const toggle = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {kits.map((kit) => {
+        const kitItems = (kit.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+        const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
+        const kitWeightStr = formatWeightFromKg(kitKg, units);
+        const isOpen = !!expanded[kit.id];
+        return (
+          <div key={kit.id}>
+            {/* Header row — chevron + name + meta on left, delete on right */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              marginBottom: 8, paddingBottom: 8,
+              borderBottom: `1.5px solid ${C.ink}`,
+            }}>
+              <button
+                onClick={() => toggle(kit.id)}
+                style={{
+                  flex: 1, minWidth: 0, textAlign: "left",
+                  background: "none", border: "none", padding: 0, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                <ChevronRight
+                  size={16} strokeWidth={2} color={C.muted}
+                  style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>
+                    {kit.name}
+                  </div>
+                  <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
+                  </div>
+                </div>
+              </button>
+              <button onClick={() => onDeleteKit(kit.id)}
+                style={{ width: 30, height: 30, background: C.paperDeep, border: `1px solid ${C.rust}`, color: C.rust, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                title={t("pl.deleteBtn")} aria-label={t("pl.deleteBtn")}>
+                <Trash2 size={13} />
+              </button>
+            </div>
+
+            {/* Items list — only shown when expanded */}
+            {isOpen && (
+              kitItems.length === 0 ? (
+                <div style={{ paddingLeft: 28, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
+                  {t("kitDetail.empty")}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {kitItems.map((it) => (
+                    <div key={it.id}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "8px 12px 8px 28px",
+                        borderBottom: `1px solid ${C.line}`,
+                      }}>
+                      <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 14, color: C.ink }}>
+                        {it.name}
+                      </span>
+                      {it.category && (
+                        <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}>
+                          {tOrLiteral(lang, "cat", it.category)}
+                        </span>
+                      )}
+                      {it.weight && (
+                        <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                          {formatWeight(it.weight, units)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
