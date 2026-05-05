@@ -5618,7 +5618,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
             position: "relative",
             overflow: "hidden",
           }}>
-            <div style={{ position: "absolute", top: -10, right: -10, opacity: 0.12 }}>
+            <div style={{ position: "absolute", top: -10, right: -10, opacity: 0.12, pointerEvents: "none" }}>
               <Globe size={isMobile ? 120 : 180} strokeWidth={1} />
             </div>
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
