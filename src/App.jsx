@@ -1433,6 +1433,12 @@ const TRANSLATIONS = {
     "set.storageInit": "Initializing",
     "set.resetData": "Reset all saved data",
     "set.replayTutorial": "Replay first-run tutorial",
+    "set.backupTitle": "Backup your data",
+    "set.backupNote": "Save a complete copy of your inventory, kits, packlists, trips and cart to a JSON file on your device. A good idea before any large cleanup.",
+    "set.backupBtn": "Download backup",
+    "set.backupSuccess": "Backup saved to your downloads folder.",
+    "set.backupContents": "{items} items · {kits} kits · {categories} categories · {packlists} packlists · {trips} trips",
+    "set.backupFailed": "Backup couldn't be created.",
 
     // === FIELD MANUAL — Help page strings ===
     "help.kicker": "FIELD MANUAL · MMXXV",
@@ -2605,6 +2611,12 @@ const TRANSLATIONS = {
     "set.storageInit": "Inicializando",
     "set.resetData": "Borrar todos los datos",
     "set.replayTutorial": "Repetir tutorial inicial",
+    "set.backupTitle": "Copia de seguridad",
+    "set.backupNote": "Guarda una copia completa de tu inventario, kits, listas, viajes y carrito en un archivo JSON en tu dispositivo. Es buena idea antes de cualquier limpieza grande.",
+    "set.backupBtn": "Descargar copia",
+    "set.backupSuccess": "Copia guardada en tu carpeta de descargas.",
+    "set.backupContents": "{items} artículos · {kits} kits · {categories} categorías · {packlists} listas · {trips} viajes",
+    "set.backupFailed": "No se pudo crear la copia.",
 
     // === MANUAL DE CAMPO — strings de la página de ayuda ===
     "help.kicker": "MANUAL DE CAMPO · MMXXV",
@@ -16893,11 +16905,73 @@ function HelpPage({ go }) {
 }
 
 
-function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, setLocationEnabled, language, setLanguage, units, setUnits }) {
+function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, setLocationEnabled, language, setLanguage, units, setUnits, items, kits, categories, packlists, trips, cart }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
   const [permState, setPermState] = useState("unknown");
+  // Backup-result message shown briefly after the user creates a backup. Keeps
+  // them confident the file actually downloaded with the right contents.
+  const [backupSummary, setBackupSummary] = useState(null);
+
+  // Build a complete JSON snapshot of the user's data and trigger a download.
+  // The snapshot includes everything the user has created. We do NOT include
+  // passwords, auth tokens, or anything sensitive — just the data they own.
+  // If anything in the merge tool (or any future destructive operation) goes
+  // wrong, the user can use this file to restore their inventory manually.
+  const handleBackup = () => {
+    try {
+      const snapshot = {
+        // A version field so future PakMondo can recognize the format. Bump
+        // this if the schema ever changes incompatibly.
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        appVersion: "PakMondo backup",
+        user: user ? {
+          username: user.username || null,
+          email: user.email || null,
+          memberId: user.member_id || null,
+          region: user.region || null,
+        } : null,
+        items: items || [],
+        kits: kits || [],
+        categories: categories || [],
+        packlists: packlists || [],
+        trips: trips || [],
+        cart: cart || [],
+      };
+      const json = JSON.stringify(snapshot, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      // Filename pattern: pakmondo-backup-2026-05-05.json so multiple backups
+      // sort chronologically when listed in the user's downloads folder.
+      const today = new Date().toISOString().slice(0, 10);
+      const filename = `pakmondo-backup-${today}.json`;
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      // Brief on-screen confirmation
+      setBackupSummary({
+        items: (items || []).length,
+        kits: (kits || []).length,
+        categories: (categories || []).length,
+        packlists: (packlists || []).length,
+        trips: (trips || []).length,
+      });
+      // Auto-clear the summary after 8 seconds so the UI returns to its normal
+      // state without the user needing to dismiss anything.
+      setTimeout(() => setBackupSummary(null), 8000);
+    } catch (err) {
+      // Failure is rare (it would mean the browser refused the download), but
+      // we surface it explicitly rather than silently failing.
+      setBackupSummary({ error: err.message || String(err) });
+      setTimeout(() => setBackupSummary(null), 8000);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -17098,6 +17172,42 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
                 {t("set.fieldManual")}
               </Btn>
             </div>
+
+            {/* === Backup === Generate a complete JSON snapshot the user can
+                save locally. Useful before destructive operations (the future
+                duplicate-finder, mass deletes, etc.). */}
+            <div style={{ marginTop: 28, paddingTop: 24, borderTop: `1px dashed ${C.line}` }}>
+              <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+                {t("set.backupTitle")}
+              </div>
+              <div style={{ fontFamily: F.body, fontSize: 14, color: C.inkSoft, marginBottom: 14, lineHeight: 1.5 }}>
+                {t("set.backupNote")}
+              </div>
+              <Btn variant="ghost" icon={Download} onClick={handleBackup}>
+                {t("set.backupBtn")}
+              </Btn>
+              {backupSummary && !backupSummary.error && (
+                <div style={{ marginTop: 12, padding: 12, background: C.paperDeep, border: `1px solid ${C.forestBright}`, borderLeft: `3px solid ${C.forestBright}`, fontFamily: F.body, fontSize: 13, color: C.ink }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{t("set.backupSuccess")}</div>
+                  <div style={{ fontSize: 12, color: C.inkSoft }}>
+                    {t("set.backupContents", {
+                      items: backupSummary.items,
+                      kits: backupSummary.kits,
+                      categories: backupSummary.categories,
+                      packlists: backupSummary.packlists,
+                      trips: backupSummary.trips,
+                    })}
+                  </div>
+                </div>
+              )}
+              {backupSummary && backupSummary.error && (
+                <div style={{ marginTop: 12, padding: 12, background: C.paperDeep, border: `1px solid ${C.rust}`, borderLeft: `3px solid ${C.rust}`, fontFamily: F.body, fontSize: 13, color: C.ink }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{t("set.backupFailed")}</div>
+                  <div style={{ fontSize: 12, color: C.inkSoft }}>{backupSummary.error}</div>
+                </div>
+              )}
+            </div>
+
             <div style={{ marginTop: 24, padding: 20, background: confirming ? C.paperDeep : "transparent", border: confirming ? `1.5px dashed ${C.rust}` : "none" }}>
               {confirming ? (
                 <>
@@ -17469,7 +17579,7 @@ export default function App() {
     screen === "cart" ? <Cart go={go} cart={cart} setCart={setCartSynced} /> :
     screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} shareService={shareService} /> :
     screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} /> :
-    screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} /> :
+    screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} items={items} kits={kits} categories={categories} packlists={packlists} trips={trips} cart={cart} /> :
     screen === "help" ? <HelpPage go={go} /> :
     <Welcome go={go} />;
 
