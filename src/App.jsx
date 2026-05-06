@@ -353,7 +353,7 @@ const supabaseService = {
   fetchLibrary: async ({ kind, activity, region, limit = 60 } = {}) => {
     let q = supabase
       .from("library_items")
-      .select("id, publisher_user_id, publisher_username, publisher_credit, publisher_region, kind, title, description, title_es, description_es, activity, view_count, import_count, created_at")
+      .select("id, publisher_user_id, publisher_username, publisher_credit, publisher_region, kind, title, description, title_es, description_es, activity, payload, view_count, import_count, created_at")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -960,6 +960,15 @@ const TRANSLATIONS = {
     "libBrowse.filterRegion": "Region",
     "libBrowse.filterActivity": "Activity",
     "libBrowse.filterLanguage": "Language",
+    "libBrowse.filterPublisher": "Publisher",
+    "libBrowse.filterCategory": "Category",
+    "libBrowse.sortBy": "Sort by",
+    "libBrowse.sortRecent": "Most recent",
+    "libBrowse.sortAlpha": "Alphabetical",
+    "libBrowse.sortImports": "Most imported",
+    "libBrowse.clearFilters": "Clear filters",
+    "libBrowse.emptyFiltered": "No items match these filters.",
+    "libBrowse.emptyFilteredHint": "Try clearing one of the filters.",
     "libBrowse.langAll": "All languages",
     "libBrowse.langEsFirst": "Spanish first, then all",
     "libBrowse.langEnOnly": "English available",
@@ -2170,6 +2179,15 @@ const TRANSLATIONS = {
     "libBrowse.filterRegion": "Región",
     "libBrowse.filterActivity": "Actividad",
     "libBrowse.filterLanguage": "Idioma",
+    "libBrowse.filterPublisher": "Publicado por",
+    "libBrowse.filterCategory": "Categoría",
+    "libBrowse.sortBy": "Ordenar por",
+    "libBrowse.sortRecent": "Más reciente",
+    "libBrowse.sortAlpha": "Alfabético",
+    "libBrowse.sortImports": "Más importado",
+    "libBrowse.clearFilters": "Limpiar filtros",
+    "libBrowse.emptyFiltered": "Ningún elemento coincide con estos filtros.",
+    "libBrowse.emptyFilteredHint": "Prueba quitar uno de los filtros.",
     "libBrowse.langAll": "Todos los idiomas",
     "libBrowse.langEsFirst": "Español primero, luego todo",
     "libBrowse.langEnOnly": "Disponible en inglés",
@@ -15707,7 +15725,7 @@ function Library({
   trips, setTrips,
   packlists, setPacklists,
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, locale } = useI18n();
   const { isMobile } = useViewport();
   const [kind, setKind] = useState("kit");
   const [activity, setActivity] = useState("");
@@ -15716,6 +15734,12 @@ function Library({
   // Default: when user is browsing in Spanish, prefer Spanish-available
   // content first; English users default to seeing everything.
   const [langFilter, setLangFilter] = useState(lang === "es" ? "ES_PREF" : "all");
+  // Publisher filter — empty string = all publishers
+  const [publisher, setPublisher] = useState("");
+  // Category filter (the kit's own category, like "Camping")
+  const [category, setCategory] = useState("");
+  // Sort order: "recent" (default, by created_at desc), "alpha" (A-Z), or "imports" (by import count)
+  const [sortOrder, setSortOrder] = useState("recent");
   const [list, setList] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15865,9 +15889,98 @@ function Library({
               <option value="ES">{t("libBrowse.langEsOnly")}</option>
             </select>
           </label>
-          {(region || activity) && (
-            <Btn variant="ghost" icon={X} onClick={() => { setRegion(""); setActivity(""); }}>
-              Clear filters
+
+          {/* Publisher dropdown — populated from unique publishers in current list */}
+          {(() => {
+            // Build the list of distinct publishers from the loaded items.
+            // Username is the canonical key; credit_name (if present) is shown
+            // alongside in parens so users can match either.
+            const seen = new Set();
+            const publishers = [];
+            list.forEach((it) => {
+              const u = it.publisher_username;
+              if (!u || seen.has(u)) return;
+              seen.add(u);
+              publishers.push({ username: u, credit: it.publisher_credit });
+            });
+            publishers.sort((a, b) => a.username.localeCompare(b.username, locale, { sensitivity: "base" }));
+            return (
+              <label style={{ flex: "1 1 200px", minWidth: 180 }}>
+                <div style={{ marginBottom: 4, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                  {t("libBrowse.filterPublisher")}
+                </div>
+                <select value={publisher} onChange={(e) => setPublisher(e.target.value)} style={{
+                  width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+                  borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+                  appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+                  backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+                }}>
+                  <option value="">{t("libBrowse.filterAll")}</option>
+                  {publishers.map((p) => (
+                    <option key={p.username} value={p.username}>
+                      {p.credit ? `${p.credit} (@${p.username})` : `@${p.username}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })()}
+
+          {/* Category dropdown — populated from kit/category fields in current list */}
+          {(() => {
+            const cats = new Set();
+            list.forEach((it) => {
+              const p = it.payload;
+              if (!p) return;
+              if (it.kind === "kit" && p.kit && p.kit.category) cats.add(p.kit.category);
+              if (it.kind === "category" && p.category && p.category.name) cats.add(p.category.name);
+            });
+            const catList = Array.from(cats).sort((a, b) => a.localeCompare(b, locale, { sensitivity: "base" }));
+            // Hide the dropdown entirely when there are no categories to choose from
+            if (catList.length === 0) return null;
+            return (
+              <label style={{ flex: "1 1 200px", minWidth: 180 }}>
+                <div style={{ marginBottom: 4, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                  {t("libBrowse.filterCategory")}
+                </div>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} style={{
+                  width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+                  borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+                  appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+                  backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+                }}>
+                  <option value="">{t("libBrowse.filterAll")}</option>
+                  {catList.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+            );
+          })()}
+
+          {/* Sort order dropdown */}
+          <label style={{ flex: "1 1 200px", minWidth: 180 }}>
+            <div style={{ marginBottom: 4, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {t("libBrowse.sortBy")}
+            </div>
+            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{
+              width: "100%", padding: "8px 28px 8px 0", background: "transparent", border: "none",
+              borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 14, color: C.ink,
+              appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+              backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A2421' stroke-width='1.5' fill='none'/></svg>")`,
+              backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center",
+            }}>
+              <option value="recent">{t("libBrowse.sortRecent")}</option>
+              <option value="alpha">{t("libBrowse.sortAlpha")}</option>
+              <option value="imports">{t("libBrowse.sortImports")}</option>
+            </select>
+          </label>
+
+          {(region || activity || publisher || category || sortOrder !== "recent") && (
+            <Btn variant="ghost" icon={X} onClick={() => { setRegion(""); setActivity(""); setPublisher(""); setCategory(""); setSortOrder("recent"); }}>
+              {t("libBrowse.clearFilters")}
             </Btn>
           )}
         </div>
@@ -15888,34 +16001,72 @@ function Library({
               </div>
             </div>
           ) : (() => {
-            // Apply language filter client-side. The fetch returned ALL items;
-            // here we narrow to those matching the current langFilter setting.
-            //   "all"    → show everything
-            //   "EN"     → show only items where English title is present
-            //   "ES"     → show only items where Spanish title is present
-            //   "ES_PREF"→ show items with Spanish first, English fallback after
+            // === Filtering pipeline ===
+            // Apply ALL filters client-side. The fetch returned items already
+            // narrowed by region/activity/kind; here we add language, publisher,
+            // and kit-category filtering, plus sort.
+            //
+            // Helper: extract the kit's own category from the payload. Library
+            // items of kind "kit" have payload.kit.category. For "category"
+            // kind, we use payload.category.name. Trips have no single category
+            // so they fall through to undefined (won't match a category filter).
+            const kitCategoryOf = (it) => {
+              const p = it.payload;
+              if (!p) return "";
+              if (it.kind === "kit") return (p.kit && p.kit.category) || "";
+              if (it.kind === "category") return (p.category && p.category.name) || "";
+              return "";
+            };
             const filtered = list.filter((it) => {
+              // Language
               const hasEs = !!(it.title_es && it.title_es.trim());
               const hasEn = !!(it.title && it.title.trim());
-              if (langFilter === "EN") return hasEn;
-              if (langFilter === "ES") return hasEs;
-              return hasEn || hasEs; // "all" or "ES_PREF"
+              if (langFilter === "EN" && !hasEn) return false;
+              if (langFilter === "ES" && !hasEs) return false;
+              if (langFilter === "all" || langFilter === "ES_PREF") {
+                if (!hasEn && !hasEs) return false;
+              }
+              // Publisher (matches by username — credit name shown but not used for filtering)
+              if (publisher && it.publisher_username !== publisher) return false;
+              // Category (kit's own category field)
+              if (category) {
+                const itCat = (kitCategoryOf(it) || "").toLowerCase();
+                if (itCat !== category.toLowerCase()) return false;
+              }
+              return true;
             });
-            // For ES_PREF, sort items with ES available before EN-only
-            const sorted = langFilter === "ES_PREF"
-              ? [...filtered].sort((a, b) => {
-                  const aEs = !!(a.title_es && a.title_es.trim());
-                  const bEs = !!(b.title_es && b.title_es.trim());
-                  return (aEs === bEs) ? 0 : aEs ? -1 : 1;
-                })
-              : filtered;
+            // === Sorting ===
+            // ES_PREF still floats Spanish-available items to the top (within
+            // whatever sort the user picked).
+            let sorted;
+            if (sortOrder === "alpha") {
+              sorted = [...filtered].sort((a, b) => {
+                const at = lang === "es" && a.title_es ? a.title_es : a.title;
+                const bt = lang === "es" && b.title_es ? b.title_es : b.title;
+                return (at || "").localeCompare(bt || "", locale, { sensitivity: "base" });
+              });
+            } else if (sortOrder === "imports") {
+              sorted = [...filtered].sort((a, b) => (b.import_count || 0) - (a.import_count || 0));
+            } else {
+              // "recent" — items already arrive sorted by created_at desc from fetch
+              sorted = filtered;
+            }
+            // ES_PREF reorder: bring ES-available items to the top of whatever
+            // sort the user picked
+            if (langFilter === "ES_PREF") {
+              sorted = [...sorted].sort((a, b) => {
+                const aEs = !!(a.title_es && a.title_es.trim());
+                const bEs = !!(b.title_es && b.title_es.trim());
+                return (aEs === bEs) ? 0 : aEs ? -1 : 1;
+              });
+            }
             return sorted.length === 0 ? (
               <div style={{ padding: isMobile ? 32 : 48, textAlign: "center", border: `1.5px dashed ${C.line}`, background: C.paperDeep }}>
                 <div style={{ fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 20 : 24, color: C.inkSoft }}>
-                  {t("libBrowse.emptyLang")}
+                  {t("libBrowse.emptyFiltered")}
                 </div>
                 <div style={{ marginTop: 8, fontFamily: F.mono, fontSize: 11, letterSpacing: "0.15em", color: C.muted, textTransform: "uppercase" }}>
-                  {t("libBrowse.emptyLangHint")}
+                  {t("libBrowse.emptyFilteredHint")}
                 </div>
               </div>
             ) : (
