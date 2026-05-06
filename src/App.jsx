@@ -1283,6 +1283,10 @@ const TRANSLATIONS = {
     "weather.cart": "Cart",
     "weather.inCart": "In cart",
     "weather.add": "Add",
+    "weather.dismiss": "Dismiss",
+    "weather.restore": "Restore",
+    "weather.showHidden": "Show {n} hidden",
+    "weather.hideHidden": "Hide hidden",
     "weather.added": "Added",
     "weather.moreMatches": "more matches",
     "weather.allClear": "Looks good for these conditions",
@@ -2503,6 +2507,10 @@ const TRANSLATIONS = {
     "weather.cart": "Carrito",
     "weather.inCart": "En carrito",
     "weather.add": "Añadir",
+    "weather.dismiss": "Descartar",
+    "weather.restore": "Restaurar",
+    "weather.showHidden": "Mostrar {n} ocultos",
+    "weather.hideHidden": "Ocultar",
     "weather.added": "Añadido",
     "weather.moreMatches": "más coincidencias",
     "weather.allClear": "Bien para estas condiciones",
@@ -11590,6 +11598,33 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
     });
   };
 
+  // Dismiss a single weather suggestion (inventory item OR generic) for this
+  // packlist. The dismissed set is stored on the packlist itself as a string
+  // array `dismissedSuggestions`. Each key is a tagged string:
+  //   - "item:<itemId>"          for inventory items the user said aren't useful here
+  //   - "generic:<reqId>::<name>" for generic 'also consider' items the user dismissed
+  // This is per-packlist (per the user's choice) — Andalucía's dismissals don't
+  // affect a Norway trip's suggestions.
+  const dismissSuggestion = (plId, key) => {
+    if (!key) return;
+    setPacklists((prev) => prev.map((p) => {
+      if (p.id !== plId) return p;
+      const list = p.dismissedSuggestions || [];
+      if (list.includes(key)) return p;
+      return { ...p, dismissedSuggestions: [...list, key] };
+    }));
+  };
+  // Reverse of dismissSuggestion — used by the "Show hidden / restore" UI.
+  const restoreSuggestion = (plId, key) => {
+    if (!key) return;
+    setPacklists((prev) => prev.map((p) => {
+      if (p.id !== plId) return p;
+      const list = p.dismissedSuggestions || [];
+      if (!list.includes(key)) return p;
+      return { ...p, dismissedSuggestions: list.filter((k) => k !== key) };
+    }));
+  };
+
   // Toggle "want to take" state for an item on a specific packlist.
   // Stores arrays of item IDs on the packlist itself so each trip has its
   // own state independent of others.
@@ -11658,6 +11693,8 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onTogglePacked={(itemId) => togglePackedOnPacklist(openPacklist.id, itemId)}
             onAddItem={(itemId) => addItemToPacklist(openPacklist.id, itemId)}
             onAddToCart={(name, qty) => addToCart(name, qty)}
+            onDismissSuggestion={(key) => dismissSuggestion(openPacklist.id, key)}
+            onRestoreSuggestion={(key) => restoreSuggestion(openPacklist.id, key)}
           />
         </div>
         <Footer go={go} />
@@ -14237,7 +14274,7 @@ function DetailRow({ label, value }) {
    3) Cross-check items vs requirements
    4) Show summary + gaps
    ============================================================ */
-function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPacklist, onAddToCart, onClose }) {
+function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPacklist, onAddToCart, onDismissSuggestion, onRestoreSuggestion, onClose }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [stage, setStage] = useState("loading"); // "loading" | "needsLocation" | "ready" | "error"
@@ -14254,6 +14291,20 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
   // ID combining the requirement id and the suggestion's name so each generic
   // item can be marked added independently.
   const [justAddedToCart, setJustAddedToCart] = useState(() => new Set());
+  // Per-gap toggle: which requirement IDs currently have their "show hidden"
+  // panel expanded. Defaults to empty (all hidden lists are collapsed).
+  const [showHiddenForReq, setShowHiddenForReq] = useState(() => new Set());
+  const toggleShowHidden = (reqId) => {
+    setShowHiddenForReq((prev) => {
+      const next = new Set(prev);
+      if (next.has(reqId)) next.delete(reqId); else next.add(reqId);
+      return next;
+    });
+  };
+  // Set of suggestion keys the user has dismissed for this packlist. Each key is
+  // a tagged string: "item:<itemId>" for inventory matches, "generic:<reqId>::<name>"
+  // for generic 'also consider' items. Read once per render from packlist state.
+  const dismissedSet = new Set(packlist.dismissedSuggestions || []);
 
   // Resolve included items (from kits, standalone, and category-linked)
   const allUniqueItems = (() => {
@@ -14438,156 +14489,315 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {gaps.map(({ req }) => {
-                    // Find inventory items that match this requirement's keywords
-                    // but are NOT already in the packlist. These are the "you
-                    // already own this — want to add it?" suggestions.
-                    const inPacklistIds = new Set(allUniqueItems.map((it) => it.id));
-                    const lcKeywords = req.keywords.map((k) => k.toLowerCase());
-                    const inventoryMatches = items.filter((it) => {
-                      if (inPacklistIds.has(it.id)) return false;
-                      const hay = `${(it.name || "").toLowerCase()} ${(it.category || "").toLowerCase()} ${(it.notes || "").toLowerCase()}`;
-                      return lcKeywords.some((kw) => hay.includes(kw));
-                    });
-                    // Generic shopping suggestions ALWAYS show (even when inventory
-                    // has matches) — the user might own one thing but need another.
-                    // E.g. inventory has rain jacket but no dry bag.
-                    const advice = GENERIC_SUGGESTIONS[req.id] || [];
-                    return (
-                      <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
-                        <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label}</div>
-                        <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{req.detail(weather)}</div>
+                    // Defensive render: if anything throws inside this card —
+                    // unexpected data shape, missing field on an item, etc —
+                    // we want to render a small fallback instead of blanking
+                    // the entire weather modal. The previous build didn't do
+                    // per-item filtering inside the gap render, so newer code
+                    // touches more fields and is more sensitive to bad data.
+                    try {
+                      // Guard the requirement itself
+                      if (!req || typeof req !== "object" || !req.id) {
+                        return null;
+                      }
+                      // Find inventory items that match this requirement's keywords
+                      // but are NOT already in the packlist.
+                      const inPacklistIds = new Set(
+                        (allUniqueItems || []).map((it) => it && it.id).filter(Boolean)
+                      );
+                      const lcKeywords = (req.keywords || []).map((k) => String(k || "").toLowerCase());
+                      const inventoryAll = (items || []).filter((it) => {
+                        if (!it || !it.id) return false;
+                        if (inPacklistIds.has(it.id)) return false;
+                        const name = String(it.name || "").toLowerCase();
+                        const cat  = String(it.category || "").toLowerCase();
+                        const notes = String(it.notes || "").toLowerCase();
+                        const hay = `${name} ${cat} ${notes}`;
+                        return lcKeywords.some((kw) => kw && hay.includes(kw));
+                      });
+                      // Split inventory matches into visible vs hidden based on
+                      // the per-packlist dismissedSet. Each item's dismiss key is
+                      // tagged "item:<itemId>" so it can't collide with generic keys.
+                      const inventoryMatches = inventoryAll.filter((it) => !dismissedSet.has(`item:${it.id}`));
+                      const inventoryHidden  = inventoryAll.filter((it) => dismissedSet.has(`item:${it.id}`));
+                      const adviceAll = GENERIC_SUGGESTIONS[req.id] || [];
+                      // Same split for the generic 'also consider' suggestions, keyed
+                      // "generic:<reqId>::<name>".
+                      const adviceVisible = adviceAll.filter((s) => !dismissedSet.has(`generic:${req.id}::${s.name}`));
+                      const adviceHidden  = adviceAll.filter((s) =>  dismissedSet.has(`generic:${req.id}::${s.name}`));
+                      const hiddenCount = inventoryHidden.length + adviceHidden.length;
+                      const showHidden = showHiddenForReq.has(req.id);
+                      const detailText = (() => {
+                        try { return req.detail ? req.detail(weather) : ""; }
+                        catch { return ""; }
+                      })();
+                      return (
+                        <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
+                          <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label || req.id}</div>
+                          {detailText && (
+                            <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{detailText}</div>
+                          )}
 
-                        {inventoryMatches.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontFamily: F.mono, fontSize: 9, color: C.forest, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
-                              {t("weather.fromInventory")} ({inventoryMatches.length})
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                              {inventoryMatches.slice(0, 6).map((it) => {
-                                const added = justAdded.has(it.id);
-                                return (
-                                  <div key={it.id} style={{
-                                    display: "flex", alignItems: "center", gap: 8,
-                                    padding: "6px 8px",
-                                    background: added ? "rgba(63,139,92,0.08)" : C.paper,
-                                    border: `1px solid ${added ? C.forestBright : C.line}`,
-                                  }}>
-                                    <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 13, color: C.ink }}>{it.name}</span>
-                                    {it.category && (
-                                      <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted, flexShrink: 0 }}>
-                                        {it.category}
-                                      </span>
-                                    )}
-                                    <button
-                                      onClick={() => {
-                                        if (added) return;
-                                        if (onAddItemToPacklist) onAddItemToPacklist(it.id);
-                                        setJustAdded((prev) => {
-                                          const next = new Set(prev);
-                                          next.add(it.id);
-                                          return next;
-                                        });
-                                      }}
-                                      disabled={added}
-                                      style={{
-                                        padding: "4px 10px",
-                                        background: added ? C.forestBright : C.rust,
-                                        color: C.paper,
-                                        border: "none",
-                                        cursor: added ? "default" : "pointer",
-                                        fontFamily: F.mono, fontSize: 9,
-                                        fontWeight: 700,
-                                        letterSpacing: "0.18em",
-                                        textTransform: "uppercase",
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      {added ? `✓ ${t("weather.added")}` : `+ ${t("weather.add")}`}
-                                    </button>
+                          {inventoryMatches.length > 0 && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.forest, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                                {t("weather.fromInventory")} ({inventoryMatches.length})
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                {inventoryMatches.slice(0, 6).map((it) => {
+                                  const added = justAdded.has(it.id);
+                                  return (
+                                    <div key={it.id} style={{
+                                      display: "flex", alignItems: "center", gap: 8,
+                                      padding: "6px 8px",
+                                      background: added ? "rgba(63,139,92,0.08)" : C.paper,
+                                      border: `1px solid ${added ? C.forestBright : C.line}`,
+                                    }}>
+                                      <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 13, color: C.ink }}>{it.name}</span>
+                                      {it.category && (
+                                        <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted, flexShrink: 0 }}>
+                                          {it.category}
+                                        </span>
+                                      )}
+                                      <button
+                                        onClick={() => {
+                                          if (added) return;
+                                          if (onAddItemToPacklist) onAddItemToPacklist(it.id);
+                                          setJustAdded((prev) => {
+                                            const next = new Set(prev);
+                                            next.add(it.id);
+                                            return next;
+                                          });
+                                        }}
+                                        disabled={added}
+                                        style={{
+                                          padding: "4px 10px",
+                                          background: added ? C.forestBright : C.rust,
+                                          color: C.paper,
+                                          border: "none",
+                                          cursor: added ? "default" : "pointer",
+                                          fontFamily: F.mono, fontSize: 9,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.18em",
+                                          textTransform: "uppercase",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        {added ? `✓ ${t("weather.added")}` : `+ ${t("weather.add")}`}
+                                      </button>
+                                      {/* Dismiss × — hides this item from this packlist's
+                                          suggestions. Restorable via the show-hidden link below. */}
+                                      <button
+                                        onClick={() => onDismissSuggestion && onDismissSuggestion(`item:${it.id}`)}
+                                        title={t("weather.dismiss")}
+                                        aria-label={t("weather.dismiss")}
+                                        style={{
+                                          width: 22, height: 22, padding: 0,
+                                          background: "transparent",
+                                          border: `1px solid ${C.muted}`,
+                                          color: C.muted,
+                                          cursor: "pointer",
+                                          flexShrink: 0,
+                                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                        }}
+                                      >
+                                        <X size={11} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                                {inventoryMatches.length > 6 && (
+                                  <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
+                                    +{inventoryMatches.length - 6} {t("weather.moreMatches")}
                                   </div>
-                                );
-                              })}
-                              {inventoryMatches.length > 6 && (
-                                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
-                                  +{inventoryMatches.length - 6} {t("weather.moreMatches")}
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {adviceVisible.length > 0 && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                                {inventoryMatches.length > 0 ? t("weather.alsoConsider") : t("weather.toBuy")}
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                {adviceVisible.map((s, idx) => {
+                                  const cartKey = `${req.id}::${s.name}`;
+                                  const inCart  = justAddedToCart.has(cartKey);
+                                  return (
+                                    <div key={idx} style={{
+                                      padding: "8px 10px",
+                                      background: inCart ? "rgba(63,139,92,0.08)" : C.paper,
+                                      border: `1px dashed ${inCart ? C.forestBright : C.line}`,
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: 8,
+                                    }}>
+                                      <span style={{ flex: 1, minWidth: 0 }}>
+                                        <span style={{ display: "block", fontFamily: F.body, fontSize: 13, fontWeight: 600, color: C.ink }}>
+                                          {s.name}
+                                        </span>
+                                        <span style={{ display: "block", marginTop: 2, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
+                                          {s.lookFor} · <span style={{ fontStyle: "normal", fontFamily: F.mono, fontSize: 10, color: C.muted }}>{s.weightG}g</span>
+                                        </span>
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          if (inCart) return;
+                                          if (onAddToCart) onAddToCart(s.name, 1);
+                                          setJustAddedToCart((prev) => {
+                                            const next = new Set(prev);
+                                            next.add(cartKey);
+                                            return next;
+                                          });
+                                        }}
+                                        disabled={inCart}
+                                        style={{
+                                          padding: "4px 10px",
+                                          background: inCart ? C.forestBright : "transparent",
+                                          color: inCart ? C.paper : C.ink,
+                                          border: `1.5px solid ${inCart ? C.forestBright : C.ink}`,
+                                          cursor: inCart ? "default" : "pointer",
+                                          fontFamily: F.mono, fontSize: 9,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.18em",
+                                          textTransform: "uppercase",
+                                          flexShrink: 0,
+                                          whiteSpace: "nowrap",
+                                          alignSelf: "flex-start",
+                                        }}
+                                      >
+                                        {inCart ? `✓ ${t("weather.inCart")}` : `+ ${t("weather.cart")}`}
+                                      </button>
+                                      {/* Dismiss generic suggestion for this packlist */}
+                                      <button
+                                        onClick={() => onDismissSuggestion && onDismissSuggestion(`generic:${req.id}::${s.name}`)}
+                                        title={t("weather.dismiss")}
+                                        aria-label={t("weather.dismiss")}
+                                        style={{
+                                          width: 22, height: 22, padding: 0,
+                                          background: "transparent",
+                                          border: `1px solid ${C.muted}`,
+                                          color: C.muted,
+                                          cursor: "pointer",
+                                          flexShrink: 0,
+                                          alignSelf: "flex-start",
+                                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                        }}
+                                      >
+                                        <X size={11} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Show-hidden toggle + restore panel.
+                              When user has dismissed any suggestions for this gap, show
+                              a small inline link "Show N hidden". Tap to expand a list
+                              of dismissed items with a ↻ button to restore each. */}
+                          {hiddenCount > 0 && (
+                            <div style={{ marginTop: 10 }}>
+                              <button
+                                onClick={() => toggleShowHidden(req.id)}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                  fontFamily: F.mono, fontSize: 9,
+                                  letterSpacing: "0.15em",
+                                  textTransform: "uppercase",
+                                  color: C.muted,
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                {showHidden
+                                  ? `▾ ${t("weather.hideHidden")}`
+                                  : `▸ ${t("weather.showHidden", { n: hiddenCount })}`}
+                              </button>
+                              {showHidden && (
+                                <div style={{ marginTop: 8, padding: 8, background: "rgba(0,0,0,0.025)", border: `1px dashed ${C.line}`, display: "flex", flexDirection: "column", gap: 4 }}>
+                                  {inventoryHidden.map((it) => (
+                                    <div key={`hi-${it.id}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 6px" }}>
+                                      <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.muted, textDecoration: "line-through" }}>
+                                        {it.name}
+                                      </span>
+                                      <button
+                                        onClick={() => onRestoreSuggestion && onRestoreSuggestion(`item:${it.id}`)}
+                                        title={t("weather.restore")}
+                                        aria-label={t("weather.restore")}
+                                        style={{
+                                          padding: "3px 8px",
+                                          background: "transparent",
+                                          border: `1px solid ${C.forest}`,
+                                          color: C.forest,
+                                          cursor: "pointer",
+                                          fontFamily: F.mono, fontSize: 9,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.15em",
+                                          textTransform: "uppercase",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        ↻ {t("weather.restore")}
+                                      </button>
+                                    </div>
+                                  ))}
+                                  {adviceHidden.map((s, idx) => (
+                                    <div key={`hg-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 6px" }}>
+                                      <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.muted, textDecoration: "line-through" }}>
+                                        {s.name}
+                                      </span>
+                                      <button
+                                        onClick={() => onRestoreSuggestion && onRestoreSuggestion(`generic:${req.id}::${s.name}`)}
+                                        title={t("weather.restore")}
+                                        aria-label={t("weather.restore")}
+                                        style={{
+                                          padding: "3px 8px",
+                                          background: "transparent",
+                                          border: `1px solid ${C.forest}`,
+                                          color: C.forest,
+                                          cursor: "pointer",
+                                          fontFamily: F.mono, fontSize: 9,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.15em",
+                                          textTransform: "uppercase",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        ↻ {t("weather.restore")}
+                                      </button>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Generic shopping advice — always shown when there are
-                            suggestions for this requirement type. Each card has an
-                            "Add to cart" button so the user can act on the advice
-                            immediately without leaving the weather flow. The cart
-                            uses just (name, qty=1) — no brands, no prices. */}
-                        {advice.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
-                              {inventoryMatches.length > 0 ? t("weather.alsoConsider") : t("weather.toBuy")}
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              {advice.map((s, idx) => {
-                                const cartKey = `${req.id}::${s.name}`;
-                                const inCart  = justAddedToCart.has(cartKey);
-                                return (
-                                  <div key={idx} style={{
-                                    padding: "8px 10px",
-                                    background: inCart ? "rgba(63,139,92,0.08)" : C.paper,
-                                    border: `1px dashed ${inCart ? C.forestBright : C.line}`,
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: 8,
-                                  }}>
-                                    <span style={{ flex: 1, minWidth: 0 }}>
-                                      <span style={{ display: "block", fontFamily: F.body, fontSize: 13, fontWeight: 600, color: C.ink }}>
-                                        {s.name}
-                                      </span>
-                                      <span style={{ display: "block", marginTop: 2, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
-                                        {s.lookFor} · <span style={{ fontStyle: "normal", fontFamily: F.mono, fontSize: 10, color: C.muted }}>{s.weightG}g</span>
-                                      </span>
-                                    </span>
-                                    <button
-                                      onClick={() => {
-                                        if (inCart) return;
-                                        if (onAddToCart) onAddToCart(s.name, 1);
-                                        setJustAddedToCart((prev) => {
-                                          const next = new Set(prev);
-                                          next.add(cartKey);
-                                          return next;
-                                        });
-                                      }}
-                                      disabled={inCart}
-                                      style={{
-                                        padding: "4px 10px",
-                                        background: inCart ? C.forestBright : "transparent",
-                                        color: inCart ? C.paper : C.ink,
-                                        border: `1.5px solid ${inCart ? C.forestBright : C.ink}`,
-                                        cursor: inCart ? "default" : "pointer",
-                                        fontFamily: F.mono, fontSize: 9,
-                                        fontWeight: 700,
-                                        letterSpacing: "0.18em",
-                                        textTransform: "uppercase",
-                                        flexShrink: 0,
-                                        whiteSpace: "nowrap",
-                                        alignSelf: "flex-start",
-                                      }}
-                                    >
-                                      {inCart ? `✓ ${t("weather.inCart")}` : `+ ${t("weather.cart")}`}
-                                    </button>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                          {/* Keyword hint, kept for transparency about why this gap fired */}
+                          <div style={{ marginTop: 10, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                            {t("weather.suggestKeywords")}: {(req.keywords || []).slice(0, 4).join(", ")}
                           </div>
-                        )}
-
-                        {/* Keep the original keyword hint for transparency about why this gap fired */}
-                        <div style={{ marginTop: 10, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                          {t("weather.suggestKeywords")}: {req.keywords.slice(0, 4).join(", ")}
                         </div>
-                      </div>
-                    );
+                      );
+                    } catch (err) {
+                      // Last resort fallback so the user still sees that
+                      // a gap exists, even if rendering its full UI broke.
+                      // The console log is a breadcrumb if dev tools are open.
+                      // eslint-disable-next-line no-console
+                      console.error("Gap render error", req && req.id, err);
+                      return (
+                        <div key={(req && req.id) || Math.random()} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
+                          <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{(req && req.label) || "Gap"}</div>
+                          <div style={{ marginTop: 4, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft }}>
+                            (Suggestions unavailable for this item)
+                          </div>
+                        </div>
+                      );
+                    }
                   })}
                 </div>
               </div>
@@ -14637,7 +14847,7 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart, onDismissSuggestion, onRestoreSuggestion }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
@@ -15113,6 +15323,8 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           categories={categories}
           onAddItemToPacklist={(itemId) => onAddItem && onAddItem(itemId)}
           onAddToCart={(name, qty) => onAddToCart && onAddToCart(name, qty)}
+          onDismissSuggestion={(key) => onDismissSuggestion && onDismissSuggestion(key)}
+          onRestoreSuggestion={(key) => onRestoreSuggestion && onRestoreSuggestion(key)}
           onClose={() => setWeatherOpen(false)}
         />
       )}
