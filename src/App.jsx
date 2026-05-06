@@ -579,6 +579,11 @@ const F = {
 };
 
 const STORAGE_KEY = "pakmondo:appstate";
+// One-shot flag: true once the visitor has explicitly chosen their language
+// from the bilingual welcome card. We don't auto-detect from navigator.language —
+// the user is forced to pick. After they do, the picker is never shown again
+// (unless they clear browser storage).
+const LANGUAGE_PICKED_KEY = "pakmondo:languagePicked";
 
 // Embedded PakMondo logo — black + rust on transparent background.
 // Stored inline so the build is self-contained (no separate asset hosting needed).
@@ -4542,9 +4547,188 @@ function Footer({ go }) {
   );
 }
 
-function Welcome({ go }) {
+// ============================================================
+// LanguagePicker — bilingual welcome card shown ONCE on first visit
+// before the marketing/auth landing page renders. Greets the user
+// in both languages and forces an explicit choice. After they tap
+// a flag, the choice is saved to localStorage and they never see
+// this card again unless they clear browser data.
+// ============================================================
+function LanguagePicker({ onPick }) {
+  const { isMobile } = useViewport();
+  // Subtle hover state for the flag buttons (one bit per button)
+  const [hoveredEn, setHoveredEn] = useState(false);
+  const [hoveredEs, setHoveredEs] = useState(false);
+
+  // Flag-button styling shared by both buttons. Big tappable target,
+  // paper background, forest border that thickens on hover/tap.
+  const flagBtnStyle = (active) => ({
+    flex: "1 1 0",
+    minWidth: 0,
+    padding: isMobile ? "20px 16px" : "28px 24px",
+    background: active ? C.paperDeep : C.paper,
+    border: `2px solid ${C.ink}`,
+    cursor: "pointer",
+    fontFamily: F.body,
+    fontSize: isMobile ? 16 : 18,
+    color: C.ink,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 8,
+    transition: "background 0.12s, transform 0.12s",
+    transform: active ? "translateY(-2px)" : "translateY(0)",
+  });
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: C.paper,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20,
+      position: "relative",
+    }}>
+      {/* Subtle topographic background, same as auth screens */}
+      <TopoBG opacity={0.08} />
+      <div style={{
+        position: "relative",
+        zIndex: 1,
+        maxWidth: 480,
+        width: "100%",
+        padding: isMobile ? "32px 24px" : "44px 40px",
+        background: C.paper,
+        border: `1.5px solid ${C.ink}`,
+        textAlign: "center",
+      }}>
+        {/* Tiny PakMondo wordmark at the top */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: isMobile ? 24 : 32 }}>
+          <Logo size={isMobile ? "headerMobile" : "header"} />
+        </div>
+
+        {/* Bilingual greetings stacked. Both languages get equal billing —
+            no one's language feels secondary. Italic + serif gives editorial weight. */}
+        <h1 style={{
+          margin: 0,
+          fontFamily: F.display,
+          fontSize: isMobile ? 36 : 48,
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.0,
+          color: C.ink,
+        }}>
+          Welcome<span style={{ color: C.rust }}>.</span>
+        </h1>
+        <h2 style={{
+          margin: "6px 0 0 0",
+          fontFamily: F.display,
+          fontStyle: "italic",
+          fontSize: isMobile ? 28 : 36,
+          fontWeight: 500,
+          letterSpacing: "-0.01em",
+          lineHeight: 1.0,
+          color: C.forest,
+        }}>
+          Bienvenido<span style={{ color: C.rust }}>.</span>
+        </h2>
+
+        {/* Bilingual prompt — small mono caps, both languages on one line */}
+        <div style={{
+          marginTop: isMobile ? 22 : 28,
+          fontFamily: F.mono,
+          fontSize: 11,
+          color: C.muted,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          lineHeight: 1.6,
+        }}>
+          Choose your language<br />
+          Elige tu idioma
+        </div>
+
+        {/* Two flag buttons side-by-side. Emoji + label so screen readers
+            announce the language name, not "flag". */}
+        <div style={{
+          marginTop: isMobile ? 24 : 32,
+          display: "flex",
+          gap: 12,
+          justifyContent: "center",
+        }}>
+          <button
+            type="button"
+            onClick={() => onPick("en")}
+            onMouseEnter={() => setHoveredEn(true)}
+            onMouseLeave={() => setHoveredEn(false)}
+            onTouchStart={() => setHoveredEn(true)}
+            onTouchEnd={() => setHoveredEn(false)}
+            style={flagBtnStyle(hoveredEn)}
+            aria-label="English"
+          >
+            <span style={{ fontSize: isMobile ? 36 : 44, lineHeight: 1 }} role="img" aria-hidden="true">🇬🇧</span>
+            <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>English</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onPick("es")}
+            onMouseEnter={() => setHoveredEs(true)}
+            onMouseLeave={() => setHoveredEs(false)}
+            onTouchStart={() => setHoveredEs(true)}
+            onTouchEnd={() => setHoveredEs(false)}
+            style={flagBtnStyle(hoveredEs)}
+            aria-label="Español"
+          >
+            <span style={{ fontSize: isMobile ? 36 : 44, lineHeight: 1 }} role="img" aria-hidden="true">🇪🇸</span>
+            <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>Español</span>
+          </button>
+        </div>
+
+        {/* Reassurance — bilingual line confirming the choice can be changed later */}
+        <div style={{
+          marginTop: isMobile ? 22 : 28,
+          fontFamily: F.body,
+          fontStyle: "italic",
+          fontSize: 12,
+          color: C.inkSoft,
+          lineHeight: 1.5,
+        }}>
+          You can change this later in Settings.<br />
+          Puedes cambiarlo más tarde en Ajustes.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Welcome({ go, setLanguage }) {
   const { t } = useI18n();
   const { isMobile, isNarrow } = useViewport();
+
+  // Bilingual welcome card state. Shown ONCE per browser, before the user
+  // has explicitly chosen their language. Reads the flag synchronously on
+  // mount so we don't flash the marketing page first.
+  const [languagePicked, setLanguagePicked] = useState(() => {
+    try {
+      return localStorage.getItem(LANGUAGE_PICKED_KEY) === "true";
+    } catch (e) {
+      // localStorage blocked (private mode or cookie disabled) — skip the
+      // gate and show the marketing page directly.
+      return true;
+    }
+  });
+
+  // Tapping a flag sets the language, persists the choice, and dismisses
+  // the picker. The chosen language flows through the i18n context so the
+  // entire app re-renders in that language immediately.
+  const pickLanguage = (lang) => {
+    if (typeof setLanguage === "function") setLanguage(lang);
+    try { localStorage.setItem(LANGUAGE_PICKED_KEY, "true"); } catch (e) { /* ignore */ }
+    setLanguagePicked(true);
+  };
+
+  if (!languagePicked) {
+    return <LanguagePicker onPick={pickLanguage} />;
+  }
 
   // Reusable section heading with kicker + display title
   const SectionHeading = ({ kicker, title, italicWord }) => (
@@ -18435,7 +18619,7 @@ export default function App() {
   });
 
   const inner =
-    screen === "welcome" ? <Welcome go={go} /> :
+    screen === "welcome" ? <Welcome go={go} setLanguage={setLanguage} /> :
     screen === "login" ? <Login go={go} setUser={setUser} /> :
     screen === "signup" ? <Signup go={go} setUser={setUser} takenUsernames={takenUsernames} setTakenUsernames={setTakenUsernames} /> :
     screen === "forgot" ? <ForgotPassword go={go} /> :
@@ -18449,7 +18633,7 @@ export default function App() {
     screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} /> :
     screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} items={items} kits={kits} categories={categories} packlists={packlists} trips={trips} cart={cart} /> :
     screen === "help" ? <HelpPage go={go} /> :
-    <Welcome go={go} />;
+    <Welcome go={go} setLanguage={setLanguage} />;
 
   const i18nValue = {
     lang: language,
