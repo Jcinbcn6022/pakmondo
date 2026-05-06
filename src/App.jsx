@@ -11549,11 +11549,29 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
   // Toggle "want to take" state for an item on a specific packlist.
   // Stores arrays of item IDs on the packlist itself so each trip has its
   // own state independent of others.
-  const toggleWanted = (plId, itemId) => {
+  const toggleWanted = (plId, itemId, allItemIds = null) => {
     setPacklists(packlists.map((p) => {
       if (p.id !== plId) return p;
-      const list = p.wantedItemIds || [];
-      const next = list.includes(itemId) ? list.filter((x) => x !== itemId) : [...list, itemId];
+      let next;
+      if (Array.isArray(p.wantedItemIds)) {
+        // Explicit state already exists — simple toggle
+        const list = p.wantedItemIds;
+        next = list.includes(itemId) ? list.filter((x) => x !== itemId) : [...list, itemId];
+      } else {
+        // Legacy packlist: every item is implicitly "wanted" until the user
+        // touches a checkbox. The first toggle migrates to explicit state.
+        // If we know the full set of items in this packlist (passed in by the
+        // detail view), we initialize wantedItemIds to "all minus the toggled
+        // one" so unchecking ONE item only unchecks that item — not all.
+        // Falling back to [itemId] (the old buggy behavior) is preserved as a
+        // safety net for callers that don't pass allItemIds, though it's
+        // semantically incorrect.
+        if (Array.isArray(allItemIds) && allItemIds.length > 0) {
+          next = allItemIds.filter((x) => x !== itemId);
+        } else {
+          next = [itemId];
+        }
+      }
       return { ...p, wantedItemIds: next };
     }));
   };
@@ -11592,7 +11610,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onEditItem={(id) => setDetailItemId(id)}
             onEditKit={(id) => setDetailKitId(id)}
             onEditCategory={(id) => setDetailCategoryId(id)}
-            onToggleWanted={(itemId) => toggleWanted(openPacklist.id, itemId)}
+            onToggleWanted={(itemId, allItemIds) => toggleWanted(openPacklist.id, itemId, allItemIds)}
             onTogglePacked={(itemId) => togglePackedOnPacklist(openPacklist.id, itemId)}
           />
         </div>
@@ -14378,6 +14396,17 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
+  // Track which kits are expanded. Default = ALL collapsed (empty Set).
+  // Tap the kit header to toggle. Each kit's items render only when expanded.
+  const [expandedKits, setExpandedKits] = useState(() => new Set());
+  const isKitExpanded = (kitId) => expandedKits.has(kitId);
+  const toggleKitExpanded = (kitId) => {
+    setExpandedKits((prev) => {
+      const next = new Set(prev);
+      if (next.has(kitId)) next.delete(kitId); else next.add(kitId);
+      return next;
+    });
+  };
 
   // Per-trip state arrays. Default: an item is "wanted" if it appears in
   // the packlist at all. Once user touches the wanted toggle for any item,
@@ -14413,11 +14442,14 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
   );
 
   // Render the two-checkbox group for an item id. Used inline in each row.
+  // We pass the full set of item IDs in this packlist along with each toggle
+  // so the parent can correctly migrate legacy packlists from "all wanted"
+  // to an explicit list (without losing the wanted state of every other item).
   const ItemChecks = ({ itemId }) => (
     <div style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
       <Checkbox
         checked={isWanted(itemId)} color={C.rust}
-        onClick={() => onToggleWanted && onToggleWanted(itemId)}
+        onClick={() => onToggleWanted && onToggleWanted(itemId, Array.from(idsInKits))}
         title={t("pl.wantToggle")}
       />
       <Checkbox
@@ -14633,22 +14665,51 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
               const kitItems = (k.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
               const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
               const kitWeightStr = formatWeightFromKg(kitKg, units);
+              const expanded = isKitExpanded(k.id);
+              // Per-kit progress so the user can see at a glance how complete
+              // a collapsed kit is, without needing to expand it.
+              const kitWanted = kitItems.filter((it) => isWanted(it.id)).length;
+              const kitPacked = kitItems.filter((it) => isPacked(it.id)).length;
               return (
                 <div key={k.id}>
-                  {/* Header row — tap to open kit modal; X to remove */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${C.line}` }}>
+                  {/* Header row — chevron to expand/collapse, name+meta, X to remove.
+                      Tap on the chevron OR the name area toggles the kit's items.
+                      A separate "edit" gesture moves to the kit modal via a long-press
+                      or a small icon (we keep it simple: tap the header toggles, the
+                      edit modal is reachable via the kit edit button on the kit page itself). */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: expanded ? 8 : 0, paddingBottom: 6, borderBottom: `1px solid ${C.line}` }}>
                     <button
-                      onClick={() => onEditKit && onEditKit(k.id)}
+                      onClick={() => toggleKitExpanded(k.id)}
                       style={{
                         flex: 1, minWidth: 0, textAlign: "left",
-                        background: "none", border: "none", padding: 0, cursor: onEditKit ? "pointer" : "default",
-                      }}>
-                      <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
-                        {k.name}
-                      </div>
-                      <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                        KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
-                        {k.category ? `  ·  ${tOrLiteral(lang, "cat", k.category)}` : ""}
+                        background: "none", border: "none", padding: 0, cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}
+                      aria-expanded={expanded}
+                      aria-label={`${expanded ? "Collapse" : "Expand"} ${k.name}`}
+                    >
+                      <ChevronRight
+                        size={18}
+                        strokeWidth={2}
+                        color={C.muted}
+                        style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+                          {k.name}
+                        </div>
+                        <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                          KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
+                          {k.category ? `  ·  ${tOrLiteral(lang, "cat", k.category)}` : ""}
+                          {kitItems.length > 0 && (
+                            <>
+                              {"  ·  "}
+                              <span style={{ color: C.rust }}>{kitWanted}/{kitItems.length} {lang === "es" ? "llevar" : "want"}</span>
+                              {"  ·  "}
+                              <span style={{ color: C.forestBright }}>{kitPacked}/{kitWanted} {lang === "es" ? "emp." : "pkd"}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </button>
                     {onRemoveKit && (
@@ -14659,8 +14720,8 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                       </button>
                     )}
                   </div>
-                  {/* Inline item list */}
-                  {kitItems.length === 0 ? (
+                  {/* Inline item list — only when expanded */}
+                  {expanded && (kitItems.length === 0 ? (
                     <div style={{ paddingLeft: 12, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
                       {t("kitDetail.empty")}
                     </div>
@@ -14704,7 +14765,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                         </div>
                       ))}
                     </div>
-                  )}
+                  ))}
                 </div>
               );
             })}
