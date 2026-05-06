@@ -3086,6 +3086,15 @@ const useSyncStatus = () => useContext(SyncStatusContext);
 const UserContext = createContext(null);
 const useCurrentUser = () => useContext(UserContext);
 
+// AlertContext exposes attention counts so the Header, Dashboard, and any
+// other surface can show consistent badges without prop-drilling.
+// Consumers receive { inboxPending, adminPending, total } where:
+//   - inboxPending = shares from other members not yet reviewed
+//   - adminPending = library submissions awaiting admin review (admins only)
+//   - total        = sum of the above (used for the dashboard settings icon)
+const AlertContext = createContext({ inboxPending: 0, adminPending: 0, total: 0 });
+const useAlerts = () => useContext(AlertContext);
+
 const makeT = (lang) => (key, params = {}) => {
   const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
   let str = dict[key] != null ? dict[key] : (TRANSLATIONS.en[key] != null ? TRANSLATIONS.en[key] : key);
@@ -3596,29 +3605,74 @@ const daysUntil = (iso) => {
   return Math.ceil((exp - Date.now()) / DAY_MS);
 };
 
-const AlertBadge = ({ count, size = 22 }) => (
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      minWidth: size,
-      height: size,
-      padding: count && count > 1 ? "0 6px" : 0,
-      background: C.rust,
-      color: C.paper,
-      fontFamily: F.mono,
-      fontSize: Math.max(10, size - 12),
-      fontWeight: 900,
-      letterSpacing: count && count > 1 ? "0.05em" : 0,
-      lineHeight: 1,
-      border: `1.5px solid ${C.ink}`,
-    }}
-    aria-label={count ? `${count} alerts` : "alert"}
-  >
-    {count && count > 1 ? `! ${count}` : "!"}
-  </span>
-);
+// AlertBadge — red attention badge with a count.
+// Backwards-compatible: with just `count` and `size` it behaves like before
+// (used in dashboard expiry alerts). New props let it position itself as an
+// absolute overlay on icons (`position="absolute"`) or sit inline beside text
+// labels (`position="inline"`). Renders nothing when count is 0/undefined so
+// callers can include it unconditionally.
+const AlertBadge = ({ count, size = 22, position, style: extra = {} }) => {
+  // When the new `position` prop is provided, render the modern badge
+  // (small dot, white text, ringed for contrast). Otherwise render the
+  // legacy variant used by the dashboard expiry section.
+  if (position) {
+    if (!count || count < 1) return null;
+    const display = count > 99 ? "99+" : String(count);
+    const baseStyle = position === "absolute"
+      ? { position: "absolute", top: -4, right: -4 }
+      : { display: "inline-flex", marginLeft: 6, verticalAlign: "middle" };
+    return (
+      <span
+        style={{
+          ...baseStyle,
+          minWidth: 18,
+          height: 18,
+          padding: display.length > 1 ? "0 5px" : "0",
+          borderRadius: 9,
+          background: "#C8442A",
+          color: "#FFFFFF",
+          fontFamily: "ui-monospace, 'SF Mono', monospace",
+          fontSize: 11,
+          fontWeight: 700,
+          lineHeight: "18px",
+          letterSpacing: "0.02em",
+          textAlign: "center",
+          boxShadow: "0 0 0 1.5px #EFE7D6",
+          pointerEvents: "none",
+          zIndex: 5,
+          ...extra,
+        }}
+        aria-label={`${count} ${count === 1 ? "alert" : "alerts"}`}
+      >
+        {display}
+      </span>
+    );
+  }
+  // Legacy variant (dashboard expiry badge — renders "!" when count missing)
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: size,
+        height: size,
+        padding: count && count > 1 ? "0 6px" : 0,
+        background: C.rust,
+        color: C.paper,
+        fontFamily: F.mono,
+        fontSize: Math.max(10, size - 12),
+        fontWeight: 900,
+        letterSpacing: count && count > 1 ? "0.05em" : 0,
+        lineHeight: 1,
+        border: `1.5px solid ${C.ink}`,
+      }}
+      aria-label={count ? `${count} alerts` : "alert"}
+    >
+      {count && count > 1 ? `! ${count}` : "!"}
+    </span>
+  );
+};
 
 const SEED_CATEGORIES = [
   { id: "cat-1", name: "Shelter", icon: "tent", count: 6 },
@@ -4106,6 +4160,7 @@ function Header({ go, active, onBack }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const user = useCurrentUser();
+  const alerts = useAlerts();
   const [menuOpen, setMenuOpen] = useState(false);
   // Field Manual hover/tap popup state.
   // Desktop: open on hover (with small delay), close on mouse-leave.
@@ -4206,8 +4261,10 @@ function Header({ go, active, onBack }) {
         {!isMobile && (
           <nav style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
             {navItems.map(([k, l]) => (
-              <button key={k} onClick={() => go(k)} style={{ background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: active === k ? C.rust : C.ink, fontWeight: active === k ? 700 : 500 }}>
+              <button key={k} onClick={() => go(k)} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: active === k ? C.rust : C.ink, fontWeight: active === k ? 700 : 500 }}>
                 {l}
+                {/* Inbox attention badge — shows when there are pending shares */}
+                {k === "inbox" && <AlertBadge count={alerts.inboxPending} position="absolute" style={{ top: 0, right: -2 }} />}
               </button>
             ))}
           </nav>
@@ -4302,8 +4359,9 @@ function Header({ go, active, onBack }) {
               </div>
             )}
           </div>
-          <button onClick={() => go("settings")} style={{ padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("set.title")}>
+          <button onClick={() => go("settings")} style={{ position: "relative", padding: isMobile ? 10 : 8, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label={t("set.title")}>
             <Settings size={isMobile ? 22 : 18} />
+            <AlertBadge count={alerts.total} position="absolute" />
           </button>
           {isMobile && !onBack && (
             <button onClick={() => setMenuOpen(true)} style={{ padding: 10, background: "none", border: "none", cursor: "pointer", color: C.ink, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }} aria-label="Open menu">
@@ -4364,7 +4422,10 @@ function Header({ go, active, onBack }) {
                       justifyContent: "space-between",
                     }}
                   >
-                    <span>{l}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center" }}>
+                      {l}
+                      {k === "inbox" && <AlertBadge count={alerts.inboxPending} position="inline" />}
+                    </span>
                     {sel && <ChevronRight size={16} />}
                   </button>
                 );
@@ -4393,6 +4454,7 @@ function Header({ go, active, onBack }) {
                 }}
               >
                 <Settings size={16} /> {t("set.title")}
+                <AlertBadge count={alerts.total} position="inline" />
               </button>
             </div>
 
@@ -11134,15 +11196,20 @@ function Cart({ go, cart, setCart }) {
   );
 }
 
-function SettingGroup({ title, num, children, collapsible = false, defaultExpanded = false }) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+function SettingGroup({ title, num, children, collapsible = false, defaultExpanded = false, alertCount = 0 }) {
+  // Auto-expand on mount when there's an alert — surfaces the action without
+  // requiring the user to hunt for the section.
+  const [expanded, setExpanded] = useState(defaultExpanded || (alertCount > 0));
   // When collapsible, the header becomes a button that toggles visibility.
   // Otherwise it renders exactly as before — backwards compatible.
   if (!collapsible) {
     return (
       <div>
         <div style={{ marginBottom: 24, paddingBottom: 12, borderBottom: `1.5px solid ${C.ink}`, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <div style={{ fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>{title}</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>{title}</span>
+            <AlertBadge count={alertCount} position="inline" />
+          </div>
           <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", color: C.muted }}>{num}</div>
         </div>
         <div>{children}</div>
@@ -11173,6 +11240,7 @@ function SettingGroup({ title, num, children, collapsible = false, defaultExpand
             style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.15s", alignSelf: "center" }}
           />
           <div style={{ fontFamily: F.display, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", color: C.ink }}>{title}</div>
+          <AlertBadge count={alertCount} position="inline" />
         </div>
         <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", color: C.muted }}>{num}</div>
       </button>
@@ -15494,6 +15562,7 @@ function SubmissionDetailModal({ submission, onClose, onAfterAction }) {
 function MySubmissions({ currentUser }) {
   const { t, locale } = useI18n();
   const { isMobile } = useViewport();
+  const alerts = useAlerts();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState(null);
@@ -15532,7 +15601,13 @@ function MySubmissions({ currentUser }) {
 
   return (
     <>
-    <SettingGroup title={t("lib.mySubsTitle")} num="03" collapsible defaultExpanded={false}>
+    <SettingGroup
+      title={t("lib.mySubsTitle")}
+      num="04"
+      collapsible
+      defaultExpanded={false}
+      alertCount={isAdmin ? alerts.adminPending : 0}
+    >
       {/* Admin-only button to enter the full review screen */}
       {isAdmin && (
         <div style={{ marginBottom: 14 }}>
@@ -17646,7 +17721,7 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
           </h1>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 36 : 48 }}>
-          <SettingGroup title={t("set.profile")} num="01">
+          <SettingGroup title={t("set.profile")} num="01" collapsible defaultExpanded={false}>
             <SettingRow label={t("set.username")} value={user.username || user.name || t("dash.wayfarer")} />
             <SettingRow label={t("set.region")} value={
               user.region ? (
@@ -17659,7 +17734,7 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
             <SettingRow label={t("set.email")} value={user.email || "wayfarer@pakmondo.co"} />
             <SettingRow label={t("set.memberSince")} value="MAR 2025" />
           </SettingGroup>
-          <SettingGroup title={t("set.preferences")} num="02">
+          <SettingGroup title={t("set.preferences")} num="02" collapsible defaultExpanded={false}>
             <SettingRow label={t("set.units")} value={
               <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                 <div style={{ display: "inline-flex", border: `1.5px solid ${C.ink}` }}>
@@ -17748,13 +17823,13 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
               </div>
             )}
           </SettingGroup>
-          <SettingGroup title={t("set.subscription")} num="03">
+          <SettingGroup title={t("set.subscription")} num="03" collapsible defaultExpanded={false}>
             <SettingRow label={t("set.plan")} value={t("set.planValue")} />
             <SettingRow label={t("set.renews")} value="03 / 14 / 2026" />
             <SettingRow label={t("set.payment")} value="4242" />
           </SettingGroup>
           <MySubmissions currentUser={user} />
-          <SettingGroup title={t("set.data")} num="04">
+          <SettingGroup title={t("set.data")} num="05" collapsible defaultExpanded={false}>
             <SettingRow label={t("set.storage")} value={
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, display: "inline-block" }} />
@@ -18197,10 +18272,48 @@ export default function App() {
     units,
   };
 
+  // ============================================================
+  // Alert counts — provided via AlertContext to anywhere that
+  // wants to render an attention badge (Header, Dashboard, etc).
+  // ============================================================
+  // Inbox pending: shares from other members not yet reviewed.
+  // (status === "pending" — see Inbox component for the lifecycle.)
+  const inboxPendingCount = (inbox || []).filter((s) => s.status === "pending").length;
+
+  // Admin pending: library submissions awaiting admin review.
+  // Only fetched and shown for users with is_admin=true.
+  const [adminPendingCount, setAdminPendingCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.is_admin) {
+      setAdminPendingCount(0);
+      return;
+    }
+    // Fetch the count of pending submissions for this admin. Re-fetch when
+    // the user changes (signs in/out) and on a soft interval so the badge
+    // updates if a new submission lands while the app is open.
+    const fetchCount = async () => {
+      const result = await supabaseService.fetchAllSubmissions("pending");
+      if (cancelled) return;
+      setAdminPendingCount((result.items || []).length);
+    };
+    fetchCount();
+    // Refresh every 60s while the tab is open. Cheap query on a small table.
+    const interval = setInterval(fetchCount, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [user?.id, user?.is_admin]);
+
+  const alertValue = {
+    inboxPending: inboxPendingCount,
+    adminPending: adminPendingCount,
+    total: inboxPendingCount + adminPendingCount,
+  };
+
   return (
     <I18nContext.Provider value={i18nValue}>
       <SyncStatusContext.Provider value={{ status: storageStatus }}>
       <UserContext.Provider value={user}>
+      <AlertContext.Provider value={alertValue}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -18225,6 +18338,7 @@ export default function App() {
         )}
         {inner}
       </div>
+      </AlertContext.Provider>
       </UserContext.Provider>
       </SyncStatusContext.Provider>
     </I18nContext.Provider>
