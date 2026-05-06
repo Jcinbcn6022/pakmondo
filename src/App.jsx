@@ -195,10 +195,15 @@ const supabaseService = {
   },
 
   fetchInbox: async (userId) => {
+    // Inbox = shares received by this user. Filtering by `to_user_id` only.
+    // Previously this also matched `from_user_id` which surfaced the user's
+    // OWN sent shares in their inbox — making decline impossible (RLS allows
+    // only the recipient to change status, and the same row reappears every
+    // fetch because the user is also the sender).
     const { data, error } = await supabase
       .from("shares")
       .select("*")
-      .or(`to_user_id.eq.${userId},from_user_id.eq.${userId}`)
+      .eq("to_user_id", userId)
       .order("sent_at", { ascending: false });
     if (error) return [];
     return data || [];
@@ -4036,8 +4041,11 @@ const buildShareService = ({ inbox, setInbox, currentUser, items, kits, categori
       // Looks like a Supabase share (not a local fallback record)
       await supabaseService.setShareStatus(id, status, extras);
     }
-    // Always update local cache immediately for UI responsiveness
-    setInbox(inbox.map((s) => s.id === id ? { ...s, status, ...extras } : s));
+    // Always update local cache immediately for UI responsiveness.
+    // Use the functional form so we operate on the freshest state — `inbox`
+    // captured in this closure may be stale if multiple shares are updated
+    // in quick succession.
+    setInbox((prev) => prev.map((s) => s.id === id ? { ...s, status, ...extras } : s));
   },
 });
 
@@ -14619,7 +14627,9 @@ function Inbox({
   };
 
   const declineShare = (id) => {
-    shareService.setShareStatus(id, "declined", { declinedAt: new Date().toISOString() });
+    // Note: supabaseService.setShareStatus already adds declined_at automatically
+    // when status === "declined" — we don't need to pass extras here.
+    shareService.setShareStatus(id, "declined");
     setDecliningId(null);
   };
 
@@ -14732,7 +14742,8 @@ function Inbox({
       }
     }
 
-    shareService.setShareStatus(share.id, "imported", { importedAt: new Date().toISOString() });
+    // supabaseService.setShareStatus adds imported_at automatically.
+    shareService.setShareStatus(share.id, "imported");
     setReviewingId(null);
   };
 
