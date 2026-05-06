@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import {
   Compass, Backpack, MapPin, Settings, ShoppingCart,
@@ -17945,6 +17944,30 @@ export default function App() {
   const [personalDataLoaded, setPersonalDataLoaded] = useState(false);
   // Sync error banner — shown at top of app when a save to Supabase fails
   const [syncError, setSyncError] = useState(null);
+  // Admin pending count — number of library submissions awaiting admin review.
+  // Only fetched for is_admin=true users; stays 0 for everyone else.
+  // IMPORTANT: this state and its effect MUST live above the `if (!loaded)`
+  // early return below, otherwise the Rules of Hooks are violated when the
+  // app transitions from loading to loaded (different number of hooks called
+  // each render → React crashes into a blank page).
+  const [adminPendingCount, setAdminPendingCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.is_admin) {
+      setAdminPendingCount(0);
+      return;
+    }
+    // Fetch pending submissions count. Refreshes every 60s so badges update
+    // when a new submission arrives while the app is open.
+    const fetchCount = async () => {
+      const result = await supabaseService.fetchAllSubmissions("pending");
+      if (cancelled) return;
+      setAdminPendingCount((result.items || []).length);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [user?.id, user?.is_admin]);
 
   // Load from local store on mount
   useEffect(() => {
@@ -18280,29 +18303,6 @@ export default function App() {
   // Inbox pending: shares from other members not yet reviewed.
   // (status === "pending" — see Inbox component for the lifecycle.)
   const inboxPendingCount = (inbox || []).filter((s) => s.status === "pending").length;
-
-  // Admin pending: library submissions awaiting admin review.
-  // Only fetched and shown for users with is_admin=true.
-  const [adminPendingCount, setAdminPendingCount] = useState(0);
-  useEffect(() => {
-    let cancelled = false;
-    if (!user?.is_admin) {
-      setAdminPendingCount(0);
-      return;
-    }
-    // Fetch the count of pending submissions for this admin. Re-fetch when
-    // the user changes (signs in/out) and on a soft interval so the badge
-    // updates if a new submission lands while the app is open.
-    const fetchCount = async () => {
-      const result = await supabaseService.fetchAllSubmissions("pending");
-      if (cancelled) return;
-      setAdminPendingCount((result.items || []).length);
-    };
-    fetchCount();
-    // Refresh every 60s while the tab is open. Cheap query on a small table.
-    const interval = setInterval(fetchCount, 60000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [user?.id, user?.is_admin]);
 
   const alertValue = {
     inboxPending: inboxPendingCount,
