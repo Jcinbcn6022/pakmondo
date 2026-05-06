@@ -13330,7 +13330,96 @@ function analyzePacklistAgainstWeather(items, weather, units) {
    browser's print dialog. The user picks "Save as PDF".
    This avoids any external PDF library.
    ============================================================ */
-function generatePacklistPDF({ packlist, kits, items, categories, units, lang }) {
+async function generatePacklistPDF({ packlist, kits, items, categories, units, lang, cart = [] }) {
+  // === STEP 1: Open the popup IMMEDIATELY ===
+  // Browsers only allow window.open() in direct response to a user gesture.
+  // Since we're about to do an async weather fetch (which would lose the
+  // "user gesture" context), we open the window first with a loading
+  // placeholder, then write the real HTML into it once the fetch completes.
+  const isSpanish = lang === "es";
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert(isSpanish
+      ? "Tu navegador bloqueó la ventana emergente. Permítela e inténtalo de nuevo."
+      : "Your browser blocked the popup. Allow it and try again.");
+    return;
+  }
+  // Loading placeholder — what the user sees during the weather fetch.
+  win.document.open();
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${isSpanish ? "Generando..." : "Generating..."}</title>
+    <style>
+      body { font-family: Georgia, "Times New Roman", serif; background: #EFE7D6; color: #1A2421;
+             display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+      .msg { text-align: center; }
+      .title { font-size: 22px; font-weight: 700; }
+      .sub { margin-top: 8px; font-style: italic; color: #6B7572; font-size: 14px; }
+    </style></head><body>
+    <div class="msg">
+      <div class="title">${isSpanish ? "Preparando tu lista" : "Preparing your packlist"}<span style="color:#B8451F">.</span></div>
+      <div class="sub">${isSpanish ? "Consultando el pronóstico…" : "Checking the forecast…"}</div>
+    </div></body></html>`);
+  win.document.close();
+
+  // === STEP 2: Fetch weather (best-effort) ===
+  // We do this before building the HTML so the weather section can be
+  // included. If anything fails (no destination, network down, geocode
+  // miss), we still print the PDF — just without the weather block.
+  let weather = null;
+  let resolvedLocation = null;
+  let analysisResults = null;
+  try {
+    if (packlist.dest && packlist.dest.trim()) {
+      let lat = packlist.coords?.lat;
+      let lon = packlist.coords?.lon;
+      let placeName = packlist.dest;
+      if (lat == null || lon == null) {
+        const geo = await geocodeDestination(packlist.dest, lang);
+        if (geo) { lat = geo.lat; lon = geo.lon; placeName = geo.name; }
+      }
+      if (lat != null && lon != null) {
+        resolvedLocation = { lat, lon, name: placeName };
+        // Reuse the same date-range parsing logic the modal uses
+        const raw = packlist.date || "";
+        const matches = raw.match(/\d{4}-\d{2}-\d{2}/g) || [];
+        let startDate, endDate;
+        if (matches.length >= 2) { startDate = matches[0]; endDate = matches[1]; }
+        else if (matches.length === 1) { startDate = matches[0]; endDate = matches[0]; }
+        else {
+          const today = new Date();
+          const week = new Date(today.getTime() + 7 * 86400000);
+          const fmt = (d) => d.toISOString().slice(0, 10);
+          startDate = fmt(today); endDate = fmt(week);
+        }
+        const forecast = await fetchForecast({ lat, lon, startDate, endDate, units });
+        if (forecast) {
+          weather = forecast;
+          // Run the same analysis the modal uses, against the FULL set of
+          // items in this packlist (kits + standalone + category-linked).
+          // We need to build that set here since we have raw kits/items/categories.
+          const idsForAnalysis = new Set();
+          (packlist.kitIds || []).forEach((kid) => {
+            const k = kits.find((x) => x.id === kid);
+            if (k) (k.itemIds || []).forEach((iid) => idsForAnalysis.add(iid));
+          });
+          (packlist.itemIds || []).forEach((iid) => idsForAnalysis.add(iid));
+          (packlist.categoryIds || []).forEach((cid) => {
+            const c = categories.find((x) => x.id === cid);
+            if (c) items.forEach((it) => { if (it.category === c.name) idsForAnalysis.add(it.id); });
+          });
+          const itemsInPacklist = Array.from(idsForAnalysis).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+          analysisResults = analyzePacklistAgainstWeather(itemsInPacklist, forecast, units);
+        }
+      }
+    }
+  } catch (err) {
+    // Silently fail — PDF will print without the weather section.
+    // eslint-disable-next-line no-console
+    console.warn("Weather fetch for PDF failed:", err);
+  }
+
+  // === STEP 3: Build the HTML ===
+  // Same as before, but with an extra `weatherSectionHTML` injected before the footer.
+
   // Hydrate references
   const includedKits       = (packlist.kitIds || []).map((id) => kits.find((k) => k.id === id)).filter(Boolean);
   const includedItems      = (packlist.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
@@ -13351,8 +13440,6 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[c]);
-
-  const isSpanish = lang === "es";
 
   // Per-trip want/packed sets — pre-filled red ticks for wanted items.
   // BACKWARDS COMPAT: legacy packlists default to "everything is wanted".
@@ -13455,6 +13542,83 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
           `}
         </div>`;
     }).join("")}`;
+
+  // === Weather & Gear Check section ===
+  // Built only when we successfully fetched weather above. Mirrors the
+  // structure of the on-screen modal: forecast summary on top, then a
+  // gaps section (with inventory matches + generic to-buy suggestions),
+  // then a covered section. Empty string when weather is unavailable.
+  const cartNamesPDF = new Set((cart || []).map((c) => c && c.name).filter(Boolean));
+  const dismissedSetPDF = new Set(packlist.dismissedSuggestions || []);
+  const inPacklistIdsPDF = new Set(allUnique.map((it) => it.id));
+  const isMetricPDF = units !== "imperial";
+  const tempLabelPDF = (v) => v == null ? "—" : `${Math.round(v)}°${isMetricPDF ? "C" : "F"}`;
+
+  // Helper that renders a single row with a tickbox (☐ or ☑)
+  const tickRow = (label, ticked, sub = "") =>
+    `<div class="tick-row">
+       <span class="tick">${ticked ? "☑" : "☐"}</span>
+       <span class="tick-label">${esc(label)}${sub ? ` <span class="tick-sub">— ${esc(sub)}</span>` : ""}</span>
+     </div>`;
+
+  let weatherSectionHTML = "";
+  if (weather && analysisResults) {
+    const triggered = analysisResults.filter((a) => a.triggered);
+    const gaps      = triggered.filter((a) => !a.covered);
+    const covered   = triggered.filter((a) => a.covered);
+
+    // Per-gap card: forecast detail + inventory matches + to-buy suggestions
+    const gapCardHTML = (g) => {
+      const req = g.req;
+      const lcKeywords = (req.keywords || []).map((k) => String(k || "").toLowerCase());
+      const inventoryAll = items.filter((it) => {
+        if (!it || !it.id) return false;
+        if (inPacklistIdsPDF.has(it.id)) return false;
+        const hay = `${(it.name || "").toLowerCase()} ${(it.category || "").toLowerCase()} ${(it.notes || "").toLowerCase()}`;
+        return lcKeywords.some((kw) => kw && hay.includes(kw));
+      });
+      // Filter out per-packlist dismissed suggestions so the PDF matches what the modal shows.
+      const inventoryMatches = inventoryAll.filter((it) => !dismissedSetPDF.has(`item:${it.id}`));
+      const adviceAll = (typeof GENERIC_SUGGESTIONS !== "undefined" && GENERIC_SUGGESTIONS[req.id]) || [];
+      const adviceVisible = adviceAll.filter((s) => !dismissedSetPDF.has(`generic:${req.id}::${s.name}`));
+      const detailText = (() => { try { return req.detail ? req.detail(weather) : ""; } catch { return ""; } })();
+      const fromInventoryHTML = inventoryMatches.length === 0 ? "" : `
+        <div class="gap-sub">${isSpanish ? "De tu inventario" : "From your inventory"}</div>
+        ${inventoryMatches.slice(0, 8).map((it) => tickRow(it.name, false, it.category || "")).join("")}
+        ${inventoryMatches.length > 8 ? `<div class="gap-more">+${inventoryMatches.length - 8} ${isSpanish ? "más" : "more"}</div>` : ""}`;
+      const toBuyHTML = adviceVisible.length === 0 ? "" : `
+        <div class="gap-sub">${inventoryMatches.length > 0 ? (isSpanish ? "También considera" : "Also consider") : (isSpanish ? "Si necesitas comprar" : "If you need to buy")}</div>
+        ${adviceVisible.map((s) => tickRow(s.name, cartNamesPDF.has(s.name), `${s.lookFor} · ${s.weightG}g`)).join("")}`;
+      return `
+        <div class="gap-card">
+          <div class="gap-title">${esc(req.label || req.id)}</div>
+          ${detailText ? `<div class="gap-detail">${esc(detailText)}</div>` : ""}
+          ${fromInventoryHTML}
+          ${toBuyHTML}
+        </div>`;
+    };
+
+    weatherSectionHTML = `
+      <h2 class="section-title">${isSpanish ? "Pronóstico y revisión de equipo" : "Weather & Gear Check"} <span class="count">${resolvedLocation ? esc(resolvedLocation.name.toUpperCase()) : ""}</span></h2>
+      <div class="weather-summary">
+        <div class="ws-cell"><div class="ws-label">${isSpanish ? "Temp" : "Temp"}</div><div class="ws-value">${tempLabelPDF(weather.tempMin)} — ${tempLabelPDF(weather.tempMax)}</div></div>
+        <div class="ws-cell"><div class="ws-label">${isSpanish ? "Lluvia" : "Rain"}</div><div class="ws-value">${weather.precipMaxProb || 0}%</div></div>
+        <div class="ws-cell"><div class="ws-label">${isSpanish ? "Viento" : "Wind"}</div><div class="ws-value">${Math.round(weather.windMax || 0)} ${esc(weather.windUnit || "")}</div></div>
+        <div class="ws-cell"><div class="ws-label">UV</div><div class="ws-value">${Math.round(weather.uvMax || 0)}</div></div>
+      </div>
+      ${gaps.length > 0 ? `
+        <div class="gaps-heading">⚠ ${isSpanish ? "Huecos en tu lista" : "Gaps in your packlist"} (${gaps.length})</div>
+        ${gaps.map(gapCardHTML).join("")}
+      ` : ""}
+      ${covered.length > 0 ? `
+        <div class="covered-heading">✓ ${isSpanish ? "Cubierto" : "Covered"} (${covered.length})</div>
+        <div class="covered-list">
+          ${covered.map((c) => `<div class="covered-item"><strong>${esc(c.req.label)}</strong> — <em>${esc((() => { try { return c.req.detail ? c.req.detail(weather) : ""; } catch { return ""; }})())}</em></div>`).join("")}
+        </div>
+      ` : ""}
+      ${triggered.length === 0 ? `<div class="all-clear">✓ ${isSpanish ? "Todo en orden" : "All clear"} — ${isSpanish ? "el pronóstico no requiere equipo especial." : "the forecast doesn't require any special gear."}</div>` : ""}
+    `;
+  }
 
   // Field journal styled HTML
   const html = `<!DOCTYPE html>
@@ -13594,6 +13758,82 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
     font-family: Georgia, serif; font-style: italic;
     text-transform: none; letter-spacing: normal;
   }
+  /* Weather & Gear Check section */
+  .weather-summary {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    margin-bottom: 14px; padding: 12px;
+    background: #1A2421; color: #EFE7D6;
+  }
+  .ws-cell { padding: 0; }
+  .ws-label {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 9px; opacity: 0.7;
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .ws-value {
+    margin-top: 2px;
+    font-family: Georgia, serif; font-size: 16px; font-weight: 700;
+  }
+  .gaps-heading {
+    margin-top: 14px; margin-bottom: 8px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 11px; color: #B8451F;
+    letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;
+  }
+  .gap-card {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #F4ECDA; border-left: 3px solid #B8451F;
+    page-break-inside: avoid;
+  }
+  .gap-title {
+    font-family: Georgia, serif;
+    font-size: 14px; font-weight: 700;
+    color: #1A2421;
+  }
+  .gap-detail {
+    margin-top: 2px;
+    font-size: 12px; color: #4A5550;
+  }
+  .gap-sub {
+    margin-top: 8px; margin-bottom: 4px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 9px; color: #6B7572;
+    letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;
+  }
+  .tick-row {
+    padding: 3px 0; display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12px; line-height: 1.4;
+  }
+  .tick {
+    font-family: Georgia, serif;
+    font-size: 14px; line-height: 1; flex-shrink: 0;
+    color: #2D4A3E; width: 16px; display: inline-block;
+  }
+  .tick-label { flex: 1; min-width: 0; color: #1A2421; }
+  .tick-sub { color: #6B7572; font-style: italic; }
+  .gap-more {
+    margin-top: 4px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 9px; color: #8B7E6B;
+    letter-spacing: 0.12em;
+  }
+  .covered-heading {
+    margin-top: 14px; margin-bottom: 8px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 11px; color: #2D4A3E;
+    letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;
+  }
+  .covered-list { padding-left: 4px; }
+  .covered-item {
+    padding: 4px 0; font-size: 12px; color: #1A2421;
+    border-bottom: 1px dotted #D4C9A8;
+  }
+  .all-clear {
+    margin-top: 12px; padding: 10px 12px;
+    background: #F4ECDA; border-left: 3px solid #2D4A3E;
+    font-size: 13px; color: #1A2421;
+  }
   @media print {
     body { background: #FFFFFF; padding: 0; }
     .no-print { display: none !important; }
@@ -13620,6 +13860,8 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
   ${(includedKits.length === 0 && includedItems.length === 0 && includedCategories.length === 0) ?
     `<div class="empty" style="text-align:center; padding: 40px;">${isSpanish ? "Esta lista está vacía." : "This packlist is empty."}</div>` : ""}
 
+  ${weatherSectionHTML}
+
   <div class="footer">
     <span><em>Be Prepared, Be Anywhere.</em> · pakmondo.com</span>
     <span>${new Date().toLocaleDateString(lang === "es" ? "es-ES" : "en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
@@ -13635,15 +13877,8 @@ function generatePacklistPDF({ packlist, kits, items, categories, units, lang })
 </body>
 </html>`;
 
-  // Open the document in a new window. Browser blocks popups unless this
-  // is called from a user-initiated event (which it is — button click).
-  const win = window.open("", "_blank");
-  if (!win) {
-    alert(isSpanish
-      ? "Tu navegador bloqueó la ventana emergente. Permítela e inténtalo de nuevo."
-      : "Your browser blocked the popup. Allow it and try again.");
-    return;
-  }
+  // Write the real document into the popup we opened earlier.
+  // The popup currently shows the loading placeholder.
   win.document.open();
   win.document.write(html);
   win.document.close();
@@ -15025,7 +15260,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn variant="rust" icon={Pencil} onClick={onEdit}>{t("pl.editBtn")}</Btn>
           <Btn variant="ghost" icon={Cloud} onClick={() => setWeatherOpen(true)}>{t("weather.btn")}</Btn>
-          <Btn variant="ghost" icon={Download} onClick={() => generatePacklistPDF({ packlist, kits, items, categories, units, lang })}>{t("pl.downloadPDF")}</Btn>
+          <Btn variant="ghost" icon={Download} onClick={() => generatePacklistPDF({ packlist, kits, items, categories, units, lang, cart })}>{t("pl.downloadPDF")}</Btn>
           <Btn variant="ghost" icon={Trash2} onClick={() => setConfirming(true)}>{t("pl.deleteBtn")}</Btn>
         </div>
 
