@@ -11695,6 +11695,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onAddToCart={(name, qty) => addToCart(name, qty)}
             onDismissSuggestion={(key) => dismissSuggestion(openPacklist.id, key)}
             onRestoreSuggestion={(key) => restoreSuggestion(openPacklist.id, key)}
+            cart={cart}
           />
         </div>
         <Footer go={go} />
@@ -14274,7 +14275,7 @@ function DetailRow({ label, value }) {
    3) Cross-check items vs requirements
    4) Show summary + gaps
    ============================================================ */
-function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPacklist, onAddToCart, onDismissSuggestion, onRestoreSuggestion, onClose }) {
+function WeatherCheckModal({ packlist, items, kits, categories, cart, onAddItemToPacklist, onAddToCart, onDismissSuggestion, onRestoreSuggestion, onClose }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [stage, setStage] = useState("loading"); // "loading" | "needsLocation" | "ready" | "error"
@@ -14305,6 +14306,10 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
   // a tagged string: "item:<itemId>" for inventory matches, "generic:<reqId>::<name>"
   // for generic 'also consider' items. Read once per render from packlist state.
   const dismissedSet = new Set(packlist.dismissedSuggestions || []);
+  // Set of item names already in the user's shopping cart. Used to show
+  // generic "Also consider" suggestions as "✓ IN CART" persistently across
+  // sessions, not just within the current modal session.
+  const cartNames = new Set((cart || []).map((c) => c && c.name).filter(Boolean));
 
   // Resolve included items (from kits, standalone, and category-linked)
   const allUniqueItems = (() => {
@@ -14623,7 +14628,9 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 {adviceVisible.map((s, idx) => {
                                   const cartKey = `${req.id}::${s.name}`;
-                                  const inCart  = justAddedToCart.has(cartKey);
+                                  // Persistently "in cart" when the cart already contains
+                                  // this item by name OR the user just tapped Add this session.
+                                  const inCart  = cartNames.has(s.name) || justAddedToCart.has(cartKey);
                                   return (
                                     <div key={idx} style={{
                                       padding: "8px 10px",
@@ -14847,7 +14854,7 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart, onDismissSuggestion, onRestoreSuggestion }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart, onDismissSuggestion, onRestoreSuggestion, cart }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
@@ -15321,6 +15328,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           items={items}
           kits={kits}
           categories={categories}
+          cart={cart}
           onAddItemToPacklist={(itemId) => onAddItem && onAddItem(itemId)}
           onAddToCart={(name, qty) => onAddToCart && onAddToCart(name, qty)}
           onDismissSuggestion={(key) => onDismissSuggestion && onDismissSuggestion(key)}
