@@ -1279,6 +1279,9 @@ const TRANSLATIONS = {
     "weather.suggestKeywords": "Look for",
     "weather.fromInventory": "From your inventory",
     "weather.toBuy": "If you need to buy",
+    "weather.alsoConsider": "Also consider",
+    "weather.cart": "Cart",
+    "weather.inCart": "In cart",
     "weather.add": "Add",
     "weather.added": "Added",
     "weather.moreMatches": "more matches",
@@ -2496,6 +2499,9 @@ const TRANSLATIONS = {
     "weather.suggestKeywords": "Busca",
     "weather.fromInventory": "De tu inventario",
     "weather.toBuy": "Si necesitas comprar",
+    "weather.alsoConsider": "También considera",
+    "weather.cart": "Carrito",
+    "weather.inCart": "En carrito",
     "weather.add": "Añadir",
     "weather.added": "Añadido",
     "weather.moreMatches": "más coincidencias",
@@ -11486,7 +11492,7 @@ function SettingRow({ label, value }) {
    PACKLISTS — top-level entity. A packlist combines kits + items
    for a specific trip or purpose. Users can compose, edit, delete.
    ============================================================ */
-function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems, categories, setCategories, travelTypes, setTravelTypes }) {
+function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems, categories, setCategories, travelTypes, setTravelTypes, cart, setCart }) {
   const { t } = useI18n();
   const { isMobile } = useViewport();
   const [tab, setTab] = useState("saved");           // "saved" | "create" | "edit"
@@ -11568,6 +11574,22 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
     }));
   };
 
+  // Add a (generic) item to the shopping cart by name. Used by the Weather
+  // suggestions UI when the user has nothing in inventory matching a gap and
+  // taps "Add to cart" on a generic recommendation. If the same name already
+  // exists in cart we increment qty rather than creating a duplicate line.
+  const addToCart = (name, qty = 1) => {
+    if (!setCart || !name) return;
+    setCart((prev) => {
+      const list = prev || [];
+      const existing = list.find((c) => c.name === name);
+      if (existing) {
+        return list.map((c) => c.id === existing.id ? { ...c, qty: c.qty + qty } : c);
+      }
+      return [{ id: uid("c"), name, qty }, ...list];
+    });
+  };
+
   // Toggle "want to take" state for an item on a specific packlist.
   // Stores arrays of item IDs on the packlist itself so each trip has its
   // own state independent of others.
@@ -11635,6 +11657,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onToggleWanted={(itemId, allItemIds) => toggleWanted(openPacklist.id, itemId, allItemIds)}
             onTogglePacked={(itemId) => togglePackedOnPacklist(openPacklist.id, itemId)}
             onAddItem={(itemId) => addItemToPacklist(openPacklist.id, itemId)}
+            onAddToCart={(name, qty) => addToCart(name, qty)}
           />
         </div>
         <Footer go={go} />
@@ -14214,7 +14237,7 @@ function DetailRow({ label, value }) {
    3) Cross-check items vs requirements
    4) Show summary + gaps
    ============================================================ */
-function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPacklist, onClose }) {
+function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPacklist, onAddToCart, onClose }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [stage, setStage] = useState("loading"); // "loading" | "needsLocation" | "ready" | "error"
@@ -14227,6 +14250,10 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
   // analysis to re-run (which would shift the item from "gap" to "covered"
   // and change layout under the user's finger).
   const [justAdded, setJustAdded] = useState(() => new Set());
+  // Same idea for generic-suggestion "Add to cart" buttons. Keyed by a synthetic
+  // ID combining the requirement id and the suggestion's name so each generic
+  // item can be marked added independently.
+  const [justAddedToCart, setJustAddedToCart] = useState(() => new Set());
 
   // Resolve included items (from kits, standalone, and category-linked)
   const allUniqueItems = (() => {
@@ -14421,12 +14448,16 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
                       const hay = `${(it.name || "").toLowerCase()} ${(it.category || "").toLowerCase()} ${(it.notes || "").toLowerCase()}`;
                       return lcKeywords.some((kw) => hay.includes(kw));
                     });
+                    // Generic shopping suggestions ALWAYS show (even when inventory
+                    // has matches) — the user might own one thing but need another.
+                    // E.g. inventory has rain jacket but no dry bag.
+                    const advice = GENERIC_SUGGESTIONS[req.id] || [];
                     return (
                       <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
                         <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label}</div>
                         <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{req.detail(weather)}</div>
 
-                        {inventoryMatches.length > 0 ? (
+                        {inventoryMatches.length > 0 && (
                           <div style={{ marginTop: 12 }}>
                             <div style={{ fontFamily: F.mono, fontSize: 9, color: C.forest, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
                               {t("weather.fromInventory")} ({inventoryMatches.length})
@@ -14483,34 +14514,72 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
                               )}
                             </div>
                           </div>
-                        ) : (
-                          // No inventory matches — show generic advice from the
-                          // GENERIC_SUGGESTIONS table. This is descriptive only:
-                          // what to look for and a typical weight range. No brands,
-                          // no shopping links — that's a deliberate scope choice.
-                          (() => {
-                            const advice = GENERIC_SUGGESTIONS[req.id] || [];
-                            if (advice.length === 0) return null;
-                            return (
-                              <div style={{ marginTop: 12 }}>
-                                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
-                                  {t("weather.toBuy")}
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                  {advice.map((s, idx) => (
-                                    <div key={idx} style={{ padding: "6px 8px", background: C.paper, border: `1px dashed ${C.line}` }}>
-                                      <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 600, color: C.ink }}>
+                        )}
+
+                        {/* Generic shopping advice — always shown when there are
+                            suggestions for this requirement type. Each card has an
+                            "Add to cart" button so the user can act on the advice
+                            immediately without leaving the weather flow. The cart
+                            uses just (name, qty=1) — no brands, no prices. */}
+                        {advice.length > 0 && (
+                          <div style={{ marginTop: 12 }}>
+                            <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                              {inventoryMatches.length > 0 ? t("weather.alsoConsider") : t("weather.toBuy")}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {advice.map((s, idx) => {
+                                const cartKey = `${req.id}::${s.name}`;
+                                const inCart  = justAddedToCart.has(cartKey);
+                                return (
+                                  <div key={idx} style={{
+                                    padding: "8px 10px",
+                                    background: inCart ? "rgba(63,139,92,0.08)" : C.paper,
+                                    border: `1px dashed ${inCart ? C.forestBright : C.line}`,
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: 8,
+                                  }}>
+                                    <span style={{ flex: 1, minWidth: 0 }}>
+                                      <span style={{ display: "block", fontFamily: F.body, fontSize: 13, fontWeight: 600, color: C.ink }}>
                                         {s.name}
-                                      </div>
-                                      <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
+                                      </span>
+                                      <span style={{ display: "block", marginTop: 2, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
                                         {s.lookFor} · <span style={{ fontStyle: "normal", fontFamily: F.mono, fontSize: 10, color: C.muted }}>{s.weightG}g</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })()
+                                      </span>
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        if (inCart) return;
+                                        if (onAddToCart) onAddToCart(s.name, 1);
+                                        setJustAddedToCart((prev) => {
+                                          const next = new Set(prev);
+                                          next.add(cartKey);
+                                          return next;
+                                        });
+                                      }}
+                                      disabled={inCart}
+                                      style={{
+                                        padding: "4px 10px",
+                                        background: inCart ? C.forestBright : "transparent",
+                                        color: inCart ? C.paper : C.ink,
+                                        border: `1.5px solid ${inCart ? C.forestBright : C.ink}`,
+                                        cursor: inCart ? "default" : "pointer",
+                                        fontFamily: F.mono, fontSize: 9,
+                                        fontWeight: 700,
+                                        letterSpacing: "0.18em",
+                                        textTransform: "uppercase",
+                                        flexShrink: 0,
+                                        whiteSpace: "nowrap",
+                                        alignSelf: "flex-start",
+                                      }}
+                                    >
+                                      {inCart ? `✓ ${t("weather.inCart")}` : `+ ${t("weather.cart")}`}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
 
                         {/* Keep the original keyword hint for transparency about why this gap fired */}
@@ -14568,7 +14637,7 @@ function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPackl
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
@@ -15043,6 +15112,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           kits={kits}
           categories={categories}
           onAddItemToPacklist={(itemId) => onAddItem && onAddItem(itemId)}
+          onAddToCart={(name, qty) => onAddToCart && onAddToCart(name, qty)}
           onClose={() => setWeatherOpen(false)}
         />
       )}
@@ -18902,7 +18972,7 @@ export default function App() {
     screen === "dashboard" ? <Dashboard go={go} user={user} trips={trips} cart={cart} items={items} setItems={setItemsSynced} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} locationEnabled={locationEnabled} shareService={shareService} /> :
     screen === "inventory" ? <Inventory go={go} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} kits={kits} setKits={setKitsSynced} packlists={packlists} setPacklists={setPacklistsSynced} cart={cart} setCart={setCartSynced} shareService={shareService} currentUser={user} filter={inventoryFilter} clearFilter={clearInventoryFilter} /> :
     screen === "trips" ? <Trips go={go} trips={trips} setTrips={setTrips} travelTypes={travelTypes} setTravelTypes={setTravelTypes} shareService={shareService} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} packlists={packlists} setPacklists={setPacklistsSynced} /> :
-    screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} /> :
+    screen === "packlists" ? <Packlists go={go} packlists={packlists} setPacklists={setPacklistsSynced} kits={kits} setKits={setKitsSynced} items={items} setItems={setItemsSynced} categories={categories} setCategories={setCategoriesSynced} travelTypes={travelTypes} setTravelTypes={setTravelTypes} cart={cart} setCart={setCart} /> :
     screen === "cart" ? <Cart go={go} cart={cart} setCart={setCartSynced} /> :
     screen === "inbox" ? <Inbox go={go} inbox={inbox} setInbox={setInbox} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} shareService={shareService} /> :
     screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} /> :
