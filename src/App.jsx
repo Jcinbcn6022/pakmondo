@@ -1277,6 +1277,11 @@ const TRANSLATIONS = {
     "weather.gapsHeading": "Gaps in your packlist",
     "weather.coveredHeading": "Covered",
     "weather.suggestKeywords": "Look for",
+    "weather.fromInventory": "From your inventory",
+    "weather.toBuy": "If you need to buy",
+    "weather.add": "Add",
+    "weather.added": "Added",
+    "weather.moreMatches": "more matches",
     "weather.allClear": "Looks good for these conditions",
     "weather.allClearHint": "No critical gaps detected based on the forecast. Mild weather expected.",
     "weather.poweredBy": "Forecast",
@@ -2489,6 +2494,11 @@ const TRANSLATIONS = {
     "weather.gapsHeading": "Huecos en tu lista",
     "weather.coveredHeading": "Cubierto",
     "weather.suggestKeywords": "Busca",
+    "weather.fromInventory": "De tu inventario",
+    "weather.toBuy": "Si necesitas comprar",
+    "weather.add": "Añadir",
+    "weather.added": "Añadido",
+    "weather.moreMatches": "más coincidencias",
     "weather.allClear": "Bien para estas condiciones",
     "weather.allClearHint": "No hay huecos críticos según el pronóstico. Se espera buen tiempo.",
     "weather.poweredBy": "Datos meteorológicos",
@@ -11546,6 +11556,18 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
     ));
   };
 
+  // Add an existing inventory item to a packlist's standalone items.
+  // No-op if the item is already present (avoids accidental duplicates when
+  // tapping the suggestion button twice). Used by the Weather suggestions UI.
+  const addItemToPacklist = (plId, itemId) => {
+    setPacklists((prev) => prev.map((p) => {
+      if (p.id !== plId) return p;
+      const list = p.itemIds || [];
+      if (list.includes(itemId)) return p;
+      return { ...p, itemIds: [...list, itemId] };
+    }));
+  };
+
   // Toggle "want to take" state for an item on a specific packlist.
   // Stores arrays of item IDs on the packlist itself so each trip has its
   // own state independent of others.
@@ -11612,6 +11634,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onEditCategory={(id) => setDetailCategoryId(id)}
             onToggleWanted={(itemId, allItemIds) => toggleWanted(openPacklist.id, itemId, allItemIds)}
             onTogglePacked={(itemId) => togglePackedOnPacklist(openPacklist.id, itemId)}
+            onAddItem={(itemId) => addItemToPacklist(openPacklist.id, itemId)}
           />
         </div>
         <Footer go={go} />
@@ -13181,6 +13204,49 @@ function buildRequirements(units) {
   ];
 }
 
+// Generic shopping advice keyed by requirement id. Used as a fallback when
+// the user's inventory has no items matching a triggered gap. Each suggestion
+// is descriptive (what to look for + typical weight) — NOT a brand recommendation,
+// NOT a shopping link. Just enough info to know what to look for if buying.
+// Weights are typical adult ranges; metric grams shown — UI converts if needed.
+const GENERIC_SUGGESTIONS = {
+  rain: [
+    { name: "Waterproof shell jacket", lookFor: "≥10,000mm waterproof rating, taped seams, hood", weightG: "250–500" },
+    { name: "Pack rain cover",          lookFor: "Sized for your pack volume, elasticated edge",   weightG: "50–150" },
+    { name: "Dry bag",                  lookFor: "Roll-top closure, 5–30L sizes for layered packing", weightG: "50–200" },
+  ],
+  cold: [
+    { name: "Insulating mid-layer", lookFor: "Down (warmer) or synthetic puffy (wet-tolerant). 600+ fill power if down", weightG: "300–600" },
+    { name: "Fleece pullover",      lookFor: "100/200/300-weight fleece — 200 is the all-rounder", weightG: "250–400" },
+    { name: "Merino base layer",    lookFor: "150–200gsm merino, long sleeves",                     weightG: "150–250" },
+  ],
+  freezing: [
+    { name: "Warm hat / beanie",       lookFor: "Wool or fleece, fitted, covers ears",                  weightG: "40–80" },
+    { name: "Insulated gloves",        lookFor: "Waterproof shell + insulation. Touchscreen tips help", weightG: "100–200" },
+    { name: "Cold-rated sleeping bag", lookFor: "Comfort rating below your expected lows",              weightG: "800–1500" },
+  ],
+  wind: [
+    { name: "Windproof shell / windbreaker", lookFor: "DWR-treated nylon, packable, hood",   weightG: "80–250" },
+    { name: "Windproof gloves / liner",      lookFor: "Lightweight, gripped palm, packable", weightG: "30–80" },
+  ],
+  snow: [
+    { name: "Microspikes or crampons",   lookFor: "Microspikes for icy trails, crampons for technical snow", weightG: "300–700" },
+    { name: "Gaiters",                   lookFor: "Tall gaiters keep snow out of boots",                     weightG: "150–300" },
+    { name: "Insulated waterproof boots", lookFor: "≥200g insulation, waterproof membrane, tall ankle",      weightG: "1200–2000" },
+  ],
+  sun: [
+    { name: "Wide-brim or legionnaire hat", lookFor: "UPF 50+, brim covers ears and neck", weightG: "60–120" },
+    { name: "Sunglasses",                   lookFor: "UV400 / 100% UVA+UVB",               weightG: "20–40" },
+    { name: "Sunscreen",                    lookFor: "SPF 30+ broad spectrum, water-resistant", weightG: "60–120" },
+    { name: "Sun shirt",                    lookFor: "UPF 30+, long sleeves, breathable, hooded helps neck coverage", weightG: "150–250" },
+  ],
+  heat: [
+    { name: "Hydration system",   lookFor: "2–3L bladder OR two 1L bottles. Easy-access drinking", weightG: "150–300" },
+    { name: "Electrolyte mix",    lookFor: "Tablets or sachets — sodium ≥300mg, no excess sugar",  weightG: "5–15 per dose" },
+    { name: "Cooling neck gaiter / buff", lookFor: "Wettable, light fabric. Sun protection too",    weightG: "30–60" },
+  ],
+};
+
 // Run the analyzer. Returns array of { req, triggered, covered, matchedItems[] }
 function analyzePacklistAgainstWeather(items, weather, units) {
   const reqs = buildRequirements(units);
@@ -14148,7 +14214,7 @@ function DetailRow({ label, value }) {
    3) Cross-check items vs requirements
    4) Show summary + gaps
    ============================================================ */
-function WeatherCheckModal({ packlist, items, kits, categories, onClose }) {
+function WeatherCheckModal({ packlist, items, kits, categories, onAddItemToPacklist, onClose }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [stage, setStage] = useState("loading"); // "loading" | "needsLocation" | "ready" | "error"
@@ -14156,6 +14222,11 @@ function WeatherCheckModal({ packlist, items, kits, categories, onClose }) {
   const [analysis, setAnalysis] = useState([]);
   const [resolvedLocation, setResolvedLocation] = useState(null);
   const [error, setError] = useState("");
+  // Track item IDs the user has tapped "Add" on during this session, so the
+  // button visually transitions from "+ Add" to "Added ✓" without needing the
+  // analysis to re-run (which would shift the item from "gap" to "covered"
+  // and change layout under the user's finger).
+  const [justAdded, setJustAdded] = useState(() => new Set());
 
   // Resolve included items (from kits, standalone, and category-linked)
   const allUniqueItems = (() => {
@@ -14327,22 +14398,128 @@ function WeatherCheckModal({ packlist, items, kits, categories, onClose }) {
               </div>
             </div>
 
-            {/* GAPS */}
+            {/* GAPS — for each triggered requirement that wasn't covered, show:
+                 1) Inventory items that match the keywords but AREN'T in this packlist yet
+                    (with a one-tap Add button that calls onAddItemToPacklist)
+                 2) If no inventory matches → generic shopping advice (what to look for + weight)
+                The pre-existing keyword approach is reused so behavior is consistent
+                with the gap detection itself. */}
             {gaps.length > 0 && (
               <div style={{ marginTop: 18 }}>
                 <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
                   ⚠ {t("weather.gapsHeading")} ({gaps.length})
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {gaps.map(({ req }) => (
-                    <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
-                      <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label}</div>
-                      <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{req.detail(weather)}</div>
-                      <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                        {t("weather.suggestKeywords")}: {req.keywords.slice(0, 4).join(", ")}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {gaps.map(({ req }) => {
+                    // Find inventory items that match this requirement's keywords
+                    // but are NOT already in the packlist. These are the "you
+                    // already own this — want to add it?" suggestions.
+                    const inPacklistIds = new Set(allUniqueItems.map((it) => it.id));
+                    const lcKeywords = req.keywords.map((k) => k.toLowerCase());
+                    const inventoryMatches = items.filter((it) => {
+                      if (inPacklistIds.has(it.id)) return false;
+                      const hay = `${(it.name || "").toLowerCase()} ${(it.category || "").toLowerCase()} ${(it.notes || "").toLowerCase()}`;
+                      return lcKeywords.some((kw) => hay.includes(kw));
+                    });
+                    return (
+                      <div key={req.id} style={{ padding: 12, background: C.paperDeep, borderLeft: `3px solid ${C.rust}` }}>
+                        <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 700, color: C.ink }}>{req.label}</div>
+                        <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>{req.detail(weather)}</div>
+
+                        {inventoryMatches.length > 0 ? (
+                          <div style={{ marginTop: 12 }}>
+                            <div style={{ fontFamily: F.mono, fontSize: 9, color: C.forest, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                              {t("weather.fromInventory")} ({inventoryMatches.length})
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {inventoryMatches.slice(0, 6).map((it) => {
+                                const added = justAdded.has(it.id);
+                                return (
+                                  <div key={it.id} style={{
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    padding: "6px 8px",
+                                    background: added ? "rgba(63,139,92,0.08)" : C.paper,
+                                    border: `1px solid ${added ? C.forestBright : C.line}`,
+                                  }}>
+                                    <span style={{ flex: 1, minWidth: 0, fontFamily: F.body, fontSize: 13, color: C.ink }}>{it.name}</span>
+                                    {it.category && (
+                                      <span style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted, flexShrink: 0 }}>
+                                        {it.category}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={() => {
+                                        if (added) return;
+                                        if (onAddItemToPacklist) onAddItemToPacklist(it.id);
+                                        setJustAdded((prev) => {
+                                          const next = new Set(prev);
+                                          next.add(it.id);
+                                          return next;
+                                        });
+                                      }}
+                                      disabled={added}
+                                      style={{
+                                        padding: "4px 10px",
+                                        background: added ? C.forestBright : C.rust,
+                                        color: C.paper,
+                                        border: "none",
+                                        cursor: added ? "default" : "pointer",
+                                        fontFamily: F.mono, fontSize: 9,
+                                        fontWeight: 700,
+                                        letterSpacing: "0.18em",
+                                        textTransform: "uppercase",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {added ? `✓ ${t("weather.added")}` : `+ ${t("weather.add")}`}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                              {inventoryMatches.length > 6 && (
+                                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
+                                  +{inventoryMatches.length - 6} {t("weather.moreMatches")}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          // No inventory matches — show generic advice from the
+                          // GENERIC_SUGGESTIONS table. This is descriptive only:
+                          // what to look for and a typical weight range. No brands,
+                          // no shopping links — that's a deliberate scope choice.
+                          (() => {
+                            const advice = GENERIC_SUGGESTIONS[req.id] || [];
+                            if (advice.length === 0) return null;
+                            return (
+                              <div style={{ marginTop: 12 }}>
+                                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                                  {t("weather.toBuy")}
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {advice.map((s, idx) => (
+                                    <div key={idx} style={{ padding: "6px 8px", background: C.paper, border: `1px dashed ${C.line}` }}>
+                                      <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 600, color: C.ink }}>
+                                        {s.name}
+                                      </div>
+                                      <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: C.inkSoft, lineHeight: 1.4 }}>
+                                        {s.lookFor} · <span style={{ fontStyle: "normal", fontFamily: F.mono, fontSize: 10, color: C.muted }}>{s.weightG}g</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        )}
+
+                        {/* Keep the original keyword hint for transparency about why this gap fired */}
+                        <div style={{ marginTop: 10, fontFamily: F.mono, fontSize: 9, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                          {t("weather.suggestKeywords")}: {req.keywords.slice(0, 4).join(", ")}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -14391,7 +14568,7 @@ function WeatherCheckModal({ packlist, items, kits, categories, onClose }) {
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
@@ -14865,6 +15042,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           items={items}
           kits={kits}
           categories={categories}
+          onAddItemToPacklist={(itemId) => onAddItem && onAddItem(itemId)}
           onClose={() => setWeatherOpen(false)}
         />
       )}
