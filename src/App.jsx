@@ -14407,6 +14407,16 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
       return next;
     });
   };
+  // Same for categories (collapsed-by-default for consistency).
+  const [expandedCats, setExpandedCats] = useState(() => new Set());
+  const isCatExpanded = (catId) => expandedCats.has(catId);
+  const toggleCatExpanded = (catId) => {
+    setExpandedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId); else next.add(catId);
+      return next;
+    });
+  };
 
   // Per-trip state arrays. Default: an item is "wanted" if it appears in
   // the packlist at all. Once user touches the wanted toggle for any item,
@@ -14588,23 +14598,49 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
             {includedCategories.map((c) => {
               const Icon = iconFor(c.icon);
               const catItems = items.filter((i) => i.category === c.name);
+              const catExpanded = isCatExpanded(c.id);
+              // Same per-section progress at-a-glance as kits
+              const catWanted = catItems.filter((it) => isWanted(it.id)).length;
+              const catPacked = catItems.filter((it) => isPacked(it.id)).length;
               return (
                 <div key={c.id}>
-                  {/* Header row — tap to open category modal; X to remove */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${C.line}` }}>
-                    <Icon size={18} strokeWidth={1.4} color={C.forest} />
+                  {/* Header row — chevron toggles expand; X removes from packlist.
+                      All inline content is <span> (NOT <div>) because <div> nested
+                      inside <button> is invalid HTML and crashes React on re-render. */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: catExpanded ? 8 : 0, paddingBottom: 6, borderBottom: `1px solid ${C.line}` }}>
                     <button
-                      onClick={() => onEditCategory && onEditCategory(c.id)}
+                      onClick={() => toggleCatExpanded(c.id)}
                       style={{
                         flex: 1, minWidth: 0, textAlign: "left",
-                        background: "none", border: "none", padding: 0, cursor: onEditCategory ? "pointer" : "default",
-                      }}>
-                      <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
-                        {tOrLiteral(lang, "cat", c.name)}
-                      </div>
-                      <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                        {t("pl.catLabel")} · {catItems.length} {catItems.length === 1 ? "item" : "items"}
-                      </div>
+                        background: "none", border: "none", padding: 0, cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}
+                      aria-expanded={catExpanded}
+                      aria-label={`${catExpanded ? "Collapse" : "Expand"} ${c.name}`}
+                    >
+                      <ChevronRight
+                        size={18}
+                        strokeWidth={2}
+                        color={C.muted}
+                        style={{ flexShrink: 0, transform: catExpanded ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                      />
+                      <Icon size={18} strokeWidth={1.4} color={C.forest} />
+                      <span style={{ display: "block", flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+                          {tOrLiteral(lang, "cat", c.name)}
+                        </span>
+                        <span style={{ display: "block", marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                          {t("pl.catLabel")} · {catItems.length} {catItems.length === 1 ? "item" : "items"}
+                          {catItems.length > 0 && (
+                            <>
+                              {"  ·  "}
+                              <span style={{ color: C.rust }}>{catWanted}/{catItems.length} {lang === "es" ? "llevar" : "want"}</span>
+                              {"  ·  "}
+                              <span style={{ color: C.forestBright }}>{catPacked}/{catWanted} {lang === "es" ? "emp." : "pkd"}</span>
+                            </>
+                          )}
+                        </span>
+                      </span>
                     </button>
                     {onRemoveCategory && (
                       <button onClick={(e) => { e.stopPropagation(); onRemoveCategory(c.id); }}
@@ -14614,8 +14650,8 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                       </button>
                     )}
                   </div>
-                  {/* Inline item list */}
-                  {catItems.length === 0 ? (
+                  {/* Inline item list — only when expanded */}
+                  {catExpanded && (catItems.length === 0 ? (
                     <div style={{ paddingLeft: 28, fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: C.inkSoft }}>
                       {t("kitDetail.empty")}
                     </div>
@@ -14642,7 +14678,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                         </div>
                       ))}
                     </div>
-                  )}
+                  ))}
                 </div>
               );
             })}
