@@ -14694,11 +14694,11 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                         color={C.muted}
                         style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
                       />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
+                      <span style={{ display: "block", flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontFamily: F.display, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", color: C.ink }}>
                           {k.name}
-                        </div>
-                        <div style={{ marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                        </span>
+                        <span style={{ display: "block", marginTop: 2, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                           KIT · {kitItems.length} {kitItems.length === 1 ? "item" : "items"} · {kitWeightStr}
                           {k.category ? `  ·  ${tOrLiteral(lang, "cat", k.category)}` : ""}
                           {kitItems.length > 0 && (
@@ -14709,8 +14709,8 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                               <span style={{ color: C.forestBright }}>{kitPacked}/{kitWanted} {lang === "es" ? "emp." : "pkd"}</span>
                             </>
                           )}
-                        </div>
-                      </div>
+                        </span>
+                      </span>
                     </button>
                     {onRemoveKit && (
                       <button onClick={(e) => { e.stopPropagation(); onRemoveKit(k.id); }}
