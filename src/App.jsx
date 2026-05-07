@@ -637,7 +637,11 @@ function ManualIcon({ size = 18, strokeWidth = 1.6 }) {
 
 function Logo({ size = 'header', onClick }) {
   // pickedHeight maps each size variant to a pixel height; width auto.
-  const heights = { hero: 110, auth: 84, header: 38, headerMobile: 30 };
+  // Logo sizes by context. Header is the small logo in the top nav bar;
+  // hero/auth are the larger versions on landing/sign-in pages.
+  // Header sizes were increased (38→56 desktop, 30→44 mobile) on user
+  // request to make the brand more prominent in the top nav.
+  const heights = { hero: 110, auth: 84, header: 56, headerMobile: 44 };
   const h = heights[size] || heights.header;
   const img = (
     <img
