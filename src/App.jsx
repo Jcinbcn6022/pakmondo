@@ -747,9 +747,15 @@ const TRANSLATIONS = {
     "import.intro": "Add items and categories in bulk from an Excel (.xlsx) or CSV file. The Items sheet has a Kit column — items sharing the same Kit name are grouped into a kit automatically. Existing entries are never overwritten.",
     "import.stepA": "Step 1 — get the template",
     "import.stepB": "Step 2 — upload your file",
-    "import.templateHint": "Download a starter spreadsheet with example rows. Fill it in with your gear, save, then upload it back here.",
+    "import.templateHint": "Pick the format that works for you. CSV opens in any spreadsheet app (Numbers, Google Sheets, Excel, LibreOffice). Excel is best if you have it. Google Sheets opens directly in your browser — no download needed.",
     "import.fileHint": "Upload your filled-in .xlsx or .csv file. We'll show a preview before saving anything.",
     "import.downloadTemplate": "Download template",
+    "import.templateExcel": "Excel (.xlsx)",
+    "import.templateCSV": "CSV (.csv)",
+    "import.templateGoogle": "Google Sheets",
+    "import.templateExcelHint": "Best if you have Microsoft Excel",
+    "import.templateCSVHint": "Works with any spreadsheet app",
+    "import.templateGoogleHint": "Edit in your browser, no install",
     "import.chooseFile": "Choose file",
     "import.loading": "Reading your file...",
     "import.parseError": "Couldn't read this file. Make sure it's a valid .xlsx or .csv.",
@@ -1994,9 +2000,15 @@ const TRANSLATIONS = {
     "import.intro": "Añade artículos y categorías en masa desde un archivo Excel (.xlsx) o CSV. La hoja Items tiene una columna Kit — los artículos con el mismo nombre de kit se agrupan automáticamente. Las entradas existentes nunca se sobrescriben.",
     "import.stepA": "Paso 1 — descargar la plantilla",
     "import.stepB": "Paso 2 — subir tu archivo",
-    "import.templateHint": "Descarga una hoja de cálculo inicial con filas de ejemplo. Rellénala con tu equipo, guárdala y súbela aquí.",
+    "import.templateHint": "Elige el formato que mejor te funcione. CSV se abre en cualquier app de hojas de cálculo (Numbers, Google Sheets, Excel, LibreOffice). Excel es mejor si lo tienes. Google Sheets se abre directamente en tu navegador — sin descargar nada.",
     "import.fileHint": "Sube tu archivo .xlsx o .csv. Verás una vista previa antes de guardar nada.",
     "import.downloadTemplate": "Descargar plantilla",
+    "import.templateExcel": "Excel (.xlsx)",
+    "import.templateCSV": "CSV (.csv)",
+    "import.templateGoogle": "Google Sheets",
+    "import.templateExcelHint": "Mejor si tienes Microsoft Excel",
+    "import.templateCSVHint": "Funciona con cualquier app",
+    "import.templateGoogleHint": "Edita en tu navegador, sin instalar",
     "import.chooseFile": "Elegir archivo",
     "import.loading": "Leyendo tu archivo...",
     "import.parseError": "No se pudo leer este archivo. Asegúrate de que sea un .xlsx o .csv válido.",
@@ -3288,6 +3300,32 @@ async function downloadImportTemplate() {
   XLSX.utils.book_append_sheet(wb, itemsSheet, "Items");
 
   XLSX.writeFile(wb, "PakMondo_Import_Template.xlsx");
+}
+
+/* Build and download a blank CSV template for bulk import.
+   Same 9 columns as the Excel template, but in CSV format so users
+   without Excel can open it in Numbers, Google Sheets, LibreOffice,
+   or any text editor. No library needed — built with browser APIs.
+   Includes UTF-8 BOM (\uFEFF) so Excel correctly reads accented
+   characters when the user later opens the CSV. */
+function downloadImportTemplateCSV() {
+  const headers = [
+    "Category", "Kit", "Item Name", "Weight", "Quantity",
+    "Size", "Consumable", "Expiry", "Notes",
+  ];
+  // BOM + comma-joined header row + trailing newline so the user's
+  // first data row starts on line 2.
+  const csv = "\uFEFF" + headers.join(",") + "\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "PakMondo_Import_Template.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Free the blob URL after the click has been processed.
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 /* Parse an uploaded XLSX/CSV file into structured objects.
@@ -9161,6 +9199,26 @@ function ImportDialog({
     }
   };
 
+  const handleDownloadTemplateCSV = () => {
+    try {
+      downloadImportTemplateCSV();
+    } catch (err) {
+      setError(err.message || t("import.templateError"));
+    }
+  };
+
+  // Public Google Sheets template URL. The user opens it in their browser,
+  // chooses File → Make a copy in Google Sheets, fills it in, then exports
+  // as CSV (File → Download → CSV) to upload back here.
+  // NOTE: This URL is a placeholder until the user creates a public template.
+  // If empty, the Google Sheets button is hidden in the UI.
+  const GOOGLE_SHEETS_TEMPLATE_URL = "";
+
+  const handleOpenGoogleSheets = () => {
+    if (!GOOGLE_SHEETS_TEMPLATE_URL) return;
+    window.open(GOOGLE_SHEETS_TEMPLATE_URL, "_blank", "noopener,noreferrer");
+  };
+
   const handleConfirm = () => {
     if (!parsed) return;
     setStage("saving");
@@ -9253,17 +9311,72 @@ function ImportDialog({
               {t("import.intro")}
             </p>
 
-            {/* Step A: download template */}
+            {/* Step A: download template — three format options so users
+                without Excel can still get started. CSV opens in Numbers,
+                Google Sheets, LibreOffice, etc. Google Sheets opens
+                directly in the browser (no install needed). */}
             <div style={{ marginBottom: 14, padding: 14, background: C.paperDeep, borderLeft: `3px solid ${C.ochre}` }}>
               <div style={{ marginBottom: 8, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
                 {t("import.stepA")}
               </div>
-              <div style={{ marginBottom: 10, fontFamily: F.body, fontSize: 14, color: C.inkSoft }}>
+              <div style={{ marginBottom: 12, fontFamily: F.body, fontSize: 14, color: C.inkSoft, lineHeight: 1.5 }}>
                 {t("import.templateHint")}
               </div>
-              <Btn variant="ghost" icon={Download} onClick={handleDownloadTemplate}>
-                {t("import.downloadTemplate")}
-              </Btn>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* CSV — most universal, listed first */}
+                <button
+                  onClick={handleDownloadTemplateCSV}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 14px", background: C.paper,
+                    border: `1.5px solid ${C.ink}`, cursor: "pointer",
+                    fontFamily: F.body, color: C.ink, textAlign: "left",
+                  }}
+                >
+                  <Download size={16} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{t("import.templateCSV")}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{t("import.templateCSVHint")}</div>
+                  </div>
+                </button>
+
+                {/* Excel — best for users who have it */}
+                <button
+                  onClick={handleDownloadTemplate}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 14px", background: C.paper,
+                    border: `1.5px solid ${C.ink}`, cursor: "pointer",
+                    fontFamily: F.body, color: C.ink, textAlign: "left",
+                  }}
+                >
+                  <Download size={16} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{t("import.templateExcel")}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{t("import.templateExcelHint")}</div>
+                  </div>
+                </button>
+
+                {/* Google Sheets — only shown if URL is configured */}
+                {GOOGLE_SHEETS_TEMPLATE_URL && (
+                  <button
+                    onClick={handleOpenGoogleSheets}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "10px 14px", background: C.paper,
+                      border: `1.5px solid ${C.ink}`, cursor: "pointer",
+                      fontFamily: F.body, color: C.ink, textAlign: "left",
+                    }}
+                  >
+                    <Download size={16} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{t("import.templateGoogle")}</div>
+                      <div style={{ fontSize: 12, color: C.muted }}>{t("import.templateGoogleHint")}</div>
+                    </div>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Step B: upload file */}
