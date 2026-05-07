@@ -1311,11 +1311,11 @@ const TRANSLATIONS = {
     "pl.detailEmpty": "This packlist is empty — edit it to add kits and items",
 
     // Dashboard packlists section
-    "dash.savedPacklists": "Saved packlists.",
-    "dash.noPacklists": "No packlists yet.",
+    "dash.savedPacklists": "Saved Trips & PakLists.",
+    "dash.noPacklists": "No Trips or PakLists yet.",
     "dash.noPacklistsHint": "Compose one to get started",
     "dash.viewAllPacklists": "View all packlists",
-    "dash.composePacklist": "Compose packlist",
+    "dash.composePacklist": "Compose Trip or PakList",
 
     // Add forms
     "form.newEntry": "NEW ENTRY",
@@ -2541,11 +2541,11 @@ const TRANSLATIONS = {
     "pl.detailItems": "Artículos sueltos",
     "pl.detailEmpty": "Esta lista está vacía — edítala para añadir kits y artículos",
 
-    "dash.savedPacklists": "Listas guardadas.",
-    "dash.noPacklists": "Sin listas todavía.",
+    "dash.savedPacklists": "Trips & PakLists guardadas.",
+    "dash.noPacklists": "Sin Trips o PakLists todavía.",
     "dash.noPacklistsHint": "Compón una para empezar",
     "dash.viewAllPacklists": "Ver todas las listas",
-    "dash.composePacklist": "Componer lista",
+    "dash.composePacklist": "Componer Trip o PakList",
 
     "form.newEntry": "NUEVA ENTRADA",
     "form.draft": "Borrador",
