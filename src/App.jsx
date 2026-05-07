@@ -844,6 +844,7 @@ const TRANSLATIONS = {
     "fp.confirmPwPh": "Type it again",
     "fp.mismatch": "Passwords don't match",
     "fp.tooShort": "Password must be at least 6 characters",
+    "fp.sessionNotReady": "Still verifying your reset link — wait a moment and try again.",
     "fp.update": "Update password",
     "fp.updated": "Password updated. Sign in with your new password.",
     "fp.linkExpired": "This reset link has expired or is invalid. Request a new one.",
@@ -2081,6 +2082,7 @@ const TRANSLATIONS = {
     "fp.confirmPwPh": "Escríbela otra vez",
     "fp.mismatch": "Las contraseñas no coinciden",
     "fp.tooShort": "La contraseña debe tener al menos 6 caracteres",
+    "fp.sessionNotReady": "Verificando el enlace de restablecimiento — espera un momento e inténtalo de nuevo.",
     "fp.update": "Actualizar contraseña",
     "fp.updated": "Contraseña actualizada. Inicia sesión con la nueva.",
     "fp.linkExpired": "Este enlace ha caducado o no es válido. Solicita uno nuevo.",
@@ -5224,6 +5226,28 @@ function ResetPassword({ go }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  // The Supabase auth client needs a beat after page load to read the
+  // recovery access_token from the URL hash. Until that event fires, calling
+  // updateUser({ password }) returns "Auth session missing!". We watch for
+  // either PASSWORD_RECOVERY or an existing session and only enable the
+  // form once we know we can update.
+  const [sessionReady, setSessionReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    // 1) Maybe the session was already there (page refresh after the auth
+    //    client already processed the hash). Check immediately.
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled && data?.session) setSessionReady(true);
+    })();
+    // 2) Otherwise, listen for the auth event the recovery flow triggers.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setSessionReady(true);
+      }
+    });
+    return () => { cancelled = true; sub?.subscription?.unsubscribe?.(); };
+  }, []);
 
   const validate = () => {
     if (pw.length < 6) return t("fp.tooShort");
@@ -5234,12 +5258,22 @@ function ResetPassword({ go }) {
   const submit = async () => {
     const v = validate();
     if (v) { setError(v); return; }
+    if (!sessionReady) {
+      setError(t("fp.sessionNotReady"));
+      return;
+    }
     setSubmitting(true);
     setError("");
     const result = await supabaseService.updatePassword(pw);
     setSubmitting(false);
     if (result.error) {
-      setError(result.error);
+      // Common case: link expired (Supabase recovery tokens are short-lived).
+      // Surface a more actionable message instead of the raw "Auth session missing!".
+      if (/auth session missing|jwt expired|invalid jwt/i.test(result.error)) {
+        setError(t("fp.linkExpired"));
+      } else {
+        setError(result.error);
+      }
       return;
     }
     // Clear the post-recovery session so they have to sign in cleanly
@@ -19196,15 +19230,42 @@ export default function App() {
     // session restoration kicks in). The Supabase auth client picks up the
     // recovery hash automatically and creates a temporary session that
     // updateUser({ password }) can use.
+    //
+    // IMPORTANT: We must NOT strip the hash before Supabase has had a chance
+    // to read it. Earlier code wiped window.location.hash immediately, which
+    // caused "Auth session missing!" errors on updatePassword because the
+    // recovery access_token in the hash was gone before the auth client
+    // could consume it. We delay the cleanup until after Supabase fires its
+    // SIGNED_IN event for the recovery session.
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       const hash = window.location.hash || "";
-      if (url.searchParams.get("reset") === "true" || hash.includes("type=recovery")) {
+      const isRecovery = url.searchParams.get("reset") === "true" || hash.includes("type=recovery");
+      if (isRecovery) {
         setScreen("reset");
-        // Clean the URL so a refresh doesn't re-trigger
-        if (window.history?.replaceState) {
-          window.history.replaceState({}, "", window.location.pathname);
-        }
+        // Listen for the auth client to finish processing the hash. Once it
+        // emits PASSWORD_RECOVERY (or SIGNED_IN with a recovery session),
+        // it's safe to clean the URL.
+        const sub = supabase.auth.onAuthStateChange((event) => {
+          if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+            if (window.history?.replaceState) {
+              window.history.replaceState({}, "", window.location.pathname);
+            }
+            // Only need to clean once.
+            sub?.data?.subscription?.unsubscribe?.();
+          }
+        });
+        // Defensive timeout: if the auth event never fires (network issue,
+        // expired token), still clean the URL after 5s so a refresh isn't
+        // surprising. The reset attempt will fail with a normal error msg.
+        setTimeout(() => {
+          if (window.location.hash || window.location.search.includes("reset")) {
+            if (window.history?.replaceState) {
+              window.history.replaceState({}, "", window.location.pathname);
+            }
+          }
+          sub?.data?.subscription?.unsubscribe?.();
+        }, 5000);
       }
     }
 
