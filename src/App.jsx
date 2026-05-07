@@ -1241,7 +1241,7 @@ const TRANSLATIONS = {
     "pl.tagline": "Curated bundles for any expedition.",
     "pl.tabSaved": "Saved {n}",
     "pl.tabCreate": "Create a Packlist",
-    "pl.add": "Add Trips & PakLists",
+    "pl.add": "Add Trips & Packlists",
     "pl.empty": "No packlists yet.",
     "pl.emptyHint": "Build your first packlist to combine kits and items",
     "pl.formTitle": "Compose a packlist",
@@ -1311,11 +1311,11 @@ const TRANSLATIONS = {
     "pl.detailEmpty": "This packlist is empty — edit it to add kits and items",
 
     // Dashboard packlists section
-    "dash.savedPacklists": "Saved Trips & PakLists.",
-    "dash.noPacklists": "No Trips or PakLists yet.",
+    "dash.savedPacklists": "Saved packlists.",
+    "dash.noPacklists": "No packlists yet.",
     "dash.noPacklistsHint": "Compose one to get started",
     "dash.viewAllPacklists": "View all packlists",
-    "dash.composePacklist": "Compose Trip or PakList",
+    "dash.composePacklist": "Compose packlist",
 
     // Add forms
     "form.newEntry": "NEW ENTRY",
@@ -2472,7 +2472,7 @@ const TRANSLATIONS = {
     "pl.tagline": "Conjuntos curados para cualquier expedición.",
     "pl.tabSaved": "Guardadas {n}",
     "pl.tabCreate": "Crear una Lista",
-    "pl.add": "Añadir Trips & PakLists",
+    "pl.add": "Añadir lista",
     "pl.empty": "Sin listas todavía.",
     "pl.emptyHint": "Crea tu primera lista combinando kits y artículos",
     "pl.formTitle": "Componer una lista",
@@ -2541,11 +2541,11 @@ const TRANSLATIONS = {
     "pl.detailItems": "Artículos sueltos",
     "pl.detailEmpty": "Esta lista está vacía — edítala para añadir kits y artículos",
 
-    "dash.savedPacklists": "Trips & PakLists guardadas.",
-    "dash.noPacklists": "Sin Trips o PakLists todavía.",
+    "dash.savedPacklists": "Listas guardadas.",
+    "dash.noPacklists": "Sin listas todavía.",
     "dash.noPacklistsHint": "Compón una para empezar",
     "dash.viewAllPacklists": "Ver todas las listas",
-    "dash.composePacklist": "Componer Trip o PakList",
+    "dash.composePacklist": "Componer lista",
 
     "form.newEntry": "NUEVA ENTRADA",
     "form.draft": "Borrador",
