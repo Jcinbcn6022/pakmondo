@@ -921,6 +921,7 @@ const TRANSLATIONS = {
     "lib.fieldDescription": "Description",
     "member.label": "MEMBER",
     "member.since": "SINCE",
+    "member.tooltip": "Your PakMondo member number — tap to view your profile",
     "lib.fieldDescriptionHint": "What is this for? When/where did you use it? Why is it useful?",
     "lib.fieldCredit": "Published by",
     "lib.fieldCreditHint": "Optional. Defaults to your name. Shown publicly on the library card. Clear to publish anonymously.",
@@ -1488,6 +1489,7 @@ const TRANSLATIONS = {
     "set.username": "Username",
     "set.region": "Region",
     "set.memberSince": "Member since",
+    "set.memberId": "Member number",
     "set.preferences": "Preferences",
     "set.units": "Units",
     "set.unitsMetric": "Metric",
@@ -2161,6 +2163,7 @@ const TRANSLATIONS = {
     "lib.fieldDescription": "Descripción",
     "member.label": "MIEMBRO",
     "member.since": "DESDE",
+    "member.tooltip": "Tu número de miembro PakMondo — toca para ver tu perfil",
     "lib.fieldDescriptionHint": "¿Para qué sirve? ¿Cuándo/dónde lo usaste? ¿Por qué es útil?",
     "lib.fieldCredit": "Publicado por",
     "lib.fieldCreditHint": "Opcional. Por defecto, tu nombre. Visible en la tarjeta de la biblioteca. Déjalo vacío para publicar de forma anónima.",
@@ -2714,6 +2717,7 @@ const TRANSLATIONS = {
     "set.username": "Usuario",
     "set.region": "Región",
     "set.memberSince": "Miembro desde",
+    "set.memberId": "Número de miembro",
     "set.preferences": "Preferencias",
     "set.units": "Unidades",
     "set.unitsMetric": "Métrico",
@@ -4338,6 +4342,7 @@ function Header({ go, active, onBack }) {
             <button
               onClick={() => go("settings")}
               aria-label={`${t("member.label")} ${user.member_id}`}
+              title={t("member.tooltip")}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
                 padding: isMobile ? "4px 8px" : "5px 10px",
@@ -19054,6 +19059,7 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 36 : 48 }}>
           <SettingGroup title={t("set.profile")} num="01" collapsible defaultExpanded={false}>
+            <SettingRow label={t("set.memberId")} value={user.member_id || "—"} />
             <SettingRow label={t("set.username")} value={user.username || user.name || t("dash.wayfarer")} />
             <SettingRow label={t("set.region")} value={
               user.region ? (
