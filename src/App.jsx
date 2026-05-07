@@ -7122,7 +7122,12 @@ function TravelTypesView({ types, onDelete }) {
               <Trash2 size={14} />
             </button>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <Icon size={28} strokeWidth={1.3} />
+              {/* Travel-type icon — Option 6: rust on cream cards, ochre/brass on
+                  dark cards. The icon previously inherited the parent's foreground
+                  color (ink-black on cream / cream on forest), which felt flat.
+                  This pair gives each card's icon a stronger pop while staying
+                  inside the existing palette (C.rust + C.ochre, no new hues). */}
+              <Icon size={28} strokeWidth={1.3} color={dark ? C.ochre : C.rust} />
               <span style={{ fontFamily: F.mono, fontSize: 11, color: dark ? C.paper : C.muted, opacity: 0.8 }}>{tt.days} {t("inv.daysLabel")}</span>
             </div>
             <div style={{ marginTop: 32, fontFamily: F.display, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>{tOrLiteral(lang, "tt", tt.name)}</div>
