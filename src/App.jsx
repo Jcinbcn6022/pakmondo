@@ -1269,6 +1269,7 @@ const TRANSLATIONS = {
     "pl.packedCount": "packed",
     "pl.wantToggle": "Want to take",
     "pl.packedToggle": "Packed in bag",
+    "pl.excludeItem": "Remove from this packlist",
     "pl.colWant": "WANT",
     "pl.colPacked": "PACKED",
     "pl.legend": "Tap the red box for items you need to pack. Tap the green box once it's in your bag.",
@@ -2502,6 +2503,7 @@ const TRANSLATIONS = {
     "pl.packedCount": "empacados",
     "pl.wantToggle": "Llevar",
     "pl.packedToggle": "En la mochila",
+    "pl.excludeItem": "Quitar de esta lista",
     "pl.colWant": "LLEVAR",
     "pl.colPacked": "EMPACADO",
     "pl.legend": "Marca la casilla roja para los artículos que necesitas empacar. Marca la verde cuando ya esté en la mochila.",
@@ -11731,6 +11733,19 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
     ));
   };
 
+  // Exclude a specific item from a packlist's view, even if it would otherwise
+  // appear because it's part of a referenced kit or category. The item itself
+  // stays in the kit/category — only this packlist hides it. Used by the trash
+  // icon on kit/category item rows in PacklistDetail. Dedupes automatically.
+  const excludeItemFromPacklist = (plId, itemId) => {
+    setPacklists((prev) => prev.map((p) => {
+      if (p.id !== plId) return p;
+      const current = p.excludedItemIds || [];
+      if (current.includes(itemId)) return p;
+      return { ...p, excludedItemIds: [...current, itemId] };
+    }));
+  };
+
   // Add an existing inventory item to a packlist's standalone items.
   // No-op if the item is already present (avoids accidental duplicates when
   // tapping the suggestion button twice). Used by the Weather suggestions UI.
@@ -11847,6 +11862,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
             onRemoveItem={(itemId) => removeItemFromPacklist(openPacklist.id, itemId)}
             onRemoveKit={(kitId) => removeKitFromPacklist(openPacklist.id, kitId)}
             onRemoveCategory={(catId) => removeCategoryFromPacklist(openPacklist.id, catId)}
+            onExcludeItem={(itemId) => excludeItemFromPacklist(openPacklist.id, itemId)}
             onEditItem={(id) => setDetailItemId(id)}
             onEditKit={(id) => setDetailKitId(id)}
             onEditCategory={(id) => setDetailCategoryId(id)}
@@ -13615,12 +13631,16 @@ async function generatePacklistPDF({ packlist, kits, items, categories, units, l
   const includedItems      = (packlist.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
   const includedCategories = (packlist.categoryIds || []).map((id) => categories.find((c) => c.id === id)).filter(Boolean);
 
+  // Items excluded from this packlist via the trash icon — filter them out
+  // of every place items would render or contribute to totals.
+  const excludedSetPDF = new Set(packlist.excludedItemIds || []);
+
   // Compute total weight (unique items only, dedup across kits/items/cats)
   const idsSet = new Set();
-  includedKits.forEach((k) => (k.itemIds || []).forEach((iid) => idsSet.add(iid)));
-  includedItems.forEach((it) => idsSet.add(it.id));
+  includedKits.forEach((k) => (k.itemIds || []).forEach((iid) => { if (!excludedSetPDF.has(iid)) idsSet.add(iid); }));
+  includedItems.forEach((it) => { if (!excludedSetPDF.has(it.id)) idsSet.add(it.id); });
   includedCategories.forEach((c) => {
-    items.forEach((it) => { if (it.category === c.name) idsSet.add(it.id); });
+    items.forEach((it) => { if (it.category === c.name && !excludedSetPDF.has(it.id)) idsSet.add(it.id); });
   });
   const allUnique = Array.from(idsSet).map((id) => items.find((i) => i.id === id)).filter(Boolean);
   const totalKg = allUnique.reduce((s, i) => s + parseKg(i.weight || ""), 0);
@@ -13663,7 +13683,7 @@ async function generatePacklistPDF({ packlist, kits, items, categories, units, l
   const kitsHTML = includedKits.length === 0 ? "" : `
     <h2 class="section-title">${isSpanish ? "Kits" : "Kits"} <span class="count">${includedKits.length}</span></h2>
     ${includedKits.map((k) => {
-      const kitItems = (k.itemIds || []).map((iid) => items.find((i) => i.id === iid)).filter(Boolean);
+      const kitItems = (k.itemIds || []).map((iid) => items.find((i) => i.id === iid)).filter(Boolean).filter((it) => !excludedSetPDF.has(it.id));
       const kitWeightKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
       const kitWeightStr = formatWeightFromKg(kitWeightKg, units);
       return `
@@ -13709,7 +13729,7 @@ async function generatePacklistPDF({ packlist, kits, items, categories, units, l
   const catsHTML = includedCategories.length === 0 ? "" : `
     <h2 class="section-title">${isSpanish ? "Categorías" : "Categories"} <span class="count">${includedCategories.length}</span></h2>
     ${includedCategories.map((c) => {
-      const catItems = items.filter((i) => i.category === c.name);
+      const catItems = items.filter((i) => i.category === c.name && !excludedSetPDF.has(i.id));
       return `
         <div class="kit-block">
           <div class="kit-header">
@@ -15280,7 +15300,7 @@ function WeatherCheckModal({ packlist, items, kits, categories, cart, onAddItemT
 }
 
 /* Detail view of a single packlist — shows kits with their items + standalone items */
-function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart, onDismissSuggestion, onRestoreSuggestion, cart }) {
+function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onDelete, onRemoveItem, onRemoveKit, onRemoveCategory, onExcludeItem, onEditItem, onEditKit, onEditCategory, onToggleWanted, onTogglePacked, onAddItem, onAddToCart, onDismissSuggestion, onRestoreSuggestion, cart }) {
   const { t, lang, units } = useI18n();
   const { isMobile } = useViewport();
   const [confirming, setConfirming] = useState(false);
@@ -15315,6 +15335,11 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
   const wantedSet = new Set(packlist.wantedItemIds || null);
   const hasWantedOverride = Array.isArray(packlist.wantedItemIds);
   const packedSet = new Set(packlist.packedItemIds || []);
+  // Items the user has explicitly removed from this packlist via the trash
+  // icon. The item still exists in the kit/category source — only this
+  // packlist hides it.
+  const excludedSet = new Set(packlist.excludedItemIds || []);
+  const isExcluded = (id) => excludedSet.has(id);
 
   // Helpers — `isWanted(id)` and `isPacked(id)` for any item ID
   const isWanted = (id) => hasWantedOverride ? wantedSet.has(id) : true;
@@ -15364,13 +15389,15 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
   const includedItems = (packlist.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
   const includedCategories = (packlist.categoryIds || []).map((id) => categories.find((c) => c.id === id)).filter(Boolean);
 
-  // For total unique calc — include items from referenced categories too
+  // For total unique calc — include items from referenced categories too.
+  // Filter out items the user excluded via the trash icon so totals match
+  // what's actually showing.
   const idsInKits = new Set();
-  includedKits.forEach((k) => k.itemIds.forEach((iid) => idsInKits.add(iid)));
-  includedItems.forEach((it) => idsInKits.add(it.id));
+  includedKits.forEach((k) => k.itemIds.forEach((iid) => { if (!isExcluded(iid)) idsInKits.add(iid); }));
+  includedItems.forEach((it) => { if (!isExcluded(it.id)) idsInKits.add(it.id); });
   // Live link: pull current items in each referenced category
   includedCategories.forEach((c) => {
-    items.forEach((it) => { if (it.category === c.name) idsInKits.add(it.id); });
+    items.forEach((it) => { if (it.category === c.name && !isExcluded(it.id)) idsInKits.add(it.id); });
   });
   const totalUnique = idsInKits.size;
   const allUniqueItems = Array.from(idsInKits).map((id) => items.find((i) => i.id === id)).filter(Boolean);
@@ -15486,7 +15513,9 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {includedCategories.map((c) => {
               const Icon = iconFor(c.icon);
-              const catItems = items.filter((i) => i.category === c.name);
+              // Hide items the user excluded via the trash icon. They remain
+              // in the category for other packlists.
+              const catItems = items.filter((i) => i.category === c.name && !isExcluded(i.id));
               const catExpanded = isCatExpanded(c.id);
               // Same per-section progress at-a-glance as kits
               const catWanted = catItems.filter((it) => isWanted(it.id)).length;
@@ -15564,6 +15593,19 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                               {formatWeight(it.weight, units)}
                             </span>
                           )}
+                          {onExcludeItem && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onExcludeItem(it.id); }}
+                              title={t("pl.excludeItem")} aria-label={t("pl.excludeItem")}
+                              style={{
+                                width: 28, height: 28, padding: 0, flexShrink: 0,
+                                background: "transparent", border: `1px solid ${C.rust}`,
+                                color: C.rust, cursor: "pointer",
+                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                              }}>
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -15587,7 +15629,9 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {includedKits.map((k) => {
-              const kitItems = (k.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean);
+              // Filter out items the user has excluded from this packlist.
+              // The items remain in the kit definition for other packlists.
+              const kitItems = (k.itemIds || []).map((id) => items.find((i) => i.id === id)).filter(Boolean).filter((it) => !isExcluded(it.id));
               const kitKg = kitItems.reduce((s, i) => s + parseKg(i.weight || ""), 0);
               const kitWeightStr = formatWeightFromKg(kitKg, units);
               const expanded = isKitExpanded(k.id);
@@ -15686,6 +15730,19 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
                             <span style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, fontWeight: 600 }}>
                               {formatWeight(it.weight, units)}
                             </span>
+                          )}
+                          {onExcludeItem && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onExcludeItem(it.id); }}
+                              title={t("pl.excludeItem")} aria-label={t("pl.excludeItem")}
+                              style={{
+                                width: 28, height: 28, padding: 0, flexShrink: 0,
+                                background: "transparent", border: `1px solid ${C.rust}`,
+                                color: C.rust, cursor: "pointer",
+                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                              }}>
+                              <Trash2 size={13} />
+                            </button>
                           )}
                         </div>
                       ))}
