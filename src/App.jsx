@@ -739,7 +739,7 @@ const TRANSLATIONS = {
     "itemDetail.notes": "Notes",
     "itemDetail.edit": "Edit",
     "itemDetail.delete": "Delete from inventory",
-    "itemDetail.confirmDelete": "Delete this item permanently? It will be removed from all kits and packlists.",
+    "itemDetail.confirmDelete": "Delete this item permanently? It will be removed from all kits and trips.",
 
     "import.button": "Import",
     "import.heading": "Bulk Import",
@@ -785,7 +785,7 @@ const TRANSLATIONS = {
     "landing.kickerWhat": "WHAT IS IT",
     "landing.whatTitle": "Your gear,",
     "landing.whatTitleItalic": "organized",
-    "landing.whatBody": "PakMondo is a packing app for people who take their trips seriously. Build a digital catalog of every item you own, group items into reusable kits, and create packlists that actually map to real trips. Forget less. Pack smarter.",
+    "landing.whatBody": "PakMondo is a packing app for people who take their trips seriously. Build a digital catalog of every item you own, group items into reusable kits, and create trips that match your real journeys. Forget less. Pack smarter.",
     // Section: Core features
     "landing.kickerHow": "HOW IT WORKS",
     "landing.coreTitle": "Three building blocks,",
@@ -793,7 +793,7 @@ const TRANSLATIONS = {
     "landing.f1Title": "Track every item",
     "landing.f1Body": "One inventory for all your gear. Weights, expiry dates, photos, notes. Searchable, sortable, never lost in a closet again.",
     "landing.f2Title": "Build reusable kits",
-    "landing.f2Body": "Group items into kits like 'Cold Camp Essentials' or 'Day Hike Light'. Drop a whole kit into any packlist with one tap.",
+    "landing.f2Body": "Group items into kits like 'Cold Camp Essentials' or 'Day Hike Light'. Drop a whole kit into any trip with one tap.",
     "landing.f3Title": "Check the weather",
     "landing.f3Body": "Tell PakMondo where and when. It compares the forecast against your gear and flags anything you might be missing.",
     // Section: Showcase
@@ -801,7 +801,7 @@ const TRANSLATIONS = {
     "landing.showcaseTitle": "Built like a",
     "landing.showcaseTitleItalic": "field journal",
     "landing.shotInv": "Inventory · 803 items",
-    "landing.shotPl": "Packlist · with progress",
+    "landing.shotPl": "Trip · with progress",
     "landing.shotWx": "Weather check · gap finder",
     // Section: Why not a spreadsheet
     "landing.kickerWhy": "WHY",
@@ -815,13 +815,13 @@ const TRANSLATIONS = {
     "landing.moreTitle": "Everything else,",
     "landing.moreTitleItalic": "thoughtfully built",
     "landing.f4Title": "Multi-device sync",
-    "landing.f4Body": "Sign in on any device. Your inventory, kits and packlists follow.",
+    "landing.f4Body": "Sign in on any device. Your inventory, kits and trips follow.",
     "landing.f5Title": "Printable PDFs",
     "landing.f5Body": "Generate a checklist for the road. Two checkboxes per item: want, packed.",
     "landing.f6Title": "Bilingual",
     "landing.f6Body": "Full English and Spanish support. Switch any time.",
     "landing.f7Title": "Community library",
-    "landing.f7Body": "Browse and import packlists shared by other members. Publish your own.",
+    "landing.f7Body": "Browse and import trips shared by other members. Publish your own.",
     // Final CTA
     "landing.finalTitleA": "Be prepared,",
     "landing.finalTitleB": "be anywhere",
@@ -888,10 +888,34 @@ const TRANSLATIONS = {
     "nav.camp": "Home",
     "nav.inventory": "Inventory",
     "nav.trips": "Trips",
-    "nav.packlists": "Trips & Packlists",
+    "nav.packlists": "Trips",
+    "nav.more": "More",
     "nav.cart": "Cart",
     "nav.inbox": "Inbox",
     "nav.library": "Library",
+    "more.title": "More",
+    "more.subtitle": "Settings, library, manual, inbox, cart",
+    "more.settings": "Settings",
+    "more.library": "Library",
+    "more.manual": "Field Manual",
+    "more.inbox": "Inbox",
+    "more.cart": "Cart",
+    "more.signOut": "Sign out",
+    "sample.cardTitle": "New here? Try a sample trip",
+    "sample.cardBody": "We'll set up a starter trip with items and kits so you can see how PakMondo works. You can rename, edit, or delete it any time.",
+    "sample.cardCTA": "Pick a trip",
+    "sample.dismiss": "No thanks",
+    "sample.pickerTitle": "Pick a starter trip",
+    "sample.pickerBody": "We'll pre-fill it with common items so you can explore right away.",
+    "sample.optCamping": "Weekend Camping",
+    "sample.optCampingHint": "Tent, sleeping bag, headlamp, cooking kit",
+    "sample.optBeach": "Beach Getaway",
+    "sample.optBeachHint": "Swimsuit, sunscreen, towel, sandals",
+    "sample.optCity": "City Travel",
+    "sample.optCityHint": "Passport, charger, walking shoes, day bag",
+    "sample.creating": "Creating your sample trip…",
+    "sample.created": "Sample trip created — open it from your Trips list",
+    "sample.cancel": "Cancel",
 
     // === Sharing & Inbox ===
     "share.btn": "Share",
@@ -1053,8 +1077,8 @@ const TRANSLATIONS = {
     "share.modeLiveHint": "Synced — your edits propagate. Read-only for them.",
     "share.includeItems": "Include items",
     "share.includeItemsHint": "Bring the items in this category along.",
-    "share.includePacklists": "Include packlist",
-    "share.includePacklistsHint": "Send the trip's packlist (if any) too.",
+    "share.includePacklists": "Include trip",
+    "share.includePacklistsHint": "Send the full trip with all kits and items.",
     "share.includeKits": "Include kits",
     "share.includeKitsHint": "Send referenced kits with the trip.",
     "share.send": "Send share",
@@ -1089,7 +1113,7 @@ const TRANSLATIONS = {
     "inbox.previewItemsHint": "Pick which items you want to import along with this share.",
     "inbox.previewKits": "Referenced kits",
     "inbox.previewKitsHint": "Pick which kits to import.",
-    "inbox.previewPacklist": "Packlist",
+    "inbox.previewPacklist": "Trip",
     "inbox.alreadyHave": "(already in your inventory)",
     "inbox.accept": "Import",
     "inbox.acceptedAt": "Imported on {date}",
@@ -1145,8 +1169,8 @@ const TRANSLATIONS = {
     "dash.navInventoryTag": "Items, categories, ADV styles",
     "dash.navTrips": "Trips",
     "dash.navTripsTag": "Plan a new route or revisit the saved",
-    "dash.navPacklists": "Trips & Packlists",
-    "dash.navPacklistsTag": "Plan a trip or revisit a saved packlist",
+    "dash.navPacklists": "Trips",
+    "dash.navPacklistsTag": "Plan a trip or revisit a saved trip",
     "dash.navCart": "Shopping Cart",
     "dash.navCartTag": "Outfit any gaps in your kit",
     "dash.nextDeparture": "Next departure.",
@@ -1236,18 +1260,18 @@ const TRANSLATIONS = {
     "kit.noCategoriesYet": "Create a category in the Categories tab first",
 
     // Packlists — top-level entity that combines kits + items for a trip/purpose
-    "pl.section": "SECTION TRIPS & PACKLISTS",
+    "pl.section": "SECTION TRIPS",
     "pl.titleA": "Trips &",
-    "pl.titleB": "packlists",
+    "pl.titleB": "trips",
     "pl.tagline": "Curated bundles for any expedition.",
     "pl.tabSaved": "Saved {n}",
-    "pl.tabCreate": "Create a Packlist",
-    "pl.add": "Add Trips & Packlists",
-    "pl.empty": "No packlists yet.",
-    "pl.emptyHint": "Build your first packlist to combine kits and items",
-    "pl.formTitle": "Compose a packlist",
-    "pl.editFormTitle": "Edit packlist",
-    "pl.fileBtn": "Save packlist",
+    "pl.tabCreate": "Create a Trip",
+    "pl.add": "Add Trips",
+    "pl.empty": "No trips yet.",
+    "pl.emptyHint": "Build your first trip to combine kits and items",
+    "pl.formTitle": "Compose a trip",
+    "pl.editFormTitle": "Edit trip",
+    "pl.fileBtn": "Save trip",
     "pl.saveBtn": "Save changes",
     "pl.namePh": "Patagonia 14-Day Trek",
     "pl.notes": "Notes",
@@ -1269,11 +1293,11 @@ const TRANSLATIONS = {
     "pl.packedCount": "packed",
     "pl.wantToggle": "Want to take",
     "pl.packedToggle": "Packed in bag",
-    "pl.excludeItem": "Remove from this packlist",
+    "pl.excludeItem": "Remove from this trip",
     "pl.colWant": "WANT",
     "pl.colPacked": "PACKED",
     "pl.legend": "Tap the red box for items you need to pack. Tap the green box once it's in your bag.",
-    "pl.openBtn": "Open packlist",
+    "pl.openBtn": "Open trip",
     "pl.editBtn": "Edit",
     "pl.deleteBtn": "Delete",
     "pl.downloadPDF": "Download PDF",
@@ -1282,12 +1306,12 @@ const TRANSLATIONS = {
     "weather.title": "Weather check",
     "weather.loading": "Fetching forecast...",
     "weather.noDestination": "Add a destination",
-    "weather.noDestinationHint": "This packlist doesn't have a destination set. Edit the packlist and add one (e.g. 'Iceland', 'Patagonia', 'Yosemite') so we can pull the forecast.",
+    "weather.noDestinationHint": "This trip doesn't have a destination set. Edit the trip and add one (e.g. 'Iceland', 'Patagonia', 'Yosemite') so we can pull the forecast.",
     "weather.geocodeFailed": "Couldn't find that destination. Try a more specific place name (city or region).",
     "weather.forecastFailed": "Couldn't fetch the forecast. Open-Meteo may be unavailable, or the dates are too far out (max 16 days).",
     "weather.unknownError": "Something went wrong fetching the weather.",
     "weather.errorTitle": "Couldn't fetch weather",
-    "weather.gapsHeading": "Gaps in your packlist",
+    "weather.gapsHeading": "Gaps in your trip",
     "weather.coveredHeading": "Covered",
     "weather.suggestKeywords": "Look for",
     "weather.fromInventory": "From your inventory",
@@ -1305,19 +1329,19 @@ const TRANSLATIONS = {
     "weather.allClear": "Looks good for these conditions",
     "weather.allClearHint": "No critical gaps detected based on the forecast. Mild weather expected.",
     "weather.poweredBy": "Forecast",
-    "pl.confirmDelete": "Delete this packlist? Kits and items in it remain in your inventory.",
+    "pl.confirmDelete": "Delete this trip? Kits and items in it remain in your inventory.",
     "pl.confirmYes": "Yes, delete",
-    "pl.detailKits": "Kits in this packlist",
+    "pl.detailKits": "Kits in this trip",
     "pl.catLabel": "CATEGORY",
     "pl.detailItems": "Standalone items",
-    "pl.detailEmpty": "This packlist is empty — edit it to add kits and items",
+    "pl.detailEmpty": "This trip is empty — edit it to add kits and items",
 
     // Dashboard packlists section
-    "dash.savedPacklists": "Saved packlists.",
-    "dash.noPacklists": "No packlists yet.",
+    "dash.savedPacklists": "Saved trips.",
+    "dash.noPacklists": "No trips yet.",
     "dash.noPacklistsHint": "Compose one to get started",
-    "dash.viewAllPacklists": "View all packlists",
-    "dash.composePacklist": "Compose packlist",
+    "dash.viewAllPacklists": "View all trips",
+    "dash.composePacklist": "Compose trip",
 
     // Add forms
     "form.newEntry": "NEW ENTRY",
@@ -1387,12 +1411,12 @@ const TRANSLATIONS = {
     "trips.newType": "New style",
     "trips.defineType": "Define a new ADV Style",
     "trips.addType": "Add style",
-    "trips.fileTrip": "Save Packlist",
+    "trips.fileTrip": "Save Trip",
     "trips.step1": "Step 1 of 2",
     "trips.step2": "Step 2 of 2",
     "trips.stepDetailsTitle": "Itinerary",
     "trips.stepPackTitle": "Pack the trip",
-    "trips.stepPackSub": "Bring categories, kits, and individual items. Anything you add becomes a linked packlist with the trip's name.",
+    "trips.stepPackSub": "Bring categories, kits, and individual items. Anything you add becomes a linked trip with the trip's name.",
     "trips.next": "Continue",
     "trips.back": "Back",
     "trips.skipPacking": "Skip — save without packing",
@@ -1416,18 +1440,18 @@ const TRANSLATIONS = {
     "qadd.orCreateItem": "Or create a new item",
     "qadd.orCreateKit": "Or create a new kit",
     "qadd.orCreateCat": "Or create a new category",
-    "picked.heading": "Currently in this packlist",
+    "picked.heading": "Currently in this trip",
     "picked.items": "Items",
     "picked.kits": "Kits",
     "picked.categories": "Categories",
     "picked.emptyItems": "No items added yet. Use the Quick Add buttons above.",
     "picked.emptyKits": "No kits added yet. Use the Quick Add buttons above.",
     "picked.emptyCats": "No categories added yet. Use the Quick Add buttons above.",
-    "picked.removeFromPacklist": "Remove from this packlist",
+    "picked.removeFromPacklist": "Remove from this trip",
     "addTo.button": "Add to...",
-    "addTo.heading": "Add to a Trip/Packlist",
-    "addTo.empty": "No saved Trip/Packlists yet.",
-    "addTo.newOne": "+ New Trip/Packlist",
+    "addTo.heading": "Add to a Trip",
+    "addTo.empty": "No saved Trips yet.",
+    "addTo.newOne": "+ New Trip",
     "addTo.newName": "Name (e.g. Patagonia)",
     "addTo.newCreate": "Create",
     "addTo.newCancel": "Cancel",
@@ -1526,17 +1550,17 @@ const TRANSLATIONS = {
     "set.resetData": "Reset all saved data",
     "set.replayTutorial": "Replay first-run tutorial",
     "set.backupTitle": "Backup your data",
-    "set.backupNote": "Save a complete copy of your inventory, kits, packlists, trips and cart to a JSON file on your device. A good idea before any large cleanup.",
+    "set.backupNote": "Save a complete copy of your inventory, kits, trips, trips and cart to a JSON file on your device. A good idea before any large cleanup.",
     "set.backupBtn": "Download backup",
     "set.backupSuccess": "Backup saved to your downloads folder.",
-    "set.backupContents": "{items} items · {kits} kits · {categories} categories · {packlists} packlists · {trips} trips",
+    "set.backupContents": "{items} items · {kits} kits · {categories} categories · {trips} trips",
     "set.backupFailed": "Backup couldn't be created.",
 
     // === Duplicate finder ===
     "dupe.findBtn": "Find duplicates",
     "dupe.title": "Exact duplicates",
     "dupe.previewTitle": "Found {groups} groups · {dupes} duplicate items to remove",
-    "dupe.previewBody": "These groups contain items that are identical in every detail (same name, category, weight, size, expiry, etc). Each group will be merged into one — kit, packlist and cart references will be updated automatically.",
+    "dupe.previewBody": "These groups contain items that are identical in every detail (same name, category, weight, size, expiry, etc). Each group will be merged into one — kit, trip and cart references will be updated automatically.",
     "dupe.copyCount": "{n} copies",
     "dupe.moreGroups": "+ {n} more groups not shown",
     "dupe.warningTitle": "Heads up:",
@@ -1544,7 +1568,7 @@ const TRANSLATIONS = {
     "dupe.confirmBtn": "Merge {dupes} duplicates",
     "dupe.merging": "Merging duplicates…",
     "dupe.successTitle": "Duplicates merged.",
-    "dupe.successBody": "Removed {merged} duplicate items across {kept} groups. Your kits and packlists have been updated to reference the kept items.",
+    "dupe.successBody": "Removed {merged} duplicate items across {kept} groups. Your kits and trips have been updated to reference the kept items.",
     "dupe.noneFoundTitle": "No exact duplicates found.",
     "dupe.noneFoundBody": "Your inventory looks clean. If you think there are similar-but-not-identical items (different weights, notes, etc.), a more careful review tool is coming.",
 
@@ -1570,7 +1594,7 @@ const TRANSLATIONS = {
     "help.tocInventory":    "Inventory",
     "help.tocKits":         "Kits in depth",
     "help.tocCategories":   "Categories",
-    "help.tocPacklists":    "Packlists",
+    "help.tocPacklists": "Trips",
     "help.tocWeather":      "Weather check",
     "help.tocSharing":      "Sharing",
     "help.tocLibrary":      "The library",
@@ -1581,14 +1605,14 @@ const TRANSLATIONS = {
     "help.tocTips":         "Tips & shortcuts",
 
     // === Section 01 — Quick start ===
-    "help.qsIntro": "PakMondo is built around three simple ideas: items (your gear), kits (groups of related items), and packlists (what you take on a specific trip). If you're brand new, here's the fastest path from zero to a working setup.",
+    "help.qsIntro": "PakMondo is built around three simple ideas: items (your gear), kits (groups of related items), and trips (what you take on a specific journey). If you're brand new, here's the fastest path from zero to a working setup.",
     "help.qsStep1": "Step 1 — Sign up or sign in",
     "help.qsStep1Body": "From the welcome screen, choose 'Sign up' if you're new. You'll need an email, a password, a username, your real name (used for credit when you publish kits to the community library), and your region (a two-letter code like NA, EU, AS — used for your member ID and to filter library content). Existing users tap 'Sign in' instead. Your data syncs across every device you sign into.",
     "help.qsStep2": "Step 2 — The first-run wizard",
-    "help.qsStep2Body": "On your first dashboard visit with no items, a six-screen wizard pops up automatically. It walks you through adding one item, grouping it into a kit, and creating a packlist for a trip. By the end you have a working starter setup. You can skip at any point — the Replay tutorial button in Settings brings it back later.",
+    "help.qsStep2Body": "On your first dashboard visit with no items, a six-screen wizard pops up automatically. It walks you through adding one item, grouping it into a kit, and creating a trip. By the end you have a working starter setup. You can skip at any point — the Replay tutorial button in Settings brings it back later.",
     "help.qsStep3": "Step 3 — The dashboard",
-    "help.qsStep3Body": "After signup you land on Basecamp — your dashboard. Top-right shows your member ID (e.g. 0001NA) and the year you joined. Below the title there are five large cards: Inventory, Packlists, Library, Inbox, Cart. Tap any to dive in.",
-    "help.qsTip": "If you're impatient, the fastest way to a packlist is: Inventory → Items → add 5–10 items → Inventory → Kits → make a kit with those items → Packlists → make a packlist with that kit. About two minutes.",
+    "help.qsStep3Body": "After signup you land on Basecamp — your dashboard. Top-right shows your member ID (e.g. 0001NA) and the year you joined. Below the title there are five large cards: Inventory, Trips, Library, Inbox, Cart. Tap any to dive in.",
+    "help.qsTip": "If you're impatient, the fastest way to a trip is: Inventory → Items → add 5–10 items → Inventory → Kits → make a kit with those items → Trips → make a trip with that kit. About two minutes.",
 
     // Quick-start screenshot captions
     "help.shotSignup":   "Signup form showing email, username, name, region fields with the create-account button",
@@ -1602,21 +1626,21 @@ const TRANSLATIONS = {
     "help.blocksItemsBody2": "Items are the most granular thing PakMondo knows about. Everything else groups them in different ways. You'll typically have 50-300 items if you're a serious traveler, sometimes 1000+ if you're meticulous.",
     "help.blocksKitsTitle": "Kits — groups of related items",
     "help.blocksKitsBody1": "A kit is a curated bundle of items that go together. Examples: 'Cold Camp Essentials' (sleeping bag + base layers + warm hat), 'Day Hike Light' (snacks + first aid + water filter), 'Tropical Travel' (sunscreen + DEET + light cotton clothes).",
-    "help.blocksKitsBody2": "Kits give you reusable bundles. Once you've built a kit, you can drop it into any packlist with one tap. They also help you think systematically: instead of remembering 30 individual items for a trip, you remember 4 or 5 kits.",
+    "help.blocksKitsBody2": "Kits give you reusable bundles. Once you've built a kit, you can drop it into any trip with one tap. They also help you think systematically: instead of remembering 30 individual items for a trip, you remember 4 or 5 kits.",
     "help.blocksCategoriesTitle": "Categories — taxonomy for your gear",
     "help.blocksCategoriesBody1": "Categories are labels you assign to items so you can browse, filter, and organize them. Common categories: Shelter, Cooking, Apparel, Hygiene, Tech, First Aid, Documents.",
     "help.blocksCatVsKit": "Category vs Kit — what's the difference? A category is a TYPE of thing (every tent is in 'Shelter'). A kit is a SPECIFIC GROUPING for a use case (your 'Cold Camp Kit' contains a particular tent + sleeping bag + pad). One item can have one category but be in many kits.",
-    "help.blocksPacklistsTitle": "Packlists — what you take on a specific trip",
-    "help.blocksPacklistsBody1": "A packlist is the actual list of stuff you're bringing on one specific trip. It can contain whole kits (e.g. 'Cold Camp Kit') and individual items added separately. Trip metadata: name, date, destination, travel type, notes.",
-    "help.blocksPacklistsBody2": "Each packlist has two checkboxes per item: a red WANT box (do I want to take this?) and a green PACKED box (is it actually in my bag?). The progress counter at the top shows how many items you've decided to take, and how many you've actually packed.",
+    "help.blocksPacklistsTitle": "Trips — what you take on a specific trip",
+    "help.blocksPacklistsBody1": "A trip is the actual list of stuff you're bringing on one specific journey. It can contain whole kits (e.g. 'Cold Camp Kit') and individual items added separately. Trip metadata: name, date, destination, travel type, notes.",
+    "help.blocksPacklistsBody2": "Each trip has two checkboxes per item: a red WANT box (do I want to take this?) and a green PACKED box (is it actually in my bag?). The progress counter at the top shows how many items you've decided to take, and how many you've actually packed.",
     "help.blocksFlowTitle": "The flow",
-    "help.blocksFlow": "Items roll up into kits. Kits roll up into packlists. Each layer adds context: items are gear, kits are groupings, packlists are trips. You'll spend most of your time at the packlist level — that's where the action is.",
-    "help.blocksDiagramCaption": "ITEMS COMPOSE KITS · KITS COMPOSE PACKLISTS",
+    "help.blocksFlow": "Items roll up into kits. Kits roll up into trips. Each layer adds context: items are gear, kits are groupings, trips are trips. You'll spend most of your time at the trip level — that's where the action is.",
+    "help.blocksDiagramCaption": "ITEMS COMPOSE KITS · KITS COMPOSE TRIPS",
 
     // Building blocks screenshot captions
     "help.shotItem":     "Item edit form showing name, category, weight, quantity, expiry date fields",
     "help.shotKit":      "Kit detail view showing several items grouped together",
-    "help.shotPacklist": "Packlist detail showing kits + items with WANT/PACKED checkboxes",
+    "help.shotPacklist": "Trip detail showing kits + items with WANT/PACKED checkboxes",
 
     // === Section 03 — Inventory ===
     "help.invIntro": "The Inventory screen is where all your gear lives. It has three tabs at the top: Items, Kits, and Categories. Each tab is a different view of the same data.",
@@ -1640,7 +1664,7 @@ const TRANSLATIONS = {
     "help.invAddingBody": "Each tab has its own '+ Add' button at the top. The Add Item form has every field; you only have to fill in the name. The Add Kit form lets you pick existing items OR create new ones from inside the kit form. The Add Category form is just a name + icon.",
     "help.invDeletingTitle": "Deleting things",
     "help.invDeletingBody": "Tap the trash icon next to any item, kit, or category. You'll get a confirmation prompt. Deletes are permanent — if a kit is deleted, items in it are NOT deleted, just freed from the kit.",
-    "help.invDeleteWarn": "Deleting a category un-categorizes any items + kits assigned to it. Deleting a kit doesn't delete its items. Deleting an item removes it from every kit and packlist that contained it. None of these can be undone.",
+    "help.invDeleteWarn": "Deleting a category un-categorizes any items + kits assigned to it. Deleting a kit doesn't delete its items. Deleting an item removes it from every kit and trip that contained it. None of these can be undone.",
 
     // Inventory screenshot captions
     "help.shotInvTabs":      "Inventory header showing the three tabs (Items, Kits, Categories) with the active tab highlighted",
@@ -1650,7 +1674,7 @@ const TRANSLATIONS = {
     "help.shotInvAddItem":   "Add Item form with name, category dropdown, weight, quantity, and other fields visible",
 
     // === Section 04 — Kits in depth ===
-    "help.kitsIntro": "Kits are reusable bundles of items. Once you build a kit, you can drop it into any number of packlists with one tap. Most users end up with 10–30 kits over time, organized by activity (camping, hiking, travel) or by purpose (sleep system, cooking gear, first aid).",
+    "help.kitsIntro": "Kits are reusable bundles of items. Once you build a kit, you can drop it into any number of trips with one tap. Most users end up with 10–30 kits over time, organized by activity (camping, hiking, travel) or by purpose (sleep system, cooking gear, first aid).",
     "help.kitsCreatingTitle": "Creating a kit",
     "help.kitsCreatingBody1": "From the Inventory → Kits tab, tap '+ Add kit'. Give it a name (required) and optionally pick a category. The form has an items section where you can either pick existing items from your inventory OR create new items right inside the kit form.",
     "help.kitsCreatingBody2": "When you create new items from inside the kit form, the new items get added both to your inventory AND to the kit you're creating. So 'create a kit + 5 new items' is a single saved action.",
@@ -1680,33 +1704,33 @@ const TRANSLATIONS = {
     "help.catNote": "Deleting a category un-categorizes everything in it but does not delete the actual items or kits. Safe to experiment with.",
 
     // === Section 06 — Packlists ===
-    "help.plIntro": "A packlist is the list of stuff you're taking on one specific trip. It can include whole kits, individual items, or both. Packlists are where the WANT/PACKED checkboxes live, where weather check happens, and where you'd print a checklist for the road.",
-    "help.plCreateTitle": "Creating a packlist",
-    "help.plCreateBody1": "From the Packlists screen, tap '+ Add packlist'. Give it a name (required, like 'Patagonia 2025' or 'Weekend in Tahoe'). Optionally set the trip date, destination, type (camping, hiking, beach, etc.), and notes.",
-    "help.plCreateBody2": "After creating, you're taken to the packlist detail where you can add kits and items. Tap '+ Add kit' to pick from your existing kits. Tap '+ Add item' to add individual items not part of any kit (e.g. medications, documents).",
+    "help.plIntro": "A trip is the list of stuff you're taking on one specific journey. It can include whole kits, individual items, or both. Trips are where the WANT/PACKED checkboxes live, where weather check happens, and where you'd print a checklist for the road.",
+    "help.plCreateTitle": "Creating a trip",
+    "help.plCreateBody1": "From the Trips screen, tap '+ Add trip'. Give it a name (required, like 'Patagonia 2025' or 'Weekend in Tahoe'). Optionally set the trip date, destination, type (camping, hiking, beach, etc.), and notes.",
+    "help.plCreateBody2": "After creating, you're taken to the trip detail where you can add kits and items. Tap '+ Add kit' to pick from your existing kits. Tap '+ Add item' to add individual items not part of any kit (e.g. medications, documents).",
     "help.plMetaTitle": "Trip metadata",
-    "help.plMetaBody": "Date and destination matter for the weather check. If both are filled, weather check uses them automatically. The trip type is shown as a small badge and helps you visually scan your packlist library — useful when you have many.",
+    "help.plMetaBody": "Date and destination matter for the weather check. If both are filled, weather check uses them automatically. The trip type is shown as a small badge and helps you visually scan your trip library — useful when you have many.",
     "help.plChecksTitle": "The two checkboxes — WANT and PACKED",
-    "help.plChecksBody1": "Each item on a packlist has two checkboxes. The red WANT box: 'I want to take this on this trip.' The green PACKED box: 'It's already in my bag.' Both default to unchecked on a fresh packlist.",
+    "help.plChecksBody1": "Each item on a trip has two checkboxes. The red WANT box: 'I want to take this on this trip.' The green PACKED box: 'It's already in my bag.' Both default to unchecked on a fresh trip.",
     "help.plChecksBody2": "The progress counter at the top shows e.g. 'WANT 12/15 · PACKED 7/12' — twelve of fifteen items are wanted, seven of those twelve are packed. Tap a kit's chevron to see its items and tick them.",
     "help.plChecksTip": "The two-checkbox pattern is intentional. WANT lets you decide your packing intent first (some kit items don't apply to this trip — leave them unchecked). PACKED lets you tick them off as you actually pack the bag. Two passes = no missed items.",
-    "help.plEditTitle": "Editing a packlist",
-    "help.plEditBody": "Tap the pencil icon on a saved packlist. The edit screen lets you rename, change date/destination/type, edit notes, add or remove kits, add or remove individual items. Changes save instantly across devices.",
+    "help.plEditTitle": "Editing a trip",
+    "help.plEditBody": "Tap the pencil icon on a saved trip. The edit screen lets you rename, change date/destination/type, edit notes, add or remove kits, add or remove individual items. Changes save instantly across devices.",
     "help.plPdfTitle": "Printable PDF",
-    "help.plPdfBody1": "Tap the download icon on a saved packlist to generate a PDF. The PDF includes every item grouped by kit, with two empty checkboxes per item — one for WANT (pre-filled with red ticks based on your packlist state) and one for PACKED (always blank, for hand-ticking).",
+    "help.plPdfBody1": "Tap the download icon on a saved trip to generate a PDF. The PDF includes every item grouped by kit, with two empty checkboxes per item — one for WANT (pre-filled with red ticks based on your trip state) and one for PACKED (always blank, for hand-ticking).",
     "help.plPdfBody2": "Useful for taking on the road when you don't want to open the app or have no signal. The PDF is generated client-side, so no server round-trip — should download in 1–2 seconds.",
-    "help.plDeleteTitle": "Deleting a packlist",
-    "help.plDeleteBody": "Tap the trash icon. You'll get a confirmation. Deleting a packlist does NOT delete the kits or items inside it — they stay in your inventory. Only the trip-specific list is removed.",
+    "help.plDeleteTitle": "Deleting a trip",
+    "help.plDeleteBody": "Tap the trash icon. You'll get a confirmation. Deleting a trip does NOT delete the kits or items inside it — they stay in your inventory. Only the trip-specific list is removed.",
 
     // === Section 07 — Weather check ===
-    "help.wxIntro": "The Weather Check is one of PakMondo's most useful features. Open any saved packlist, tap the cloud icon, and PakMondo fetches the weather forecast for your destination + dates and tells you if your gear matches.",
+    "help.wxIntro": "The Weather Check is one of PakMondo's most useful features. Open any saved trip, tap the cloud icon, and PakMondo fetches the weather forecast for your destination + dates and tells you if your gear matches.",
     "help.wxHowTitle": "How it works",
     "help.wxHowBody1": "PakMondo geocodes your destination (turns 'Tahoe' into latitude/longitude) using Open-Meteo's free geocoding API. Then it fetches the daily forecast for your trip dates — temperature range, precipitation, wind, UV, snow.",
-    "help.wxHowBody2": "Then it analyzes your packlist's items and kits against a built-in checklist of weather conditions: cold? rain? wind? snow? sun? high heat? freezing? For each triggered condition, it checks whether you have appropriate gear (rain jacket, base layers, etc.) and flags any gaps.",
+    "help.wxHowBody2": "Then it analyzes your trip's items and kits against a built-in checklist of weather conditions: cold? rain? wind? snow? sun? high heat? freezing? For each triggered condition, it checks whether you have appropriate gear (rain jacket, base layers, etc.) and flags any gaps.",
     "help.wxResultsTitle": "What you see",
     "help.wxResultsBody": "The results modal shows a summary bar (TEMP RANGE, RAIN PROBABILITY, WIND MAX, UV MAX) followed by a 'Gaps' section (rust border, things you might want to add) and a 'Covered' section (forest border, conditions your gear handles). If everything's covered, you get an all-clear message.",
     "help.wxGapsTitle": "Understanding gaps",
-    "help.wxGapsBody1": "A gap is a weather condition that's likely AND your packlist has no item matching that condition. Example: forecast shows 80% rain probability and your packlist has no rain jacket. PakMondo flags it.",
+    "help.wxGapsBody1": "A gap is a weather condition that's likely AND your trip has no item matching that condition. Example: forecast shows 80% rain probability and your trip has no rain jacket. PakMondo flags it.",
     "help.wxGapsBody2": "Gaps are suggestions, not commands. PakMondo doesn't know everything you have — maybe your jacket is named 'shell' and PakMondo's keyword list doesn't include it. False positives happen. Use it as a sanity check.",
     "help.wxLimitsTitle": "Limits",
     "help.wxLimitsBody": "Forecasts are only reliable up to 16 days out. If your trip is further, the check uses today+7 as a fallback. Weather data is from Open-Meteo (free, accurate, no API key needed). Geocoding is also Open-Meteo. Both can occasionally return no result for obscure place names.",
@@ -1714,30 +1738,30 @@ const TRANSLATIONS = {
     "help.wxNote": "Powered by open-meteo.com. Free, open-source, requires no API key. PakMondo passes nothing about you to the weather API beyond coordinates and dates.",
 
     // === Section 08 — Sharing ===
-    "help.shIntro": "PakMondo has three ways to share kits and packlists with other people: by member name/ID, by share code, or by file export. Each suits different scenarios.",
+    "help.shIntro": "PakMondo has three ways to share kits and trips with other people: by member name/ID, by share code, or by file export. Each suits different scenarios.",
     "help.shThreeWaysTitle": "Three ways",
     "help.shThreeWaysBody": "Member sharing is direct, peer-to-peer — they get an inbox notification. Share codes are anonymous and reusable — anyone with the code can import. Files (.json) work offline and can be sent via email, Airdrop, or any messenger.",
     "help.shMemberTitle": "Sharing to a member",
-    "help.shMemberBody1": "From any kit or packlist, tap the share icon. Choose 'Send to member'. Type their username (case-insensitive) OR their member ID like '0001NA'. PakMondo finds them and sends a copy to their inbox.",
+    "help.shMemberBody1": "From any kit or trip, tap the share icon. Choose 'Send to member'. Type their username (case-insensitive) OR their member ID like '0001NA'. PakMondo finds them and sends a copy to their inbox.",
     "help.shMemberBody2": "The recipient gets a notification on their dashboard and can review the share before importing. They can also reject it — your share doesn't pollute their inventory unless they accept.",
     "help.shCodeTitle": "Share codes",
-    "help.shCodeBody1": "Tap the share icon → 'Generate code'. PakMondo creates a short alphanumeric code (e.g. 'TAHOE-OCT-2025'). Anyone who enters that code in their own PakMondo can import a copy of the shared kit or packlist.",
+    "help.shCodeBody1": "Tap the share icon → 'Generate code'. PakMondo creates a short alphanumeric code (e.g. 'TAHOE-OCT-2025'). Anyone who enters that code in their own PakMondo can import a copy of the shared kit or trip.",
     "help.shCodeBody2": "Share codes are reusable. Generate one for a kit you regularly share (e.g. your standard car-camping kit). Post the code in trip group chats. Anyone in your group imports it in seconds.",
     "help.shFileTitle": "Export to file",
     "help.shFileBody": "Tap the share icon → 'Export file'. Downloads a .json file you can send anywhere. Recipients open it in PakMondo (Inbox → Import file). Useful for sharing with people who don't yet have PakMondo accounts (you give them the file, they sign up later, they import).",
     "help.shInboxTitle": "Your inbox",
-    "help.shInboxBody": "All incoming shares land in Inbox. Each share shows the sender, what was sent (kit / packlist / category), and Accept/Reject buttons. Accept = imported into your inventory. Reject = silently dismissed. Senders never see whether you accepted.",
+    "help.shInboxBody": "All incoming shares land in Inbox. Each share shows the sender, what was sent (kit / trip / category), and Accept/Reject buttons. Accept = imported into your inventory. Reject = silently dismissed. Senders never see whether you accepted.",
     "help.shTip": "When sharing to multiple people, share codes scale better than member-by-member. One code, post it once, anyone imports.",
 
     // === Section 09 — The library ===
-    "help.libIntro": "The Library is a public repository of community-contributed kits and packlists. Browse, import any you like, and (if you have something good) contribute your own.",
+    "help.libIntro": "The Library is a public repository of community-contributed kits and trips. Browse, import any you like, and (if you have something good) contribute your own.",
     "help.libBrowseTitle": "Browsing",
-    "help.libBrowseBody1": "Open Library from the dashboard. By default it shows the most recent approved submissions. Use filters to narrow: kind (kits / packlists / categories), activity (camping / hiking / travel / etc.), region (NA / EU / AS …).",
+    "help.libBrowseBody1": "Open Library from the dashboard. By default it shows the most recent approved submissions. Use filters to narrow: kind (kits / trips / categories), activity (camping / hiking / travel / etc.), region (NA / EU / AS …).",
     "help.libBrowseBody2": "Each item is a card showing the title, activity, region, description preview, and the publisher's credit name. Tap any card to view the full detail — the complete item list, the publisher's notes, and an Import button.",
     "help.libCardsTitle": "What's on a card",
     "help.libCardsBody": "Title + small region badge top-right. Activity tag below. A short description (first 3 lines, italic). At the bottom: the credit name (e.g. 'John from Barcelona') and import count (how many people have imported this — popularity signal).",
     "help.libImportTitle": "Importing",
-    "help.libImportBody1": "Tap a library card → tap Import. PakMondo copies the kit/packlist + all its items into your inventory. Existing items with the same name are de-duplicated; new ones are added.",
+    "help.libImportBody1": "Tap a library card → tap Import. PakMondo copies the kit/trip + all its items into your inventory. Existing items with the same name are de-duplicated; new ones are added.",
     "help.libImportBody2": "Imports are a copy. Editing the imported item later doesn't affect the original library entry, and vice versa. The original publisher won't know you imported their item — totally private to you.",
     "help.libPublishTitle": "Publishing",
     "help.libPublishBody1": "Built a kit you're proud of? From the kit detail, tap 'Publish to library'. The form asks for: title (defaults to kit name), activity (autocomplete from existing activities), description (what is this for, why is it useful), and your public credit name (defaults to your real name).",
@@ -1755,12 +1779,12 @@ const TRANSLATIONS = {
     "help.memUseBody": "Two main uses: (1) personal identity — early members get low numbers, building a sense of pioneership. (2) Sharing — when sending a kit to another member, you can search by their member ID OR their username. Either works.",
     "help.memHistoryTitle": "Existing members",
     "help.memHistoryBody": "Member IDs were retroactively assigned to all existing accounts in signup order. The very first PakMondo user got 0001 in their region. If you signed up before this feature existed, your ID was generated based on when your account was created.",
-    "help.memTip": "Members with low numbers in a region (under 0010) are pioneers. Sharing kits with them often gets you imported into their packlists, which boosts your visibility in the library.",
+    "help.memTip": "Members with low numbers in a region (under 0010) are pioneers. Sharing kits with them often gets you imported into their trips, which boosts your visibility in the library.",
 
     // === Section 11 — Submissions & review ===
     "help.subIntro": "Anything you publish to the public library goes through a review process. This keeps content quality high and prevents spam.",
     "help.subFlowTitle": "The flow",
-    "help.subFlowBody1": "You publish a kit or packlist. It goes to a 'pending' queue. An admin reviews it within 24-48 hours typically. Approved → appears in the public library. Rejected → you get a note explaining why and can resubmit after fixing.",
+    "help.subFlowBody1": "You publish a kit or trip. It goes to a 'pending' queue. An admin reviews it within 24-48 hours typically. Approved → appears in the public library. Rejected → you get a note explaining why and can resubmit after fixing.",
     "help.subFlowBody2": "While pending, your submission is invisible to other users. You can edit a pending submission (edits reset it to pending). You can delete it at any stage.",
     "help.subStatusTitle": "Tracking your submissions",
     "help.subStatusBody": "Settings → 'My library submissions' (collapsible) shows everything you've submitted with a status badge: PENDING (gray, waiting), APPROVED (green, live), REJECTED (red, with reason if provided).",
@@ -1777,17 +1801,17 @@ const TRANSLATIONS = {
     "help.setPrefsTitle": "02 — Preferences",
     "help.setPrefsBody": "Language (English / Spanish), units (metric / imperial), location services toggle. Language change is instant. Unit change updates how weights are displayed everywhere — your data stays in canonical kg, only the display changes.",
     "help.setSubsTitle": "03 — My library submissions",
-    "help.setSubsBody": "Collapsed by default to save space. Tap to expand → see every kit/packlist you've ever published with its current review status. Admins also get a 'Review all submissions' button here for moderation.",
+    "help.setSubsBody": "Collapsed by default to save space. Tap to expand → see every kit/trip you've ever published with its current review status. Admins also get a 'Review all submissions' button here for moderation.",
     "help.setDataTitle": "04 — Data",
     "help.setDataBody": "Shows storage sync status (a colored dot: green=synced, yellow=saving, red=error). Has a Replay tutorial button (re-runs the first-run wizard) and a Read field manual button (opens this manual). At the bottom: a destructive Reset all saved data button.",
     "help.setSignOutTitle": "05 — Sign out",
     "help.setSignOutBody": "Signs you out of Supabase and the app. Your data stays on Supabase — when you sign back in on this or any other device, everything reappears. Sign-out clears the local session only.",
-    "help.setResetWarn": "Reset all saved data is destructive. It deletes every item, kit, packlist, and category from your account permanently. There is no undo. Use only if you want to start fresh.",
+    "help.setResetWarn": "Reset all saved data is destructive. It deletes every item, kit, trip, and category from your account permanently. There is no undo. Use only if you want to start fresh.",
 
     // === Section 13 — Data & sync ===
     "help.dataIntro": "PakMondo stores most of your data in the cloud, with some preferences saved locally. Knowing what lives where helps when something seems out of sync.",
     "help.dataWhereTitle": "Where things are saved",
-    "help.dataWhereBody1": "Cloud (Supabase): items, kits, categories, packlists, cart, library submissions, shares, your profile. This data syncs across all devices you sign into. Encrypted in transit, password-protected at rest.",
+    "help.dataWhereBody1": "Cloud (Supabase): items, kits, categories, trips, cart, library submissions, shares, your profile. This data syncs across all devices you sign into. Encrypted in transit, password-protected at rest.",
     "help.dataWhereBody2": "Local (your device only): language preference, units, location toggle, the onboarding completion flag, your auth session token. None of these are sensitive — they're just preferences.",
     "help.dataMultiTitle": "Multi-device sync",
     "help.dataMultiBody1": "Sign in on iPhone with the same account → see all your computer items. Make a change on iPhone → it appears on computer next time you refresh (typically within 1-2 seconds).",
@@ -1809,11 +1833,11 @@ const TRANSLATIONS = {
     "help.tipsExpiryTitle": "Bulk expiry tracking",
     "help.tipsExpiryBody": "Got 20+ items with expiry dates? Set them all up front when you import via Excel (the Expiry column accepts ISO dates like 2026-12-31). The dashboard will then surface them automatically as they approach the warning window.",
     "help.tipsWeightTitle": "Total trip weight",
-    "help.tipsWeightBody": "Each packlist's footer shows total weight at the top. The number updates live as you add/remove kits. Useful for ultralight backpacking where every gram counts.",
+    "help.tipsWeightBody": "Each trip's footer shows total weight at the top. The number updates live as you add/remove kits. Useful for ultralight backpacking where every gram counts.",
     "help.tipsLibrarySearchTitle": "Library by activity",
-    "help.tipsLibrarySearchBody": "If you're planning a specific trip type, set the activity filter in Library before browsing. 'Show me only thru-hiking packlists' or 'only ski touring kits' filters out irrelevant content fast.",
+    "help.tipsLibrarySearchBody": "If you're planning a specific trip type, set the activity filter in Library before browsing. 'Show me only thru-hiking trips' or 'only ski touring kits' filters out irrelevant content fast.",
     "help.tipsBackupTitle": "Backing up your data",
-    "help.tipsBackupBody": "Export individual kits/packlists as .json files (Share → Export file). Save them to Dropbox/Drive/wherever. Useful insurance against accidental Reset All Data clicks.",
+    "help.tipsBackupBody": "Export individual kits/trips as .json files (Share → Export file). Save them to Dropbox/Drive/wherever. Useful insurance against accidental Reset All Data clicks.",
     "help.tipsFinalTip": "The single biggest power tip: build kits around real-world packing scenarios, not abstract categories. 'Cold camp essentials' is more useful than 'sleeping gear'. Specificity makes packing easier.",
 
     // Section 4-14 screenshot captions
@@ -1821,9 +1845,9 @@ const TRANSLATIONS = {
     "help.shotKitEdit":        "Kit edit screen with items list, X-to-remove, and add-existing buttons",
     "help.shotCatNew":         "Add Category form with name + icon picker",
     "help.shotCatDetail":      "Category detail showing kits in this category + loose items",
-    "help.shotPlNew":          "Add Packlist form with name, date, destination, type fields",
-    "help.shotPlChecks":       "Packlist showing items with red WANT and green PACKED checkboxes",
-    "help.shotWxOpen":         "Packlist detail with the Weather check button highlighted",
+    "help.shotPlNew": "Add Trip form with name, date, destination, type fields",
+    "help.shotPlChecks": "Trip showing items with red WANT and green PACKED checkboxes",
+    "help.shotWxOpen": "Trip detail with the Weather check button highlighted",
     "help.shotWxResults":      "Weather check modal showing temp range, gaps, and covered conditions",
     "help.shotShMember":       "Share dialog with member search field and member ID example",
     "help.shotShInbox":        "Inbox showing incoming shares with Accept/Reject buttons",
@@ -1843,36 +1867,36 @@ const TRANSLATIONS = {
     "onboard.viewGear": "Show me my gear",
     "onboard.welcomeKicker": "WELCOME · BASECAMP",
     "onboard.welcomeTitle": "PakMondo helps you pack smarter",
-    "onboard.welcomeBody": "Let's set up your first piece of gear together, group it into a kit, and create a packlist for a trip. You'll end up with a working starter setup. Take your time — you can skip at any point.",
+    "onboard.welcomeBody": "Let's set up your first piece of gear together, group it into a kit, and create a trip. You'll end up with a working starter setup. Take your time — you can skip at any point.",
     "onboard.step1Kicker": "STEP 1 · ITEMS",
     "onboard.step1Title": "Add your first piece of gear",
     "onboard.step1Body": "Items are individual things you might pack — a tent, a headlamp, a water bottle. Each item can have weight, expiry, notes. Let's add one to get started.",
     "onboard.step2Kicker": "STEP 2 · KITS",
     "onboard.step2Title": "Group items into a kit",
     "onboard.step2Body": "A kit bundles related items so you can grab them together. Examples: 'Cold Camp Essentials' (sleeping bag + base layers) or 'Day Hike Light' (snacks + first aid).",
-    "onboard.step3Kicker": "STEP 3 · PACKLISTS",
-    "onboard.step3Title": "Make a packlist for a trip",
-    "onboard.step3Body": "A packlist is what you take on a specific trip. Add kits to it (or individual items). You can check the weather forecast against your gear, print a checklist, and tick items as packed.",
+    "onboard.step3Kicker": "STEP 3 · TRIPS",
+    "onboard.step3Title": "Create a trip",
+    "onboard.step3Body": "A trip is your packing list for a specific journey. Add kits to it (or individual items). You can check the weather forecast against your gear, print a checklist, and tick items as packed.",
     "onboard.step4Kicker": "STEP 4 · NAVIGATION",
     "onboard.step4Title": "Where to find things",
     "onboard.step4Body": "Quick tour of the four main areas you'll use:",
     "onboard.tourInvTitle": "Inventory",
     "onboard.tourInvBody": "All your gear — items, kits, and categories. The home of your stuff.",
-    "onboard.tourPlTitle": "Packlists",
+    "onboard.tourPlTitle": "Trips",
     "onboard.tourPlBody": "One list per trip. Tick items as packed, check weather, print checklists.",
     "onboard.tourLibTitle": "Library",
-    "onboard.tourLibBody": "Browse community-curated kits and packlists. Import any you like into your own.",
+    "onboard.tourLibBody": "Browse community-curated kits and trips. Import any you like into your own.",
     "onboard.tourWeatherTitle": "Weather check",
-    "onboard.tourWeatherBody": "On any saved packlist, the weather button compares the forecast against your gear and flags gaps.",
+    "onboard.tourWeatherBody": "On any saved trip, the weather button compares the forecast against your gear and flags gaps.",
     "onboard.doneKicker": "READY · MMXXV",
     "onboard.doneTitle": "You're packed and ready",
-    "onboard.doneBody": "You've got a starter setup. Add more items, build out kits for different activities, and make a packlist before each trip. The Library has community templates to get you going faster.",
+    "onboard.doneBody": "You've got a starter setup. Add more items, build out kits for different activities, and make a trip before each trip. The Library has community templates to get you going faster.",
     "onboard.itemNameLabel": "Item name",
     "onboard.kitNameLabel": "Kit name",
-    "onboard.packlistNameLabel": "Packlist name",
+    "onboard.packlistNameLabel": "Trip name",
     "onboard.fileItem": "Save the item",
     "onboard.fileKit": "Save the kit",
-    "onboard.filePacklist": "Save the packlist",
+    "onboard.filePacklist": "Save the trip",
     "onboard.justCreatedItem": "Just created",
     "onboard.justCreatedKit": "Just created",
     "onboard.starterKit": "Your starter setup",
@@ -2134,9 +2158,33 @@ const TRANSLATIONS = {
     "nav.inventory": "Inventario",
     "nav.trips": "Viajes",
     "nav.packlists": "Viajes y Listas",
+    "nav.more": "Más",
     "nav.cart": "Carrito",
     "nav.inbox": "Bandeja",
     "nav.library": "Biblioteca",
+    "more.title": "Más",
+    "more.subtitle": "Ajustes, biblioteca, manual, bandeja, carrito",
+    "more.settings": "Ajustes",
+    "more.library": "Biblioteca",
+    "more.manual": "Manual de Campo",
+    "more.inbox": "Bandeja",
+    "more.cart": "Carrito",
+    "more.signOut": "Cerrar sesión",
+    "sample.cardTitle": "¿Recién llegas? Prueba un viaje de ejemplo",
+    "sample.cardBody": "Configuraremos un viaje inicial con artículos y kits para que veas cómo funciona PakMondo. Puedes renombrarlo, editarlo o borrarlo cuando quieras.",
+    "sample.cardCTA": "Elegir un viaje",
+    "sample.dismiss": "No, gracias",
+    "sample.pickerTitle": "Elige un viaje inicial",
+    "sample.pickerBody": "Lo llenaremos con artículos comunes para que explores enseguida.",
+    "sample.optCamping": "Camping de Fin de Semana",
+    "sample.optCampingHint": "Carpa, bolsa de dormir, linterna frontal, kit de cocina",
+    "sample.optBeach": "Escapada a la Playa",
+    "sample.optBeachHint": "Traje de baño, protector solar, toalla, sandalias",
+    "sample.optCity": "Viaje a la Ciudad",
+    "sample.optCityHint": "Pasaporte, cargador, zapatos cómodos, mochila de día",
+    "sample.creating": "Creando tu viaje de ejemplo…",
+    "sample.created": "Viaje de ejemplo creado — ábrelo en tu lista de Viajes",
+    "sample.cancel": "Cancelar",
 
     "share.btn": "Compartir",
 
@@ -5920,6 +5968,51 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
   const totalKgRaw = items.filter((i) => i.packed).reduce((s, i) => s + parseKg(i.weight || ""), 0);
   const totalWeight = formatWeightFromKg(totalKgRaw, units);
 
+  // ============================================================
+  // Sample trip onboarding
+  // ============================================================
+  // When the user has zero packlists, offer them a starter trip. Dismissal
+  // is persisted in localStorage so the prompt doesn't nag every refresh.
+  // Per-user key so different accounts on the same device don't share state.
+  const sampleDismissKey = user?.id ? `pakmondo:sampleTripDismissed:${user.id}` : null;
+  const [samplePickerOpen, setSamplePickerOpen] = useState(false);
+  const [sampleCreating, setSampleCreating] = useState(false);
+  const [sampleDismissed, setSampleDismissed] = useState(() => {
+    try {
+      return sampleDismissKey ? localStorage.getItem(sampleDismissKey) === "1" : false;
+    } catch (e) { return false; }
+  });
+  const showSamplePrompt = !sampleDismissed && (packlists || []).length === 0;
+
+  const dismissSamplePrompt = () => {
+    try { if (sampleDismissKey) localStorage.setItem(sampleDismissKey, "1"); } catch (e) { /* ignore */ }
+    setSampleDismissed(true);
+  };
+
+  // Create a sample trip + push items/kits/packlist into the user's account.
+  // Uses the synced setters so everything persists to Supabase via the wrapper.
+  const createSampleTrip = async (templateKey) => {
+    setSampleCreating(true);
+    try {
+      const data = buildSampleTripData(templateKey);
+      if (!data) return;
+      // Merge new items into existing inventory (dedup by id, but new ids are
+      // freshly generated so no conflict expected)
+      setItems((prev) => [...(prev || []), ...data.items]);
+      setKits((prev) => [...(prev || []), ...data.kits]);
+      setPacklists((prev) => [...(prev || []), data.packlist]);
+      // Mark dismissed so the prompt doesn't re-appear once they have a trip
+      dismissSamplePrompt();
+      setSamplePickerOpen(false);
+    } catch (err) {
+      // Surfacing the error inline isn't critical here — the synced setters
+      // will show a banner if Supabase save fails. Just bail out of the UI.
+      console.error("Failed to create sample trip:", err);
+    } finally {
+      setSampleCreating(false);
+    }
+  };
+
   const [coords, setCoords] = useState(null);
   const [coordsState, setCoordsState] = useState("idle");
   const [place, setPlace] = useState(null);                 // reverse-geocoded result
@@ -6057,6 +6150,110 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
               {t("brand.tagline")}
             </p>
           </div>
+
+          {/* === SAMPLE TRIP INVITATION (new users with 0 trips) === */}
+          {showSamplePrompt && (
+            <div style={{
+              marginTop: isMobile ? 14 : 18,
+              padding: isMobile ? 14 : 18,
+              background: C.paperDeep,
+              border: `1.5px solid ${C.forest}`,
+              borderLeft: `4px solid ${C.forestBright}`,
+              position: "relative",
+            }}>
+              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.forest, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                {t("sample.cardTitle")}
+              </div>
+              <p style={{ margin: "4px 0 12px 0", fontFamily: F.body, fontSize: 14, color: C.inkSoft, lineHeight: 1.45 }}>
+                {t("sample.cardBody")}
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => setSamplePickerOpen(true)}
+                  style={{
+                    padding: "10px 16px", background: C.forest, color: C.paper,
+                    border: `1.5px solid ${C.forest}`, cursor: "pointer",
+                    fontFamily: F.mono, fontSize: 11, letterSpacing: "0.16em",
+                    textTransform: "uppercase", fontWeight: 700,
+                  }}>
+                  + {t("sample.cardCTA")}
+                </button>
+                <button
+                  onClick={dismissSamplePrompt}
+                  style={{
+                    padding: "10px 16px", background: "transparent",
+                    border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer",
+                    fontFamily: F.mono, fontSize: 11, letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                  }}>
+                  {t("sample.dismiss")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* === SAMPLE PICKER MODAL === */}
+          {samplePickerOpen && (
+            <div
+              onClick={() => !sampleCreating && setSamplePickerOpen(false)}
+              style={{
+                position: "fixed", inset: 0, background: "rgba(26,36,33,0.65)",
+                zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center",
+                padding: 16,
+              }}>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: "100%", maxWidth: 480, maxHeight: "92vh", overflowY: "auto",
+                  background: C.paper, border: `1.5px solid ${C.ink}`,
+                  padding: isMobile ? 20 : 28,
+                }}>
+                <h2 style={{ margin: "0 0 6px 0", fontFamily: F.serif, fontSize: 22, fontWeight: 700, color: C.ink }}>
+                  {t("sample.pickerTitle")}
+                </h2>
+                <p style={{ margin: "0 0 16px 0", fontFamily: F.body, fontSize: 13, color: C.inkSoft }}>
+                  {t("sample.pickerBody")}
+                </p>
+                {[
+                  { key: "camping", Icon: Tent,     label: t("sample.optCamping"), hint: t("sample.optCampingHint") },
+                  { key: "beach",   Icon: Waves,    label: t("sample.optBeach"),   hint: t("sample.optBeachHint") },
+                  { key: "city",    Icon: MapIcon,  label: t("sample.optCity"),    hint: t("sample.optCityHint") },
+                ].map(({ key, Icon, label, hint }) => (
+                  <button
+                    key={key}
+                    onClick={() => !sampleCreating && createSampleTrip(key)}
+                    disabled={sampleCreating}
+                    style={{
+                      width: "100%", textAlign: "left",
+                      padding: "14px 16px", marginBottom: 10,
+                      background: C.paper, border: `1.5px solid ${C.ink}`,
+                      cursor: sampleCreating ? "wait" : "pointer",
+                      display: "flex", alignItems: "center", gap: 14,
+                      opacity: sampleCreating ? 0.5 : 1,
+                    }}>
+                    <Icon size={28} color={C.forest} strokeWidth={1.8} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: F.body, fontSize: 15, fontWeight: 700, color: C.ink }}>{label}</div>
+                      <div style={{ fontFamily: F.mono, fontSize: 11, color: C.muted, marginTop: 2 }}>{hint}</div>
+                    </div>
+                    <ChevronRight size={18} color={C.muted} />
+                  </button>
+                ))}
+                <button
+                  onClick={() => !sampleCreating && setSamplePickerOpen(false)}
+                  disabled={sampleCreating}
+                  style={{
+                    width: "100%", marginTop: 4, padding: "10px",
+                    background: "transparent", border: "none",
+                    fontFamily: F.mono, fontSize: 11, color: C.muted,
+                    letterSpacing: "0.16em", textTransform: "uppercase",
+                    cursor: sampleCreating ? "wait" : "pointer",
+                  }}>
+                  {sampleCreating ? t("sample.creating") : t("sample.cancel")}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* === LOCATION CARD === */}
           <div style={{ marginTop: isMobile ? 14 : 18, padding: isMobile ? 10 : 12, background: C.paper, border: `1.5px solid ${C.ink}`, position: "relative" }}>
@@ -19271,8 +19468,9 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
                       items: backupSummary.items,
                       kits: backupSummary.kits,
                       categories: backupSummary.categories,
-                      packlists: backupSummary.packlists,
-                      trips: backupSummary.trips,
+                      // Combined: packlists are the primary "trip" concept now;
+                      // the dormant trips entity is folded in for the count.
+                      trips: (backupSummary.packlists || 0) + (backupSummary.trips || 0),
                     })}
                   </div>
                 </div>
@@ -19308,6 +19506,367 @@ function SettingsScreen({ go, user, resetData, storageStatus, locationEnabled, s
         </div>
       </div>
       <Footer go={go} />
+    </div>
+  );
+}
+
+// ============================================================
+// Sample trip templates — onboarding starter content
+// ============================================================
+// When a user has zero trips, they can pick one of these to populate
+// their account with realistic items + kits + a sample trip. Helps new
+// users see what the app does without staring at empty screens.
+//
+// Each template defines:
+//   - items: gear pieces with category/weight/quantity
+//   - kits: groupings of those items
+//   - meta: name, type, destination hint for the packlist
+//
+// IDs in the templates are placeholders ("it1", "kit1") — at creation
+// time we generate fresh uids and remap kit.itemIds to the new ids.
+const SAMPLE_TEMPLATES = {
+  camping: {
+    label: "Weekend Camping",
+    meta: { name: "Weekend Camping Trip", type: "Camping", destination: "" },
+    items: [
+      // Sleep kit
+      { localId: "it1",  name: "Tent (2-person)",      category: "Shelter",   weight: "2.5 kg",  quantity: 1, kitLocal: "kit-sleep" },
+      { localId: "it2",  name: "Sleeping bag",         category: "Sleep",     weight: "1.2 kg",  quantity: 1, kitLocal: "kit-sleep" },
+      { localId: "it3",  name: "Sleeping pad",         category: "Sleep",     weight: "450 g",   quantity: 1, kitLocal: "kit-sleep" },
+      { localId: "it4",  name: "Pillow",               category: "Sleep",     weight: "200 g",   quantity: 1, kitLocal: "kit-sleep" },
+      // Cooking kit
+      { localId: "it5",  name: "Camp stove",           category: "Cooking",   weight: "350 g",   quantity: 1, kitLocal: "kit-cook" },
+      { localId: "it6",  name: "Fuel canister",        category: "Cooking",   weight: "230 g",   quantity: 1, kitLocal: "kit-cook" },
+      { localId: "it7",  name: "Pot (1L)",             category: "Cooking",   weight: "180 g",   quantity: 1, kitLocal: "kit-cook" },
+      { localId: "it8",  name: "Spork",                category: "Cooking",   weight: "20 g",    quantity: 1, kitLocal: "kit-cook" },
+      { localId: "it9",  name: "Lighter",              category: "Cooking",   weight: "20 g",    quantity: 1, kitLocal: "kit-cook" },
+      // Light & safety
+      { localId: "it10", name: "Headlamp",             category: "Lighting",  weight: "85 g",    quantity: 1, kitLocal: null },
+      { localId: "it11", name: "First aid kit",        category: "Safety",    weight: "300 g",   quantity: 1, kitLocal: null },
+      { localId: "it12", name: "Pocket knife",         category: "Tools",     weight: "60 g",    quantity: 1, kitLocal: null },
+      // Hydration
+      { localId: "it13", name: "Water bottle (1L)",    category: "Hydration", weight: "150 g",   quantity: 2, kitLocal: null },
+      { localId: "it14", name: "Water filter",         category: "Hydration", weight: "60 g",    quantity: 1, kitLocal: null },
+      // Personal
+      { localId: "it15", name: "Toothbrush",           category: "Toiletries",weight: "15 g",    quantity: 1, kitLocal: "kit-toilet" },
+      { localId: "it16", name: "Toothpaste",           category: "Toiletries",weight: "50 g",    quantity: 1, kitLocal: "kit-toilet" },
+      { localId: "it17", name: "Sunscreen",            category: "Toiletries",weight: "100 g",   quantity: 1, kitLocal: "kit-toilet" },
+      // Clothing essentials
+      { localId: "it18", name: "Rain jacket",          category: "Clothing",  weight: "300 g",   quantity: 1, kitLocal: null },
+      { localId: "it19", name: "Hiking socks (pair)",  category: "Clothing",  weight: "60 g",    quantity: 2, kitLocal: null },
+      { localId: "it20", name: "Beanie",               category: "Clothing",  weight: "40 g",    quantity: 1, kitLocal: null },
+    ],
+    kits: [
+      { localId: "kit-sleep",  name: "Sleep System" },
+      { localId: "kit-cook",   name: "Cooking Kit" },
+      { localId: "kit-toilet", name: "Toiletries Kit" },
+    ],
+  },
+  beach: {
+    label: "Beach Getaway",
+    meta: { name: "Beach Weekend", type: "Beach", destination: "" },
+    items: [
+      // Beach kit
+      { localId: "it1",  name: "Swimsuit",             category: "Clothing",  weight: "150 g",  quantity: 1, kitLocal: "kit-beach" },
+      { localId: "it2",  name: "Beach towel",          category: "Beach",     weight: "400 g",  quantity: 1, kitLocal: "kit-beach" },
+      { localId: "it3",  name: "Sandals / flip flops", category: "Footwear",  weight: "300 g",  quantity: 1, kitLocal: "kit-beach" },
+      { localId: "it4",  name: "Sunglasses",           category: "Accessories",weight: "30 g",  quantity: 1, kitLocal: "kit-beach" },
+      { localId: "it5",  name: "Sun hat",              category: "Accessories",weight: "100 g", quantity: 1, kitLocal: "kit-beach" },
+      // Sun & skin
+      { localId: "it6",  name: "Sunscreen (high SPF)", category: "Toiletries",weight: "200 g",  quantity: 1, kitLocal: "kit-sun" },
+      { localId: "it7",  name: "After-sun lotion",     category: "Toiletries",weight: "150 g",  quantity: 1, kitLocal: "kit-sun" },
+      { localId: "it8",  name: "Lip balm with SPF",    category: "Toiletries",weight: "10 g",   quantity: 1, kitLocal: "kit-sun" },
+      // Water fun
+      { localId: "it9",  name: "Snorkel & mask",       category: "Beach",     weight: "400 g",  quantity: 1, kitLocal: null },
+      { localId: "it10", name: "Water bottle",         category: "Hydration", weight: "150 g",  quantity: 1, kitLocal: null },
+      // Casual clothes
+      { localId: "it11", name: "T-shirt",              category: "Clothing",  weight: "150 g",  quantity: 3, kitLocal: null },
+      { localId: "it12", name: "Shorts",               category: "Clothing",  weight: "200 g",  quantity: 2, kitLocal: null },
+      { localId: "it13", name: "Light cover-up",       category: "Clothing",  weight: "200 g",  quantity: 1, kitLocal: null },
+      // Day essentials
+      { localId: "it14", name: "Beach bag",            category: "Bags",      weight: "300 g",  quantity: 1, kitLocal: null },
+      { localId: "it15", name: "Book / e-reader",      category: "Leisure",   weight: "300 g",  quantity: 1, kitLocal: null },
+      { localId: "it16", name: "Phone charger",        category: "Electronics",weight: "60 g",  quantity: 1, kitLocal: null },
+      { localId: "it17", name: "Toothbrush",           category: "Toiletries",weight: "15 g",   quantity: 1, kitLocal: null },
+      { localId: "it18", name: "Toothpaste",           category: "Toiletries",weight: "50 g",   quantity: 1, kitLocal: null },
+    ],
+    kits: [
+      { localId: "kit-beach", name: "Beach Day Kit" },
+      { localId: "kit-sun",   name: "Sun Protection" },
+    ],
+  },
+  city: {
+    label: "City Travel",
+    meta: { name: "City Weekend", type: "City", destination: "" },
+    items: [
+      // Travel documents kit
+      { localId: "it1",  name: "Passport",                 category: "Documents", weight: "30 g",  quantity: 1, kitLocal: "kit-docs" },
+      { localId: "it2",  name: "Wallet (cards + ID)",      category: "Documents", weight: "100 g", quantity: 1, kitLocal: "kit-docs" },
+      { localId: "it3",  name: "Cash (local currency)",    category: "Documents", weight: "20 g",  quantity: 1, kitLocal: "kit-docs" },
+      { localId: "it4",  name: "Travel insurance docs",    category: "Documents", weight: "10 g",  quantity: 1, kitLocal: "kit-docs" },
+      // Tech kit
+      { localId: "it5",  name: "Phone charger + cable",    category: "Electronics", weight: "80 g",   quantity: 1, kitLocal: "kit-tech" },
+      { localId: "it6",  name: "Power adapter (universal)",category: "Electronics", weight: "100 g",  quantity: 1, kitLocal: "kit-tech" },
+      { localId: "it7",  name: "Portable battery",         category: "Electronics", weight: "200 g",  quantity: 1, kitLocal: "kit-tech" },
+      { localId: "it8",  name: "Earbuds / headphones",     category: "Electronics", weight: "60 g",   quantity: 1, kitLocal: "kit-tech" },
+      // Daily wear
+      { localId: "it9",  name: "Walking shoes",            category: "Footwear",    weight: "700 g",  quantity: 1, kitLocal: null },
+      { localId: "it10", name: "Day bag / small backpack", category: "Bags",        weight: "350 g",  quantity: 1, kitLocal: null },
+      { localId: "it11", name: "T-shirt",                  category: "Clothing",    weight: "150 g",  quantity: 3, kitLocal: null },
+      { localId: "it12", name: "Pants / jeans",            category: "Clothing",    weight: "500 g",  quantity: 2, kitLocal: null },
+      { localId: "it13", name: "Light jacket",             category: "Clothing",    weight: "400 g",  quantity: 1, kitLocal: null },
+      { localId: "it14", name: "Underwear",                category: "Clothing",    weight: "60 g",   quantity: 4, kitLocal: null },
+      { localId: "it15", name: "Socks (pair)",             category: "Clothing",    weight: "60 g",   quantity: 4, kitLocal: null },
+      // Toiletries (simple)
+      { localId: "it16", name: "Toothbrush",               category: "Toiletries",  weight: "15 g",   quantity: 1, kitLocal: null },
+      { localId: "it17", name: "Toothpaste (small)",       category: "Toiletries",  weight: "50 g",   quantity: 1, kitLocal: null },
+      { localId: "it18", name: "Deodorant",                category: "Toiletries",  weight: "80 g",   quantity: 1, kitLocal: null },
+    ],
+    kits: [
+      { localId: "kit-docs", name: "Travel Documents" },
+      { localId: "kit-tech", name: "Tech Kit" },
+    ],
+  },
+};
+
+// Create a sample trip in the user's account. Returns { items, kits, packlist }
+// — the caller is responsible for pushing them through the synced setters
+// so they persist to Supabase.
+//
+// IDs are freshly generated from `uid()` so the template can be used multiple
+// times without collision. Categories are NOT auto-created here — items just
+// reference category names; if a category doesn't exist yet it appears as
+// "uncategorized" in the inventory UI, which is fine.
+function buildSampleTripData(templateKey) {
+  const tpl = SAMPLE_TEMPLATES[templateKey];
+  if (!tpl) return null;
+
+  // Map placeholder kit IDs → fresh uids
+  const kitIdMap = new Map();
+  const newKits = tpl.kits.map((k) => {
+    const newId = uid("kit");
+    kitIdMap.set(k.localId, newId);
+    return { id: newId, name: k.name, itemIds: [], image: "" };
+  });
+
+  // Map placeholder item IDs → fresh uids, push into kit.itemIds
+  const itemIdMap = new Map();
+  const newItems = tpl.items.map((it) => {
+    const newId = uid("it");
+    itemIdMap.set(it.localId, newId);
+    if (it.kitLocal && kitIdMap.has(it.kitLocal)) {
+      const kitNewId = kitIdMap.get(it.kitLocal);
+      const k = newKits.find((kk) => kk.id === kitNewId);
+      if (k) k.itemIds.push(newId);
+    }
+    return {
+      id: newId,
+      name: it.name,
+      category: it.category,
+      weight: it.weight,
+      quantity: it.quantity,
+      size: "",
+      consumable: false,
+      expiry: "",
+      notes: "",
+    };
+  });
+
+  // Build the packlist that references all the new kits + has all standalone
+  // items as direct items (so they appear in the trip view).
+  const standaloneItemIds = newItems
+    .filter((_, idx) => !tpl.items[idx].kitLocal)
+    .map((it) => it.id);
+
+  const newPacklist = {
+    id: uid("pl"),
+    name: tpl.meta.name,
+    date: "",
+    destination: tpl.meta.destination,
+    type: tpl.meta.type,
+    notes: "",
+    kitIds: newKits.map((k) => k.id),
+    itemIds: standaloneItemIds,
+    categoryIds: [],
+    wantedItemIds: undefined,    // default: everything wanted
+    packedItemIds: [],
+    excludedItemIds: [],
+  };
+
+  return { items: newItems, kits: newKits, packlist: newPacklist };
+}
+
+// ============================================================
+// BottomTabBar — mobile-only persistent navigation
+// ============================================================
+// Fixed to the bottom of the viewport on phones (<768px). Always visible
+// on the main "destination" screens (dashboard, inventory, trips, more)
+// so the user never has to dig through a hamburger menu.
+//
+// Desktop keeps the existing top header — bottom nav would waste real estate
+// at widths where horizontal space is plentiful.
+//
+// The bar adds 60px of bottom padding to its parent via a sibling spacer
+// so screen content isn't hidden underneath it.
+//
+// Props:
+//   - screen: current screen name (so we can highlight the active tab)
+//   - go: navigation function from App
+function BottomTabBar({ screen, go }) {
+  const { isMobile } = useViewport();
+  const { t } = useI18n();
+  const alerts = useAlerts();
+  if (!isMobile) return null;
+
+  // Only show on the four "destination" screens. On welcome/login/signup/etc
+  // there's no nav context, so showing the bar would be confusing.
+  const MAIN_SCREENS = new Set(["dashboard", "inventory", "trips", "packlists", "more"]);
+  if (!MAIN_SCREENS.has(screen)) return null;
+
+  const tabs = [
+    { key: "dashboard", label: t("nav.camp"),       Icon: Compass,  active: screen === "dashboard" },
+    { key: "inventory", label: t("nav.inventory"),  Icon: Backpack, active: screen === "inventory" },
+    { key: "packlists", label: t("nav.trips"),      Icon: MapPin,   active: screen === "packlists" || screen === "trips" },
+    { key: "more",      label: t("nav.more"),       Icon: Menu,     active: screen === "more", badge: alerts.total },
+  ];
+
+  return (
+    <>
+      {/* Spacer so the page content doesn't sit under the fixed bar */}
+      <div style={{ height: 72 }} aria-hidden="true" />
+      <nav
+        role="navigation"
+        aria-label="Main"
+        style={{
+          position: "fixed", left: 0, right: 0, bottom: 0,
+          zIndex: 100,
+          background: C.paper,
+          borderTop: `1.5px solid ${C.ink}`,
+          display: "flex",
+          // Safe-area inset for iPhones with home-indicator at bottom
+          paddingBottom: "env(safe-area-inset-bottom, 0)",
+        }}
+      >
+        {tabs.map(({ key, label, Icon, active, badge }) => (
+          <button
+            key={key}
+            onClick={() => go(key)}
+            style={{
+              flex: 1, padding: "8px 4px 10px",
+              background: active ? C.paperDeep : "transparent",
+              border: "none",
+              borderTop: active ? `2px solid ${C.rust}` : "2px solid transparent",
+              cursor: "pointer",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 4,
+              fontFamily: F.mono, fontSize: 10, letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: active ? C.rust : C.muted,
+              fontWeight: active ? 700 : 500,
+              position: "relative",
+            }}
+            aria-current={active ? "page" : undefined}
+            aria-label={label}
+          >
+            <Icon size={22} strokeWidth={active ? 2.2 : 1.7} />
+            <span>{label}</span>
+            {badge > 0 && (
+              <span style={{
+                position: "absolute", top: 4, right: "30%",
+                minWidth: 18, height: 18, padding: "0 5px",
+                borderRadius: 9, background: C.rust, color: C.paper,
+                fontFamily: F.mono, fontSize: 10, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                lineHeight: 1,
+              }}>
+                {badge > 9 ? "9+" : badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+    </>
+  );
+}
+
+// ============================================================
+// MoreScreen — destination of the "More" bottom tab
+// ============================================================
+// A simple list of navigation cards for the secondary destinations that
+// don't get a top-level tab: Settings, Library, Field Manual, Inbox, Cart.
+// Sign-out is included at the bottom as a separate action.
+function MoreScreen({ go, user, items, kits, categories, packlists, trips, cart, inbox }) {
+  const { t } = useI18n();
+  const alerts = useAlerts();
+  const inboxCount = (inbox || []).filter((s) => s.status === "pending").length;
+  const cartCount = (cart || []).length;
+
+  const rows = [
+    { key: "settings",  label: t("more.settings"), Icon: Settings,    onClick: () => go("settings") },
+    { key: "library",   label: t("more.library"),  Icon: BookOpen,    onClick: () => go("library") },
+    { key: "manual",    label: t("more.manual"),   Icon: Compass,     onClick: () => go("help") },
+    { key: "inbox",     label: t("more.inbox"),    Icon: Mail,        onClick: () => go("inbox"), badge: inboxCount },
+    { key: "cart",      label: t("more.cart"),     Icon: ShoppingCart,onClick: () => go("cart"),  badge: cartCount },
+  ];
+
+  return (
+    <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 16px 32px" }}>
+      <h1 style={{ fontFamily: F.serif, fontSize: 28, margin: "8px 0 4px", color: C.ink, fontWeight: 700 }}>
+        {t("more.title")}
+      </h1>
+      <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: C.muted, marginBottom: 24 }}>
+        {t("more.subtitle")}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 0, border: `1.5px solid ${C.ink}` }}>
+        {rows.map((r) => (
+          <button
+            key={r.key}
+            onClick={r.onClick}
+            style={{
+              display: "flex", alignItems: "center", gap: 14,
+              padding: "16px 18px",
+              background: C.paper, border: "none",
+              borderBottom: `1px solid ${C.line}`,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <r.Icon size={22} color={C.ink} strokeWidth={1.7} />
+            <span style={{ flex: 1, fontFamily: F.body, fontSize: 16, color: C.ink, fontWeight: 600 }}>
+              {r.label}
+            </span>
+            {r.badge > 0 && (
+              <span style={{
+                minWidth: 22, height: 22, padding: "0 7px",
+                borderRadius: 11, background: C.rust, color: C.paper,
+                fontFamily: F.mono, fontSize: 11, fontWeight: 700,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {r.badge > 99 ? "99+" : r.badge}
+              </span>
+            )}
+            <ChevronRight size={18} color={C.muted} />
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={async () => {
+          try { await supabase.auth.signOut(); } catch (e) { /* best-effort sign-out */ }
+          go("welcome");
+        }}
+        style={{
+          marginTop: 24, padding: "12px 18px",
+          background: "transparent", border: `1.5px solid ${C.rust}`,
+          color: C.rust, fontFamily: F.mono, fontSize: 12,
+          letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700,
+          cursor: "pointer", width: "100%",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+        }}
+      >
+        <LogOut size={16} /> {t("more.signOut")}
+      </button>
     </div>
   );
 }
@@ -19709,6 +20268,7 @@ export default function App() {
     screen === "library" ? <Library go={go} currentUser={user} items={items} setItems={setItemsSynced} kits={kits} setKits={setKitsSynced} categories={categories} setCategories={setCategoriesSynced} trips={trips} setTrips={setTrips} packlists={packlists} setPacklists={setPacklistsSynced} /> :
     screen === "settings" ? <SettingsScreen go={go} user={user} resetData={resetData} storageStatus={storageStatus} locationEnabled={locationEnabled} setLocationEnabled={setLocationEnabled} language={language} setLanguage={setLanguage} units={units} setUnits={setUnits} items={items} kits={kits} categories={categories} packlists={packlists} trips={trips} cart={cart} /> :
     screen === "help" ? <HelpPage go={go} /> :
+    screen === "more" ? <MoreScreen go={go} user={user} items={items} kits={kits} categories={categories} packlists={packlists} trips={trips} cart={cart} inbox={inbox} /> :
     <Welcome go={go} setLanguage={setLanguage} />;
 
   const i18nValue = {
@@ -19760,6 +20320,7 @@ export default function App() {
           </div>
         )}
         {inner}
+        <BottomTabBar screen={screen} go={go} />
       </div>
       </AlertContext.Provider>
       </UserContext.Provider>
