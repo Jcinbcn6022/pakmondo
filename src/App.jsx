@@ -3673,75 +3673,15 @@ const Btn = ({ children, onClick, variant = "primary", icon: Icon, disabled, ful
   );
 };
 
-// Field — labeled text input with the Field Journal aesthetic.
-//
-// `autoFocus` uses a multi-attempt strategy to handle a wide range of browser
-// quirks. The first attempt that actually focuses the input "wins" — later
-// attempts will see the input is already focused and do nothing harmful.
-//
-// Why multiple attempts:
-//   - Synchronous: works in some desktop browsers
-//   - requestAnimationFrame: works on most browsers after React paints
-//   - setTimeout 150ms: catches focus-trap libraries that move focus back
-//   - setTimeout 500ms: last-resort for slow mobile devices
-//
-// Console diagnostics are emitted so if focus STILL fails, the user can share
-// logs from Safari devtools/Chrome devtools and we can see exactly what's
-// happening. (This is temporary — once focus works reliably we'll remove it.)
-const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => {
-  const inputRef = useRef(null);
-  useEffect(() => {
-    if (!autoFocus) return;
-    const log = (tag, extra = {}) => {
-      // Tag every log so it's easy to find in browser devtools
-      try {
-        console.log("[Field autoFocus]", tag, {
-          hasRef: !!inputRef.current,
-          activeElement: typeof document !== "undefined" ? (document.activeElement && document.activeElement.tagName) : "n/a",
-          ...extra,
-        });
-      } catch (e) { /* console may not exist in some environments */ }
-    };
-    const tryFocus = (tag) => {
-      const el = inputRef.current;
-      if (!el) { log(tag + " no-ref"); return; }
-      try {
-        // Scroll input into view first — if it's off-screen, focus alone won't
-        // make the user see it.
-        if (el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.focus({ preventScroll: false });
-        log(tag, { focused: document.activeElement === el });
-      } catch (e) {
-        log(tag + " ERROR", { error: String(e) });
-      }
-    };
-    log("mount, scheduling attempts");
-    // Attempt 1: synchronous
-    tryFocus("sync");
-    // Attempt 2: next animation frame (after React paints)
-    let rafId = null;
-    if (typeof requestAnimationFrame !== "undefined") {
-      rafId = requestAnimationFrame(() => tryFocus("rAF"));
-    }
-    // Attempt 3: 150ms timer (catches focus-trap libraries)
-    const t1 = setTimeout(() => tryFocus("150ms"), 150);
-    // Attempt 4: 500ms last-resort
-    const t2 = setTimeout(() => tryFocus("500ms"), 500);
-    return () => {
-      if (rafId != null && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(rafId);
-      clearTimeout(t1); clearTimeout(t2);
-    };
-  }, [autoFocus]);
-  return (
-    <label style={{ display: "block" }}>
-      <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-        {Icon && <Icon size={11} />}{label}
-      </div>
-      <input ref={inputRef} type={type} value={value} onChange={onChange} placeholder={placeholder} autoFocus={autoFocus}
-        style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
-    </label>
-  );
-};
+const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => (
+  <label style={{ display: "block" }}>
+    <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+      {Icon && <Icon size={11} />}{label}
+    </div>
+    <input type={type} value={value} onChange={onChange} placeholder={placeholder} autoFocus={autoFocus}
+      style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
+  </label>
+);
 
 const EmptyState = ({ label, hint }) => (
   <div style={{ padding: 48, textAlign: "center", border: `1.5px dashed ${C.line}`, background: C.paperDeep }}>
@@ -14549,18 +14489,47 @@ function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onA
           </div>
         )}
 
-        {/* === CREATE NEW ITEM === */}
+        {/* === CREATE NEW ITEM ===
+            Uses native window.prompt() which handles keyboard pop-up
+            automatically across all browsers and devices. Avoids the focus
+            problems that plagued the inline form. User can fill in
+            weight/category later by tapping the item to edit it.
+            The full inline form is kept available via the "Advanced" button
+            for users who want to fill in weight/category upfront. */}
         {!showCreate ? (
-          <button onClick={() => setShowCreate(true)}
-            style={{
-              width: "100%", padding: "12px 14px",
-              background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
-              cursor: "pointer", fontFamily: F.mono, fontSize: 11,
-              letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}>
-            <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={() => {
+              const name = window.prompt(t("kitDetail.createNew"));
+              if (!name || !name.trim()) return;
+              const created = {
+                id: uid("it"),
+                name: name.trim(),
+                weight: null,
+                category: null,
+                packed: false,
+              };
+              onAddItem(created);
+              onUpdateKit({ ...kit, itemIds: [...(kit.itemIds || []), created.id] });
+            }}
+              style={{
+                width: "100%", padding: "12px 14px",
+                background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
+                cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+                letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}>
+              <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
+            </button>
+            <button onClick={() => setShowCreate(true)}
+              style={{
+                width: "100%", padding: "6px 14px",
+                background: "transparent", border: "none", color: C.muted,
+                cursor: "pointer", fontFamily: F.mono, fontSize: 9,
+                letterSpacing: "0.18em", textTransform: "uppercase",
+              }}>
+              {lang === "es" ? "o añadir con detalles…" : "or add with details…"}
+            </button>
+          </div>
         ) : (
           <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
             <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
