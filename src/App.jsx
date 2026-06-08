@@ -3675,26 +3675,62 @@ const Btn = ({ children, onClick, variant = "primary", icon: Icon, disabled, ful
 
 // Field — labeled text input with the Field Journal aesthetic.
 //
-// `autoFocus` does two things together for maximum reliability across browsers:
-//   1. Sets the native HTML autofocus attribute (works on desktop, sometimes mobile)
-//   2. Uses a ref + useEffect to explicitly call .focus() on mount after a short
-//      setTimeout. This is needed because iOS Safari ignores the native attribute
-//      on inputs that are rendered conditionally after a tap — Safari considers
-//      the user gesture "stale" by the time the input exists, so it refuses to
-//      pop up the keyboard. Calling .focus() in a setTimeout from useEffect runs
-//      while the gesture is still in scope and the keyboard appears reliably.
+// `autoFocus` uses a multi-attempt strategy to handle a wide range of browser
+// quirks. The first attempt that actually focuses the input "wins" — later
+// attempts will see the input is already focused and do nothing harmful.
+//
+// Why multiple attempts:
+//   - Synchronous: works in some desktop browsers
+//   - requestAnimationFrame: works on most browsers after React paints
+//   - setTimeout 150ms: catches focus-trap libraries that move focus back
+//   - setTimeout 500ms: last-resort for slow mobile devices
+//
+// Console diagnostics are emitted so if focus STILL fails, the user can share
+// logs from Safari devtools/Chrome devtools and we can see exactly what's
+// happening. (This is temporary — once focus works reliably we'll remove it.)
 const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => {
   const inputRef = useRef(null);
   useEffect(() => {
     if (!autoFocus) return;
-    // The setTimeout is essential for iOS — focus() called synchronously from
-    // useEffect sometimes fires before the input is fully painted, which iOS
-    // treats the same as no focus at all. 50ms is plenty for any browser and
-    // imperceptible to the user.
-    const t = setTimeout(() => {
-      try { inputRef.current && inputRef.current.focus(); } catch (e) { /* ignore */ }
-    }, 50);
-    return () => clearTimeout(t);
+    const log = (tag, extra = {}) => {
+      // Tag every log so it's easy to find in browser devtools
+      try {
+        console.log("[Field autoFocus]", tag, {
+          hasRef: !!inputRef.current,
+          activeElement: typeof document !== "undefined" ? (document.activeElement && document.activeElement.tagName) : "n/a",
+          ...extra,
+        });
+      } catch (e) { /* console may not exist in some environments */ }
+    };
+    const tryFocus = (tag) => {
+      const el = inputRef.current;
+      if (!el) { log(tag + " no-ref"); return; }
+      try {
+        // Scroll input into view first — if it's off-screen, focus alone won't
+        // make the user see it.
+        if (el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: false });
+        log(tag, { focused: document.activeElement === el });
+      } catch (e) {
+        log(tag + " ERROR", { error: String(e) });
+      }
+    };
+    log("mount, scheduling attempts");
+    // Attempt 1: synchronous
+    tryFocus("sync");
+    // Attempt 2: next animation frame (after React paints)
+    let rafId = null;
+    if (typeof requestAnimationFrame !== "undefined") {
+      rafId = requestAnimationFrame(() => tryFocus("rAF"));
+    }
+    // Attempt 3: 150ms timer (catches focus-trap libraries)
+    const t1 = setTimeout(() => tryFocus("150ms"), 150);
+    // Attempt 4: 500ms last-resort
+    const t2 = setTimeout(() => tryFocus("500ms"), 500);
+    return () => {
+      if (rafId != null && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(rafId);
+      clearTimeout(t1); clearTimeout(t2);
+    };
   }, [autoFocus]);
   return (
     <label style={{ display: "block" }}>
