@@ -3673,15 +3673,28 @@ const Btn = ({ children, onClick, variant = "primary", icon: Icon, disabled, ful
   );
 };
 
-const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => (
-  <label style={{ display: "block" }}>
-    <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-      {Icon && <Icon size={11} />}{label}
-    </div>
-    <input type={type} value={value} onChange={onChange} placeholder={placeholder} autoFocus={autoFocus}
-      style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
-  </label>
-);
+const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => {
+  const inputRef = useRef(null);
+  useEffect(() => {
+    if (!autoFocus) return;
+    // Native autoFocus attribute fails when an input is conditionally rendered
+    // after a tap. Imperative .focus() inside setTimeout works on all platforms
+    // because it gives the browser one tick to finish painting the modal.
+    const t = setTimeout(() => {
+      try { inputRef.current && inputRef.current.focus(); } catch (e) { /* ignore */ }
+    }, 100);
+    return () => clearTimeout(t);
+  }, [autoFocus]);
+  return (
+    <label style={{ display: "block" }}>
+      <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        {Icon && <Icon size={11} />}{label}
+      </div>
+      <input ref={inputRef} type={type} value={value} onChange={onChange} placeholder={placeholder}
+        style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
+    </label>
+  );
+};
 
 const EmptyState = ({ label, hint }) => (
   <div style={{ padding: 48, textAlign: "center", border: `1.5px dashed ${C.line}`, background: C.paperDeep }}>
@@ -6558,7 +6571,7 @@ function AddItemForm({ categories, onAdd, onCancel, initial, defaultCategory }) 
       saveLabel={editMode ? t("common.save") : t("form.fileItem")}
     >
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24 }}>
-        <Field label={t("form.itemName")} icon={Tag} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("form.itemNamePh")} />
+        <Field label={t("form.itemName")} icon={Tag} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("form.itemNamePh")} autoFocus />
         <Field label={t("form.qty")} type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1" />
         <Field label={t("form.size")} value={size} onChange={(e) => setSize(e.target.value)} placeholder={t("form.sizePh")} />
         <Field label={t("form.weight")} value={weight} onChange={(e) => setWeight(e.target.value)} placeholder={units === "imperial" ? t("form.weightPhImperial") : t("form.weightPh")} />
@@ -7638,7 +7651,7 @@ function AddKitForm({ categories, items, onAdd, onCancel, defaultCategory, initi
           same AddItemForm as the Items page so all fields are available
           (name, weight, category, quantity, size, consumable, expiry, notes). */}
       {onAddItem && showCreateItem && (
-        <Modal title={t("form.addItemTitle")} onClose={() => setShowCreateItem(false)}>
+        <Modal title={t("form.itemTitle")} onClose={() => setShowCreateItem(false)}>
           <AddItemForm
             categories={categories}
             // No defaultCategory passed — falls back to Uncategorized.
@@ -14489,47 +14502,18 @@ function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onA
           </div>
         )}
 
-        {/* === CREATE NEW ITEM ===
-            Uses native window.prompt() which handles keyboard pop-up
-            automatically across all browsers and devices. Avoids the focus
-            problems that plagued the inline form. User can fill in
-            weight/category later by tapping the item to edit it.
-            The full inline form is kept available via the "Advanced" button
-            for users who want to fill in weight/category upfront. */}
+        {/* === CREATE NEW ITEM === */}
         {!showCreate ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => {
-              const name = window.prompt(t("kitDetail.createNew"));
-              if (!name || !name.trim()) return;
-              const created = {
-                id: uid("it"),
-                name: name.trim(),
-                weight: null,
-                category: null,
-                packed: false,
-              };
-              onAddItem(created);
-              onUpdateKit({ ...kit, itemIds: [...(kit.itemIds || []), created.id] });
-            }}
-              style={{
-                width: "100%", padding: "12px 14px",
-                background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
-                cursor: "pointer", fontFamily: F.mono, fontSize: 11,
-                letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-              }}>
-              <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
-            </button>
-            <button onClick={() => setShowCreate(true)}
-              style={{
-                width: "100%", padding: "6px 14px",
-                background: "transparent", border: "none", color: C.muted,
-                cursor: "pointer", fontFamily: F.mono, fontSize: 9,
-                letterSpacing: "0.18em", textTransform: "uppercase",
-              }}>
-              {lang === "es" ? "o añadir con detalles…" : "or add with details…"}
-            </button>
-          </div>
+          <button onClick={() => setShowCreate(true)}
+            style={{
+              width: "100%", padding: "12px 14px",
+              background: "transparent", border: `1.5px dashed ${C.rust}`, color: C.rust,
+              cursor: "pointer", fontFamily: F.mono, fontSize: 11,
+              letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            <Plus size={14} strokeWidth={2.5} /> {t("kitDetail.createNew")}
+          </button>
         ) : (
           <div style={{ padding: 12, background: C.paper, border: `1.5px dashed ${C.rust}` }}>
             <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.rust, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
