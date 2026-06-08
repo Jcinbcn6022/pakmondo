@@ -3673,15 +3673,39 @@ const Btn = ({ children, onClick, variant = "primary", icon: Icon, disabled, ful
   );
 };
 
-const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => (
-  <label style={{ display: "block" }}>
-    <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-      {Icon && <Icon size={11} />}{label}
-    </div>
-    <input type={type} value={value} onChange={onChange} placeholder={placeholder} autoFocus={autoFocus}
-      style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
-  </label>
-);
+// Field — labeled text input with the Field Journal aesthetic.
+//
+// `autoFocus` does two things together for maximum reliability across browsers:
+//   1. Sets the native HTML autofocus attribute (works on desktop, sometimes mobile)
+//   2. Uses a ref + useEffect to explicitly call .focus() on mount after a short
+//      setTimeout. This is needed because iOS Safari ignores the native attribute
+//      on inputs that are rendered conditionally after a tap — Safari considers
+//      the user gesture "stale" by the time the input exists, so it refuses to
+//      pop up the keyboard. Calling .focus() in a setTimeout from useEffect runs
+//      while the gesture is still in scope and the keyboard appears reliably.
+const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => {
+  const inputRef = useRef(null);
+  useEffect(() => {
+    if (!autoFocus) return;
+    // The setTimeout is essential for iOS — focus() called synchronously from
+    // useEffect sometimes fires before the input is fully painted, which iOS
+    // treats the same as no focus at all. 50ms is plenty for any browser and
+    // imperceptible to the user.
+    const t = setTimeout(() => {
+      try { inputRef.current && inputRef.current.focus(); } catch (e) { /* ignore */ }
+    }, 50);
+    return () => clearTimeout(t);
+  }, [autoFocus]);
+  return (
+    <label style={{ display: "block" }}>
+      <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        {Icon && <Icon size={11} />}{label}
+      </div>
+      <input ref={inputRef} type={type} value={value} onChange={onChange} placeholder={placeholder} autoFocus={autoFocus}
+        style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
+    </label>
+  );
+};
 
 const EmptyState = ({ label, hint }) => (
   <div style={{ padding: 48, textAlign: "center", border: `1.5px dashed ${C.line}`, background: C.paperDeep }}>
