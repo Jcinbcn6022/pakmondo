@@ -3673,12 +3673,12 @@ const Btn = ({ children, onClick, variant = "primary", icon: Icon, disabled, ful
   );
 };
 
-const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder }) => (
+const Field = ({ label, type = "text", icon: Icon, value, onChange, placeholder, autoFocus = false }) => (
   <label style={{ display: "block" }}>
     <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
       {Icon && <Icon size={11} />}{label}
     </div>
-    <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+    <input type={type} value={value} onChange={onChange} placeholder={placeholder} autoFocus={autoFocus}
       style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderBottom: `1.5px solid ${C.ink}`, outline: "none", fontFamily: F.body, fontSize: 16, color: C.ink }} />
   </label>
 );
@@ -10818,7 +10818,7 @@ function CreateTrip({
         onAddNewClick={() => setInlineMode(inlineMode === "item" ? null : "item")}
         inlineCreate={inlineMode === "item" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+            <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} autoFocus />
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
               <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
               <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
@@ -12825,7 +12825,7 @@ function TripPacklistForm({
                   + {t("trips.addNewItemInline").replace(/^\+\s*/, "")}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+                  <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} autoFocus />
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                     <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
                     <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
@@ -14507,7 +14507,7 @@ function KitDetailModal({ kit, items, categories, onUpdateKit, onUpdateItem, onA
               + {t("kitDetail.createNew")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+              <Field label={t("trips.inlineItemName")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} autoFocus />
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <Field label={t("trips.inlineItemWeight")} value={newItem.weight} onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })} placeholder="0.5 kg" />
                 <CategorySelect categories={categories} value={newItem.category} onChange={(v) => setNewItem({ ...newItem, category: v })} />
