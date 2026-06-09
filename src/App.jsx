@@ -5643,9 +5643,9 @@ function Stat({ label, value, sub }) {
   );
 }
 
-function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, badge }) {
+function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, subtle, badge }) {
   const { isMobile } = useViewport();
-  const bg = dark ? C.ink : accent ? C.rust : C.paper;
+  const bg = dark ? C.ink : accent ? C.rust : subtle ? C.paperDeep : C.paper;
   const fg = dark || accent ? C.paper : C.ink;
   return (
     <button onClick={onClick} style={{ padding: isMobile ? 20 : 32, textAlign: "left", position: "relative", cursor: "pointer", background: bg, color: fg, minHeight: isMobile ? 180 : 280, border: "none", width: "100%" }}>
@@ -6363,7 +6363,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
           <h2 style={{ marginTop: isMobile ? 48 : 80, marginBottom: isMobile ? 20 : 32, fontFamily: F.display, fontSize: isMobile ? 26 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("dash.kitTitle")}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 1, background: C.line }}>
             <NavCard num="01" title={t("dash.navInventory")} tagline={t("dash.navInventoryTag")} icon={Backpack} onClick={() => go("inventory")} dark badge={alerts.length} />
-            <NavCard num="02" title={t("dash.navPacklists")} tagline={t("dash.navPacklistsTag")} icon={MapIcon} onClick={() => go("packlists")} />
+            <NavCard num="02" title={t("dash.navPacklists")} tagline={t("dash.navPacklistsTag")} icon={MapIcon} onClick={() => go("packlists")} subtle />
             <NavCard num="03" title={t("dash.navCart")} tagline={t("dash.navCartTag")} icon={ShoppingCart} onClick={() => go("cart")} accent />
           </div>
           <h2 style={{ marginTop: isMobile ? 48 : 80, marginBottom: isMobile ? 20 : 32, fontFamily: F.display, fontSize: isMobile ? 26 : 32, fontWeight: 700, letterSpacing: "-0.02em" }}>{t("dash.savedPacklists")}</h2>
