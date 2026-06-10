@@ -669,7 +669,7 @@ function Logo({ size = 'header', onClick }) {
 const TRANSLATIONS = {
   en: {
     // Brand / generic
-    "brand.tagline": "Be Prepared, Be Anywhere.",
+    "brand.tagline": "Be Prepared, Be Anywhere",
     "brand.subline": "Inventory  /  Trip Planning  /  Provisioning",
     "brand.fieldTested": "Field-Tested",
     "footer.fieldEd": "FIELD ED. MMXXV",
@@ -6159,7 +6159,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
               {coordLine}
             </div>
             <DashLine />
-            <p style={{ marginTop: 14, marginBottom: 0, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 16 : 19, color: C.inkSoft, textAlign: "center" }}>
+            <p style={{ marginTop: 16, marginBottom: 0, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 22 : 30, fontWeight: 600, color: C.ink, textAlign: "center", letterSpacing: "-0.01em" }}>
               {t("brand.tagline")}
             </p>
           </div>
