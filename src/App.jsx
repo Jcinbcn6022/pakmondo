@@ -5648,7 +5648,7 @@ function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, subtl
   const bg = dark ? C.ink : accent ? C.rust : subtle ? C.paperDeep : C.paper;
   const fg = dark || accent ? C.paper : C.ink;
   return (
-    <button onClick={onClick} style={{ padding: isMobile ? 20 : 32, textAlign: "left", position: "relative", cursor: "pointer", background: bg, color: fg, minHeight: isMobile ? 180 : 280, border: "none", width: "100%" }}>
+    <button onClick={onClick} style={{ padding: isMobile ? 16 : 22, textAlign: "left", position: "relative", cursor: "pointer", background: bg, color: fg, minHeight: isMobile ? 110 : 160, border: "none", width: "100%" }}>
       {badge > 0 && (
         <div style={{ position: "absolute", top: 12, right: 12 }}>
           <AlertBadge count={badge} size={isMobile ? 22 : 26} />
@@ -5658,8 +5658,8 @@ function NavCard({ num, title, tagline, icon: Icon, onClick, dark, accent, subtl
         <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.2em", opacity: 0.7 }}>{num}</div>
         <Icon size={isMobile ? 22 : 26} strokeWidth={1.5} style={{ marginRight: badge > 0 ? 32 : 0 }} />
       </div>
-      <div style={{ marginTop: isMobile ? 32 : 64, fontFamily: F.display, fontSize: isMobile ? 28 : 38, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 0.95 }}>{title}</div>
-      <div style={{ marginTop: 10, maxWidth: 240, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 14 : 16, opacity: 0.85 }}>{tagline}</div>
+      <div style={{ marginTop: isMobile ? 18 : 30, fontFamily: F.display, fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 0.95 }}>{title}</div>
+      <div style={{ marginTop: 8, maxWidth: 240, fontFamily: F.display, fontStyle: "italic", fontSize: isMobile ? 12 : 14, opacity: 0.85 }}>{tagline}</div>
     </button>
   );
 }
