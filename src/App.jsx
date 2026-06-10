@@ -1221,6 +1221,11 @@ const TRANSLATIONS = {
     "inv.colWeight": "Weight",
     "inv.colExpiry": "Expiry",
     "inv.colPacked": "Pkd",
+    "inv.sortLabel": "Sort by",
+    "inv.sortName": "Name",
+    "inv.sortKit": "Kit",
+    "inv.sortCategory": "Category",
+    "inv.sortTooltip": "Sort items by {col}",
     "inv.kitsLabel": "kits",
     "inv.badgeConsumable": "Consumable",
     "inv.badgeExpired": "Expired",
@@ -2481,6 +2486,11 @@ const TRANSLATIONS = {
     "inv.colWeight": "Peso",
     "inv.colExpiry": "Caducidad",
     "inv.colPacked": "Emp",
+    "inv.sortLabel": "Ordenar por",
+    "inv.sortName": "Nombre",
+    "inv.sortKit": "Kit",
+    "inv.sortCategory": "Categoría",
+    "inv.sortTooltip": "Ordenar artículos por {col}",
     "inv.kitsLabel": "kits",
     "inv.badgeConsumable": "Consumible",
     "inv.badgeExpired": "Caducado",
@@ -6830,11 +6840,48 @@ function AddTravelTypeForm({ onAdd, onCancel }) {
 function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, packlists, setPacklists, categories, kits }) {
   const { t, locale, lang, units } = useI18n();
   const { isMobile } = useViewport();
+  // Sort column: "name" (default) | "kit" | "category". Clicking column
+  // headers (desktop) or sort-chip buttons (mobile) cycles between these.
+  const [sortBy, setSortBy] = useState("name");
   if (items.length === 0) return <EmptyState label={emptyLabel || t("inv.emptyItems")} hint={emptyHint || t("inv.emptyItemsHint")} />;
-  // Sort items alphabetically by name. Use locale-aware comparison so
-  // accented characters sort correctly (á before b, etc.) and case is ignored.
-  // We sort a COPY to avoid mutating props.
-  items = [...items].sort((a, b) => (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" }));
+
+  // Helper: get the kit name an item belongs to. If the item is in multiple
+  // kits, use the alphabetically-first kit name as the sort key. If in zero,
+  // return null so we can push it to the end.
+  const itemKitSortKey = (it) => {
+    const itemKits = (kits || []).filter((k) => (k.itemIds || []).includes(it.id));
+    if (itemKits.length === 0) return null;
+    return [...itemKits].sort((a, b) => (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" }))[0].name || null;
+  };
+
+  // Sort items based on the current sort column. We always sort a COPY to
+  // avoid mutating props. Items with missing keys (no kit, no category) sort
+  // to the BOTTOM regardless of direction so they don't obscure the data
+  // the user is trying to see.
+  const sortedItems = [...items].sort((a, b) => {
+    if (sortBy === "kit") {
+      const ka = itemKitSortKey(a);
+      const kb = itemKitSortKey(b);
+      if (ka == null && kb == null) return (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" });
+      if (ka == null) return 1;
+      if (kb == null) return -1;
+      const cmp = ka.localeCompare(kb, locale, { sensitivity: "base" });
+      // Tie-break by item name so order is stable within a kit
+      return cmp !== 0 ? cmp : (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" });
+    }
+    if (sortBy === "category") {
+      const ca = a.category || null;
+      const cb = b.category || null;
+      if (ca == null && cb == null) return (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" });
+      if (ca == null) return 1;
+      if (cb == null) return -1;
+      const cmp = ca.localeCompare(cb, locale, { sensitivity: "base" });
+      return cmp !== 0 ? cmp : (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" });
+    }
+    // Default: by item name
+    return (a.name || "").localeCompare(b.name || "", locale, { sensitivity: "base" });
+  });
+  items = sortedItems;
 
   const fmtExpiry = (iso) => {
     if (!iso) return "";
@@ -6878,6 +6925,36 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
   if (isMobile) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* Sort selector — keeps the feature reachable on mobile where the
+            desktop tabular headers aren't shown. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", paddingBottom: 4 }}>
+          <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: C.muted, fontWeight: 700 }}>
+            {t("inv.sortLabel")}
+          </span>
+          {[
+            { key: "name",     label: t("inv.sortName") },
+            { key: "kit",      label: t("inv.sortKit") },
+            { key: "category", label: t("inv.sortCategory") },
+          ].map(({ key, label }) => {
+            const active = sortBy === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                style={{
+                  padding: "4px 10px",
+                  background: active ? C.ink : "transparent",
+                  border: `1px solid ${active ? C.ink : C.muted}`,
+                  color: active ? C.paper : C.inkSoft,
+                  fontFamily: F.mono, fontSize: 10, fontWeight: 700,
+                  letterSpacing: "0.14em", textTransform: "uppercase",
+                  cursor: "pointer",
+                }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
         {items.map((it, idx) => {
           const expired = it.expiry && isExpired(it.expiry);
           const expSoon = it.expiry && !expired && isExpiringSoon(it);
@@ -6970,7 +7047,36 @@ function ItemsView({ items, onToggle, onDelete, onEdit, emptyLabel, emptyHint, p
   return (
     <div style={{ border: `1.5px solid ${C.ink}` }}>
       <div style={{ display: "grid", gridTemplateColumns: "60px 2fr 1.4fr 1fr 1fr 60px", padding: "12px 24px", background: C.ink, color: C.paper, fontFamily: F.mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-        <div>{t("inv.colNum")}</div><div>{t("inv.colItem")}</div><div>{t("inv.colKit")}</div><div>{t("inv.colCategory")}</div><div>{t("inv.colExpiry")}</div><div></div>
+        <div>{t("inv.colNum")}</div>
+        {/* Sortable column headers — click to switch the sort column.
+            Active header shows a caret. Buttons are styled to look identical
+            to the surrounding non-clickable headers so the bar still looks
+            like a clean tabular header. */}
+        {[
+          { key: "name",     label: t("inv.colItem") },
+          { key: "kit",      label: t("inv.colKit") },
+          { key: "category", label: t("inv.colCategory") },
+        ].map(({ key, label }) => {
+          const active = sortBy === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setSortBy(key)}
+              title={t("inv.sortTooltip").replace("{col}", label)}
+              style={{
+                background: "transparent", border: "none", padding: 0,
+                color: active ? C.paper : "rgba(239,231,214,0.55)",
+                fontFamily: "inherit", fontSize: "inherit",
+                letterSpacing: "inherit", textTransform: "inherit",
+                textAlign: "left", cursor: "pointer", fontWeight: active ? 700 : 400,
+                display: "inline-flex", alignItems: "center", gap: 4,
+              }}>
+              <span>{label}</span>
+              {active && <span style={{ fontSize: 9 }}>▾</span>}
+            </button>
+          );
+        })}
+        <div>{t("inv.colExpiry")}</div><div></div>
       </div>
       {items.map((it, idx) => {
         const expired = it.expiry && isExpired(it.expiry);
