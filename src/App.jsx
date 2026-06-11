@@ -1416,6 +1416,9 @@ const TRANSLATIONS = {
     "trips.newType": "New style",
     "trips.defineType": "Define a new ADV Style",
     "trips.addType": "Add style",
+    "trips.addCustomType": "Add new style",
+    "trips.newTypeName": "Style name",
+    "trips.deleteType": "Delete this style",
     "trips.fileTrip": "Save Trip",
     "trips.step1": "Step 1 of 2",
     "trips.step2": "Step 2 of 2",
@@ -2676,6 +2679,9 @@ const TRANSLATIONS = {
     "trips.newType": "Nuevo estilo",
     "trips.defineType": "Define un nuevo Estilo ADV",
     "trips.addType": "Añadir estilo",
+    "trips.addCustomType": "Añadir nuevo estilo",
+    "trips.newTypeName": "Nombre del estilo",
+    "trips.deleteType": "Eliminar este estilo",
     "trips.fileTrip": "Guardar lista de viaje",
     "trips.step1": "Paso 1 de 2",
     "trips.step2": "Paso 2 de 2",
@@ -3914,28 +3920,76 @@ const SEED_TRAVEL_TYPES = [
 ];
 
 /* Lookup helper — given a stored trip-type label (e.g. "Hiker"), find the
-   matching catalogue entry. Falls back to the "Other" entry so existing
-   trips with old type names display the Other icon instead of breaking. */
-function getTripType(name) {
+   matching catalogue entry. Looks up the user's current travelTypes list
+   first (so custom styles work), then falls back to SEED_TRAVEL_TYPES (so
+   old saved trips with a since-deleted standard style still show an icon),
+   then ultimately to the "Other" entry as a last resort. */
+function getTripType(name, travelTypes) {
   if (!name) return null;
+  if (Array.isArray(travelTypes)) {
+    const hit = travelTypes.find((tt) => tt.name === name);
+    if (hit) return hit;
+  }
   return SEED_TRAVEL_TYPES.find((tt) => tt.name === name) || SEED_TRAVEL_TYPES.find((tt) => tt.id === "tt-other");
 }
 
 /* TripTypeSelect — custom dropdown for picking a trip type.
+   Renders from the user's travelTypes list when passed; otherwise falls back
+   to the hard-coded seed catalogue. Optional setTravelTypes prop enables
+   inline add and per-row delete directly from the dropdown so users can
+   manage their list without leaving the trip form.
+
    Trigger shows current selection (icon + name).
-   Open list shows all 13 with descriptions. */
-function TripTypeSelect({ value, onChange }) {
+   Open list shows all available types, then an "+ Add new" affordance at
+   the bottom that flips into a name-input row when tapped. */
+function TripTypeSelect({ value, onChange, travelTypes, setTravelTypes }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
   const ref = useRef(null);
-  const selected = getTripType(value);
+  // Render list: prefer the user's customizable list, fall back to seed
+  const list = Array.isArray(travelTypes) && travelTypes.length > 0
+    ? travelTypes
+    : SEED_TRAVEL_TYPES;
+  const selected = getTripType(value, travelTypes);
+  // Whether the customize (add/delete) UI is available
+  const canEdit = typeof setTravelTypes === "function";
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setAdding(false); } };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
+
+  const saveNewType = () => {
+    const name = (newName || "").trim();
+    if (!name || !canEdit) return;
+    // Skip if a type with this name already exists (case-insensitive)
+    const existing = list.find((tt) => (tt.name || "").toLowerCase() === name.toLowerCase());
+    if (existing) {
+      onChange(existing.name);
+      setAdding(false);
+      setNewName("");
+      setOpen(false);
+      return;
+    }
+    const created = { id: uid("tt"), name, icon: "mountain", description: "" };
+    setTravelTypes([created, ...list]);
+    onChange(name);
+    setAdding(false);
+    setNewName("");
+    setOpen(false);
+  };
+
+  const deleteType = (e, ttId, ttName) => {
+    e.stopPropagation();
+    if (!canEdit) return;
+    setTravelTypes(list.filter((tt) => tt.id !== ttId));
+    // If the user deletes the currently selected style, clear the selection
+    if (selected && selected.name === ttName) onChange("");
+  };
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -3969,15 +4023,15 @@ function TripTypeSelect({ value, onChange }) {
           maxHeight: 360, overflowY: "auto",
           boxShadow: "0 8px 24px rgba(26,36,33,0.15)",
         }}>
-          {SEED_TRAVEL_TYPES.map((tt) => {
-            const isSel = selected?.id === tt.id;
+          {list.map((tt) => {
+            const isSel = selected?.id === tt.id || selected?.name === tt.name;
             return (
-              <button key={tt.id} type="button"
+              <div key={tt.id}
                 onClick={() => { onChange(tt.name); setOpen(false); }}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: 12,
                   padding: "10px 12px", background: isSel ? C.paperDeep : "transparent",
-                  border: "none", borderBottom: `1px solid ${C.line}`, cursor: "pointer", textAlign: "left",
+                  borderBottom: `1px solid ${C.line}`, cursor: "pointer", textAlign: "left",
                 }}
                 onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = C.paperDeep; }}
                 onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
@@ -3986,14 +4040,83 @@ function TripTypeSelect({ value, onChange }) {
                   <div style={{ fontFamily: F.display, fontSize: 15, fontWeight: 600, color: C.ink, lineHeight: 1.2 }}>
                     {tt.name}
                   </div>
-                  <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 12, color: C.muted, lineHeight: 1.3 }}>
-                    {tt.description}
-                  </div>
+                  {tt.description && (
+                    <div style={{ marginTop: 2, fontFamily: F.body, fontSize: 12, color: C.muted, lineHeight: 1.3 }}>
+                      {tt.description}
+                    </div>
+                  )}
                 </span>
                 {isSel && <Check size={14} style={{ color: C.rust, flexShrink: 0 }} />}
-              </button>
+                {canEdit && (
+                  <button type="button"
+                    onClick={(e) => deleteType(e, tt.id, tt.name)}
+                    title={t("trips.deleteType") || "Delete this style"}
+                    aria-label={t("trips.deleteType") || "Delete this style"}
+                    style={{
+                      width: 24, height: 24, padding: 0, flexShrink: 0, marginLeft: 4,
+                      background: "transparent", border: `1px solid ${C.muted}`, color: C.muted,
+                      cursor: "pointer",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
             );
           })}
+
+          {/* Add new — flips into a name input when tapped */}
+          {canEdit && (
+            adding ? (
+              <div style={{
+                padding: "10px 12px", borderBottom: `1px solid ${C.line}`,
+                background: C.paperDeep, display: "flex", gap: 8, alignItems: "center",
+              }}>
+                <input type="text" value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveNewType(); } if (e.key === "Escape") { setAdding(false); setNewName(""); } }}
+                  placeholder={t("trips.newTypeName") || "Style name"}
+                  autoFocus
+                  style={{
+                    flex: 1, padding: "8px 10px", background: C.paper,
+                    border: `1.5px solid ${C.ink}`, outline: "none",
+                    fontFamily: F.body, fontSize: 14, color: C.ink,
+                  }} />
+                <button type="button" onClick={saveNewType}
+                  disabled={!newName.trim()}
+                  style={{
+                    padding: "8px 12px", background: C.rust, color: C.paper,
+                    border: `1.5px solid ${C.rust}`, cursor: newName.trim() ? "pointer" : "not-allowed",
+                    fontFamily: F.mono, fontSize: 11, letterSpacing: "0.14em",
+                    textTransform: "uppercase", fontWeight: 700,
+                    opacity: newName.trim() ? 1 : 0.5,
+                  }}>
+                  {t("common.save") || "Save"}
+                </button>
+                <button type="button" onClick={() => { setAdding(false); setNewName(""); }}
+                  style={{
+                    padding: "8px 10px", background: "transparent",
+                    border: `1px solid ${C.muted}`, color: C.muted, cursor: "pointer",
+                    fontFamily: F.mono, fontSize: 11, letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                  }}>
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setAdding(true)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 10,
+                  padding: "12px 14px", background: "transparent",
+                  border: "none", borderTop: `1px dashed ${C.rust}`,
+                  cursor: "pointer", textAlign: "left",
+                  color: C.rust, fontFamily: F.mono, fontSize: 11,
+                  letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700,
+                }}>
+                <Plus size={14} strokeWidth={2.5} /> {t("trips.addCustomType") || "Add new style"}
+              </button>
+            )
+          )}
         </div>
       )}
     </div>
@@ -10579,7 +10702,7 @@ function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
 }
 
 function CreateTrip({
-  travelTypes, onAddType, onDeleteType,
+  travelTypes, setTravelTypes, onAddType, onDeleteType,
   onCreate, onCancel,
   items, setItems,
   kits, setKits,
@@ -10775,7 +10898,7 @@ function CreateTrip({
             <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
               {t("trips.tripType")}
             </div>
-            <TripTypeSelect value={form.type} onChange={(v) => setForm({ ...form, type: v })} />
+            <TripTypeSelect value={form.type} onChange={(v) => setForm({ ...form, type: v })} travelTypes={travelTypes} setTravelTypes={setTravelTypes} />
           </div>
         </div>
         <div style={{ marginTop: isMobile ? 28 : 40, display: "flex", gap: 10, flexDirection: isMobile ? "column-reverse" : "row" }}>
@@ -11727,6 +11850,7 @@ function Trips({ go, trips, setTrips, travelTypes, setTravelTypes, shareService,
             onPublish={currentUser?.id ? (tr) => setPublishing({ kind: "trip", entity: tr }) : null} />}
           {tab === "create" && <CreateTrip
             travelTypes={travelTypes}
+            setTravelTypes={setTravelTypes}
             onAddType={addType}
             onDeleteType={deleteType}
             onCreate={addTrip}
@@ -12802,7 +12926,7 @@ function TripPacklistForm({
             <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
               {t("trips.tripType")}
             </div>
-            <TripTypeSelect value={type} onChange={(v) => setType(v)} />
+            <TripTypeSelect value={type} onChange={(v) => setType(v)} travelTypes={travelTypes} setTravelTypes={setTravelTypes} />
           </div>
 
           {/* Notes */}
@@ -13355,7 +13479,7 @@ function PacklistEditorDialog({
                   <div style={{ marginBottom: 10, fontFamily: F.mono, fontSize: 10, color: C.muted, letterSpacing: "0.18em", textTransform: "uppercase" }}>
                     {t("trips.tripType")}
                   </div>
-                  <TripTypeSelect value={type} onChange={(v) => setType(v)} />
+                  <TripTypeSelect value={type} onChange={(v) => setType(v)} travelTypes={travelTypes} setTravelTypes={setTravelTypes} />
                 </div>
 
                 {/* Notes */}
