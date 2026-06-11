@@ -3886,13 +3886,12 @@ const TT_ICONS = {
    Used everywhere a trip type is displayed (chips, cards, detail). */
 function TripTypeBadge({ iconKey, size = 36, name }) {
   // If the iconKey isn't a known seed icon (custom user-created style),
-  // fall back to rendering the first letter of the style's name. Same ochre
-  // background as the seed icons so custom styles visually fit alongside.
+  // render a generic PakMondo-themed icon (peak + mountain + sun) so
+  // custom styles visually fit alongside the hand-drawn seed icons.
+  // The `name` prop is accepted for backward compatibility with callers
+  // that previously passed it for letter rendering; it's currently unused.
   const innerSvg = TT_ICONS[iconKey];
-  const useLetter = !innerSvg || iconKey === "letter";
-  const letter = useLetter
-    ? ((name || "?").trim().charAt(0).toUpperCase() || "?")
-    : null;
+  const useCustom = !innerSvg || iconKey === "letter";
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -3900,16 +3899,18 @@ function TripTypeBadge({ iconKey, size = 36, name }) {
       background: C.ochre, color: "#000",
       flexShrink: 0,
     }} aria-hidden="true">
-      {useLetter ? (
-        <span style={{
-          // Light sans-serif at low weight — visually rhymes with the
-          // thin-stroke line icons in the seed catalogue. Bold Georgia would
-          // dominate next to the slender illustration icons.
-          fontFamily: F.body, fontSize: Math.round(size * 0.52),
-          fontWeight: 300, lineHeight: 1,
-        }}>
-          {letter}
-        </span>
+      {useCustom ? (
+        <svg viewBox="0 0 64 64" width={Math.round(size * 0.72)} height={Math.round(size * 0.72)}>
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Peak — small triangle at top */}
+            <path d="M32 10 L24 26 L40 26 Z"/>
+            {/* Mountain — larger triangle below, gap above echoes the brand's
+                lightning-crack motif between peak and mountain */}
+            <path d="M10 52 L32 28 L54 52 Z"/>
+            {/* Sun — small filled accent on the lower right of the mountain */}
+            <circle cx="42" cy="44" r="4" fill="currentColor"/>
+          </g>
+        </svg>
       ) : (
         <svg viewBox="0 0 64 64" width={Math.round(size * 0.72)} height={Math.round(size * 0.72)}>
           {innerSvg}
