@@ -12509,7 +12509,7 @@ function Packlists({ go, packlists, setPacklists, kits, setKits, items, setItems
 
 /* List of packlist cards */
 function PacklistsList({ packlists, kits, items, onOpen, onEdit, onDelete, onCreate }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isMobile } = useViewport();
   const [confirmingId, setConfirmingId] = useState(null);
 
@@ -12543,11 +12543,23 @@ function PacklistsList({ packlists, kits, items, onOpen, onEdit, onDelete, onCre
         return (
           <div key={p.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 16 : 20, position: "relative", display: "flex", flexDirection: "column" }}>
             <Coord>PACKLIST</Coord>
-            <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} name={p.type} size={isMobile ? 36 : 44} />}
               <div style={{ flex: 1, minWidth: 0, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 4 }}>
                 {p.name}
               </div>
+              {p.type && (
+                <span style={{
+                  flexShrink: 0,
+                  padding: "4px 8px",
+                  border: `1px solid ${C.muted}`,
+                  fontFamily: F.mono, fontSize: 10, color: C.muted,
+                  letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700,
+                  whiteSpace: "nowrap",
+                }}>
+                  {tOrLiteral(lang, "tt", p.type)}
+                </span>
+              )}
             </div>
             <div style={{ marginTop: 6, fontFamily: F.mono, fontSize: 11, color: C.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
               {kitsLabel}{itemCount > 0 ? `  /  ${itemsLabel}` : ""}{totalUnique > 0 ? `  /  ${t("pl.totalUnique", { n: totalUnique })}` : ""}
