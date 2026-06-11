@@ -1267,7 +1267,7 @@ const TRANSLATIONS = {
     // Packlists — top-level entity that combines kits + items for a trip/purpose
     "pl.section": "SECTION TRIPS",
     "pl.titleA": "Trips &",
-    "pl.titleB": "trips",
+    "pl.titleB": "lists",
     "pl.tagline": "Curated bundles for any expedition.",
     "pl.tabSaved": "Saved {n}",
     "pl.tabCreate": "Create a Trip",
@@ -2530,7 +2530,7 @@ const TRANSLATIONS = {
 
     "pl.section": "SECCIÓN VIAJES",
     "pl.titleA": "Viajes y",
-    "pl.titleB": "viajes",
+    "pl.titleB": "listas",
     "pl.tagline": "Conjuntos curados para cualquier expedición.",
     "pl.tabSaved": "Guardadas {n}",
     "pl.tabCreate": "Crear un Viaje",
