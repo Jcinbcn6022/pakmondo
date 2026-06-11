@@ -3884,8 +3884,15 @@ const TT_ICONS = {
 
 /* TripTypeBadge — square ochre tile with the trip-type icon in black.
    Used everywhere a trip type is displayed (chips, cards, detail). */
-function TripTypeBadge({ iconKey, size = 36 }) {
-  const innerSvg = TT_ICONS[iconKey] || TT_ICONS["other"];
+function TripTypeBadge({ iconKey, size = 36, name }) {
+  // If the iconKey isn't a known seed icon (custom user-created style),
+  // fall back to rendering the first letter of the style's name. Same ochre
+  // background as the seed icons so custom styles visually fit alongside.
+  const innerSvg = TT_ICONS[iconKey];
+  const useLetter = !innerSvg || iconKey === "letter";
+  const letter = useLetter
+    ? ((name || "?").trim().charAt(0).toUpperCase() || "?")
+    : null;
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -3893,9 +3900,19 @@ function TripTypeBadge({ iconKey, size = 36 }) {
       background: C.ochre, color: "#000",
       flexShrink: 0,
     }} aria-hidden="true">
-      <svg viewBox="0 0 64 64" width={Math.round(size * 0.72)} height={Math.round(size * 0.72)}>
-        {innerSvg}
-      </svg>
+      {useLetter ? (
+        <span style={{
+          // Scale letter to ~58% of badge — visually balanced with the SVG icons
+          fontFamily: F.display, fontSize: Math.round(size * 0.58),
+          fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em",
+        }}>
+          {letter}
+        </span>
+      ) : (
+        <svg viewBox="0 0 64 64" width={Math.round(size * 0.72)} height={Math.round(size * 0.72)}>
+          {innerSvg}
+        </svg>
+      )}
     </span>
   );
 }
@@ -3922,15 +3939,19 @@ const SEED_TRAVEL_TYPES = [
 /* Lookup helper — given a stored trip-type label (e.g. "Hiker"), find the
    matching catalogue entry. Looks up the user's current travelTypes list
    first (so custom styles work), then falls back to SEED_TRAVEL_TYPES (so
-   old saved trips with a since-deleted standard style still show an icon),
-   then ultimately to the "Other" entry as a last resort. */
+   old saved trips with a standard style still show an icon), and finally
+   returns a synthetic "letter" entry for any unknown name so the badge can
+   render the first letter of the name. */
 function getTripType(name, travelTypes) {
   if (!name) return null;
   if (Array.isArray(travelTypes)) {
     const hit = travelTypes.find((tt) => tt.name === name);
     if (hit) return hit;
   }
-  return SEED_TRAVEL_TYPES.find((tt) => tt.name === name) || SEED_TRAVEL_TYPES.find((tt) => tt.id === "tt-other");
+  const seedHit = SEED_TRAVEL_TYPES.find((tt) => tt.name === name);
+  if (seedHit) return seedHit;
+  // Unknown style — render as a letter badge using the given name
+  return { id: `tt-letter-${name}`, name, icon: "letter", description: "" };
 }
 
 /* TripTypeSelect — custom dropdown for picking a trip type.
@@ -3975,7 +3996,7 @@ function TripTypeSelect({ value, onChange, travelTypes, setTravelTypes }) {
       setOpen(false);
       return;
     }
-    const created = { id: uid("tt"), name, icon: "mountain", description: "" };
+    const created = { id: uid("tt"), name, icon: "letter", description: "" };
     setTravelTypes([created, ...list]);
     onChange(name);
     setAdding(false);
@@ -4001,7 +4022,7 @@ function TripTypeSelect({ value, onChange, travelTypes, setTravelTypes }) {
         }}>
         {selected ? (
           <>
-            <TripTypeBadge iconKey={selected.icon} size={32} />
+            <TripTypeBadge iconKey={selected.icon} name={selected.name} size={32} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 600, color: C.ink }}>
                 {selected.name}
@@ -4035,7 +4056,7 @@ function TripTypeSelect({ value, onChange, travelTypes, setTravelTypes }) {
                 }}
                 onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = C.paperDeep; }}
                 onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
-                <TripTypeBadge iconKey={tt.icon} size={36} />
+                <TripTypeBadge iconKey={tt.icon} name={tt.name} size={36} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: F.display, fontSize: 15, fontWeight: 600, color: C.ink, lineHeight: 1.2 }}>
                     {tt.name}
@@ -6536,7 +6557,7 @@ function Dashboard({ go, user, trips, cart, items, setItems, packlists = [], set
                     >
                       <Coord>PACKLIST</Coord>
                       <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 10 }}>
-                        {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} size={isMobile ? 32 : 36} />}
+                        {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} name={p.type} size={isMobile ? 32 : 36} />}
                         <div style={{ flex: 1, minWidth: 0, fontFamily: F.display, fontSize: isMobile ? 18 : 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
                           {p.name}
                         </div>
@@ -10642,7 +10663,7 @@ function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
               <div>
                 <Coord>{t("trips.colType")}</Coord>
                 <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
-                  {tr.type && <TripTypeBadge iconKey={getTripType(tr.type)?.icon || "other"} size={28} />}
+                  {tr.type && <TripTypeBadge iconKey={getTripType(tr.type)?.icon || "other"} name={tr.type} size={28} />}
                   <span style={{ fontFamily: F.body, fontSize: 13 }}>{tOrLiteral(lang, "tt", tr.type)}</span>
                 </div>
               </div>
@@ -10674,7 +10695,7 @@ function SavedTrips({ trips, onDelete, onPlan, onShare, onPublish }) {
           <div style={{ fontFamily: F.body, fontSize: 14 }}>
             <Coord>{t("trips.colType")}</Coord>
             <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              {tr.type && <TripTypeBadge iconKey={getTripType(tr.type)?.icon || "other"} size={28} />}
+              {tr.type && <TripTypeBadge iconKey={getTripType(tr.type)?.icon || "other"} name={tr.type} size={28} />}
               <span>{tOrLiteral(lang, "tt", tr.type)}</span>
             </div>
           </div>
@@ -12520,7 +12541,7 @@ function PacklistsList({ packlists, kits, items, onOpen, onEdit, onDelete, onCre
           <div key={p.id} style={{ background: C.paper, border: `1.5px solid ${C.ink}`, padding: isMobile ? 16 : 20, position: "relative", display: "flex", flexDirection: "column" }}>
             <Coord>PACKLIST</Coord>
             <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
-              {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} size={isMobile ? 36 : 44} />}
+              {p.type && <TripTypeBadge iconKey={getTripType(p.type)?.icon || "other"} name={p.type} size={isMobile ? 36 : 44} />}
               <div style={{ flex: 1, minWidth: 0, fontFamily: F.display, fontSize: isMobile ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.05, paddingRight: 4 }}>
                 {p.name}
               </div>
@@ -15868,7 +15889,7 @@ function PacklistDetail({ packlist, kits, items, categories, onBack, onEdit, onD
         </button>
         <Coord>{packlist.dest ? packlist.dest.toUpperCase() : "PACKLIST"}</Coord>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
-          {packlist.type && <TripTypeBadge iconKey={getTripType(packlist.type)?.icon || "other"} size={isMobile ? 36 : 48} />}
+          {packlist.type && <TripTypeBadge iconKey={getTripType(packlist.type)?.icon || "other"} name={packlist.type} size={isMobile ? 36 : 48} />}
           <h2 style={{ margin: "0 0 0 0", fontFamily: F.display, fontSize: isMobile ? 32 : 44, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>
             {packlist.name}<span style={{ color: C.rust }}>.</span>
           </h2>
