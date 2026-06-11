@@ -3902,9 +3902,11 @@ function TripTypeBadge({ iconKey, size = 36, name }) {
     }} aria-hidden="true">
       {useLetter ? (
         <span style={{
-          // Scale letter to ~58% of badge — visually balanced with the SVG icons
-          fontFamily: F.display, fontSize: Math.round(size * 0.58),
-          fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em",
+          // Light sans-serif at low weight — visually rhymes with the
+          // thin-stroke line icons in the seed catalogue. Bold Georgia would
+          // dominate next to the slender illustration icons.
+          fontFamily: F.body, fontSize: Math.round(size * 0.52),
+          fontWeight: 300, lineHeight: 1,
         }}>
           {letter}
         </span>
